@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>以太坊升级全记录 | Ethereum Hardfork History</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #111118;
+            --bg-card: #16161e;
+            --bg-card-hover: #1c1c26;
+            --border-color: #2a2a3a;
+            --border-hover: #3a3a50;
+            --text-primary: #f0f0f5;
+            --text-secondary: #9a9ab0;
+            --text-muted: #6a6a80;
+            --accent-blue: #627eea;
+            --accent-blue-light: #8aa4f0;
+            --accent-cyan: #00d4aa;
+            --accent-purple: #a855f7;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-green: #22c55e;
+            --gradient-eth: linear-gradient(135deg, #627eea 0%, #a855f7 50%, #00d4aa 100%);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            padding: 80px 20px 60px;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 50% 30%, rgba(98, 126, 234, 0.08) 0%, transparent 50%),
+                        radial-gradient(ellipse at 30% 70%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 60%, rgba(0, 212, 170, 0.06) 0%, transparent 50%);
+            animation: pulse 15s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .eth-logo {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 24px;
+            background: var(--gradient-eth);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 0 40px rgba(98, 126, 234, 0.3);
+        }
+
+        .hero h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: var(--gradient-eth);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 32px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-blue-light);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Filters */
+        .filters {
+            padding: 0 20px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        /* Timeline */
+        .timeline-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 80px;
+            position: relative;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, 
+                transparent 0%, 
+                var(--border-color) 5%, 
+                var(--border-color) 95%, 
+                transparent 100%);
+            transform: translateX(-50%);
+        }
+
+        /* Cards */
+        .upgrade-card {
+            position: relative;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: flex-start;
+            gap: 40px;
+        }
+
+        .upgrade-card:nth-child(odd) {
+            flex-direction: row;
+        }
+
+        .upgrade-card:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+
+        .upgrade-card > * {
+            flex: 1;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 50%;
+            top: 24px;
+            width: 16px;
+            height: 16px;
+            background: var(--bg-primary);
+            border: 3px solid var(--accent-blue);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            transition: all 0.3s;
+        }
+
+        .upgrade-card:hover .timeline-dot {
+            background: var(--accent-blue);
+            box-shadow: 0 0 16px rgba(98, 126, 234, 0.5);
+        }
+
+        .timeline-date {
+            position: absolute;
+            left: 50%;
+            top: 48px;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .card-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .card-content:hover {
+            border-color: var(--border-hover);
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .card-title-group {
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .card-desc {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .eip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .eip-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: rgba(98, 126, 234, 0.1);
+            border: 1px solid rgba(98, 126, 234, 0.2);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--accent-blue-light);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .eip-tag:hover {
+            background: rgba(98, 126, 234, 0.2);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .eip-tag .eip-num {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-weight: 600;
+        }
+
+        .eip-tag.major {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: var(--accent-orange);
+        }
+
+        .eip-tag.major:hover {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: var(--accent-orange);
+            color: white;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .card-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Detail Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            max-width: 700px;
+            width: 100%;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-badge {
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px 28px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .detail-section {
+            margin-bottom: 24px;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .detail-text {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .detail-text strong {
+            color: var(--text-primary);
+        }
+
+        .ai-summary {
+            background: linear-gradient(135deg, rgba(98, 126, 234, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
+            border: 1px solid rgba(98, 126, 234, 0.15);
+            border-radius: var(--radius-md);
+            padding: 16px;
+        }
+
+        .ai-summary .detail-label {
+            color: var(--accent-blue-light);
+        }
+
+        .tech-details {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            overflow-x: auto;
+        }
+
+        .tech-details code {
+            color: var(--accent-cyan);
+        }
+
+        .impact-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .impact-tag {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .impact-high {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .impact-medium {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-orange);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .impact-low {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .timeline-line {
+                left: 20px;
+            }
+
+            .upgrade-card,
+            .upgrade-card:nth-child(odd),
+            .upgrade-card:nth-child(even) {
+                flex-direction: column;
+                padding-left: 44px;
+                gap: 12px;
+            }
+
+            .timeline-dot {
+                left: 20px;
+            }
+
+            .timeline-date {
+                left: 20px;
+                top: 52px;
+                transform: none;
+                text-align: left;
+            }
+
+            .stats-bar {
+                gap: 24px;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-hover);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .upgrade-card {
+            animation: fadeInUp 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        .upgrade-card:nth-child(1) { animation-delay: 0.05s; }
+        .upgrade-card:nth-child(2) { animation-delay: 0.1s; }
+        .upgrade-card:nth-child(3) { animation-delay: 0.15s; }
+        .upgrade-card:nth-child(4) { animation-delay: 0.2s; }
+        .upgrade-card:nth-child(5) { animation-delay: 0.25s; }
+        .upgrade-card:nth-child(6) { animation-delay: 0.3s; }
+        .upgrade-card:nth-child(7) { animation-delay: 0.35s; }
+        .upgrade-card:nth-child(8) { animation-delay: 0.4s; }
+        .upgrade-card:nth-child(9) { animation-delay: 0.45s; }
+        .upgrade-card:nth-child(10) { animation-delay: 0.5s; }
+        .upgrade-card:nth-child(11) { animation-delay: 0.55s; }
+        .upgrade-card:nth-child(12) { animation-delay: 0.6s; }
+        .upgrade-card:nth-child(13) { animation-delay: 0.65s; }
+        .upgrade-card:nth-child(14) { animation-delay: 0.7s; }
+        .upgrade-card:nth-child(15) { animation-delay: 0.75s; }
+        .upgrade-card:nth-child(16) { animation-delay: 0.8s; }
+        .upgrade-card:nth-child(17) { animation-delay: 0.85s; }
+        .upgrade-card:nth-child(18) { animation-delay: 0.9s; }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hero">
+        <div class="hero-content">
+            <div class="eth-logo">Ξ</div>
+            <h1>以太坊升级全记录</h1>
+            <p>从 Frontier 到 Fusaka，追踪以太坊协议的每一次进化——包含历次硬分叉、核心 EIP 及技术演进路线图</p>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value">20+</div>
+                    <div class="stat-label">次重大升级</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">11年</div>
+                    <div class="stat-label">持续演进</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">100+</div>
+                    <div class="stat-label">核心 EIP</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filters">
+        <div class="filter-tabs">
+            <button class="filter-btn active" data-filter="all">全部</button>
+            <button class="filter-btn" data-filter="consensus">共识层</button>
+            <button class="filter-btn" data-filter="execution">执行层</button>
+            <button class="filter-btn" data-filter="l2">扩容/L2</button>
+            <button class="filter-btn" data-filter="economic">经济模型</button>
+            <button class="filter-btn" data-filter="security">安全/DoS</button>
+            <button class="filter-btn" data-filter="major">里程碑</button>
+        </div>
+    </div>
+
+    <div class="timeline-container" id="timeline">
+        <div class="timeline-line"></div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">EIP 详情</div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data
+        const upgrades = [
+            {
+                name: "Frontier",
+                date: "2015-07-30",
+                displayDate: "2015年7月",
+                block: "0",
+                type: ["execution"],
+                icon: "🏁",
+                desc: "以太坊的创世时刻。Frontier 是一个'裸机'版的上线实现，面向开发者和技术用户。gas 上限限制在 5000，合约部署需要手动操作。",
+                features: [
+                    { eip: null, name: "创世区块", major: true, desc: "以太坊主网正式启动，挖出第一个区块" },
+                    { eip: null, name: "gas 上限 5000", desc: "初期限制 gas 使用量，确保网络稳定启动" },
+                    { eip: null, name: "技术用户导向", desc: "面向开发者和早期采用者，需要一定的技术门槛" }
+                ]
+            },
+            {
+                name: "Frontier Thawing",
+                date: "2015-09-07",
+                displayDate: "2015年9月",
+                block: "200,000",
+                type: ["execution"],
+                icon: "🧊",
+                desc: "Frontier 的解冻升级。取消每个区块 5000 gas 的限制，将默认 gas 价格设为 51 gwei，使普通交易（21000 gas）成为可能。引入了难度炸弹确保未来必须转向 PoS。",
+                features: [
+                    { eip: null, name: "gas 限制解除", major: true, desc: "解除每个区块 5000 gas 的限制，允许更多交易" },
+                    { eip: null, name: "默认 gas 价格", desc: "将默认 gas 价格设为 51 gwei" },
+                    { eip: null, name: "难度炸弹引入", desc: "ETH 发行与挖矿难度逐渐增加，强制未来转向 PoS" }
+                ]
+            },
+            {
+                name: "Homestead",
+                date: "2016-03-14",
+                displayDate: "2016年3月",
+                block: "1,150,000",
+                type: ["execution", "major"],
+                icon: "🏠",
+                desc: "以太坊的第一个正式稳定版本。引入了多个协议改进和网络层变更，为后续的网络升级奠定基础。标志着以太坊从实验阶段进入生产环境。",
+                features: [
+                    { eip: "EIP-2", name: "Homestead 硬分叉变更", major: true, desc: "协议层面的多项改进，包括合约创建 gas 成本调整和 sstore 操作码定价" },
+                    { eip: "EIP-7", name: "DELEGATECALL", major: true, desc: "新增 DELEGATECALL 操作码，允许合约在保持发送者和数值上下文的情况下调用其他合约代码，实现代理合约和库模式" },
+                    { eip: "EIP-8", name: "devp2p 向前兼容性", desc: "改进 devp2p 网络协议的向前兼容性，使节点能够更好地适应未来协议变更" }
+                ]
+            },
+            {
+                name: "DAO Fork",
+                date: "2016-07-20",
+                displayDate: "2016年7月",
+                block: "1,920,000",
+                type: ["execution", "major"],
+                icon: "🔀",
+                desc: "针对 The DAO 攻击事件的社区投票应急分叉。黑客利用合约漏洞窃取了 360 万 ETH（当时价值约 6000 万美元）。社区 85% 投票支持分叉，将资金转移到恢复合约。拒绝分叉的矿工后来形成了 Ethereum Classic。",
+                features: [
+                    { eip: null, name: "资金回收", major: true, desc: "将被盗资金从攻击者地址转移到新的恢复合约" },
+                    { eip: null, name: "社区投票决策", desc: "通过交易投票方式让 ETH 持有者参与决策" },
+                    { eip: null, name: "ETC 诞生", desc: "拒绝分叉的矿工继续维护原链，形成 Ethereum Classic" }
+                ]
+            },
+            {
+                name: "Tangerine Whistle",
+                date: "2016-10-18",
+                displayDate: "2016年10月",
+                block: "2,463,000",
+                type: ["execution", "security"],
+                icon: "🍊",
+                desc: "2016 年 9-10 月 DoS 攻击后的首次应急响应。攻击者利用定价过低的操作码进行资源耗尽攻击。Tangerine Whistle 通过调高关键操作码的 gas 成本来缓解这一问题。",
+                features: [
+                    { eip: "EIP-150", name: "IO 密集型操作码提价", major: true, desc: "提高 EXTCODESIZE、SLOAD、BALANCE 等 IO 密集型操作码的 gas 成本，防止 DoS 攻击" },
+                    { eip: null, name: "DoS 攻击响应", desc: "针对 2016 年 9-10 月持续 DoS 攻击的紧急修复" }
+                ]
+            },
+            {
+                name: "Spurious Dragon",
+                date: "2016-11-22",
+                displayDate: "2016年11月",
+                block: "2,675,000",
+                type: ["execution", "security"],
+                icon: "🐉",
+                desc: "DoS 攻击的第二波响应。除了进一步调整操作码定价外，还引入了状态'去膨胀'机制和链式 ID 重放保护，为以太坊与 ETC 的分离提供技术支持。",
+                features: [
+                    { eip: "EIP-155", name: "链式 ID 重放保护", major: true, desc: "在签名中加入链 ID，防止交易在不同以太坊分叉链上被重放执行。这是 ETH 与 ETC 分离的关键技术" },
+                    { eip: "EIP-160", name: "EXP 操作码定价调整", desc: "调整 EXP 操作码的 gas 成本计算方式" },
+                    { eip: "EIP-161", name: "状态去膨胀", major: true, desc: "清理空账户，减少区块链状态大小，降低节点同步负担" },
+                    { eip: "EIP-170", name: "合约大小限制", desc: "限制合约代码最大为 24576 字节（0x6000），防止超大合约带来的问题" }
+                ]
+            },
+            {
+                name: "Byzantium",
+                date: "2017-10-16",
+                displayDate: "2017年10月",
+                block: "4,370,000",
+                type: ["execution", "l2", "economic"],
+                icon: "🏛️",
+                desc: "大都会（Metropolis）升级的第一阶段。降低出块奖励（5→3 ETH），引入 zk-SNARKs 预编译合约为 Layer 2 扩容铺路，同时再次延迟难度炸弹一年。",
+                features: [
+                    { eip: "EIP-100", name: "难度调整算法变更", desc: "修改难度调整公式，使 uncle 区块纳入计算，提高出块时间稳定性" },
+                    { eip: "EIP-140", name: "REVERT 操作码", desc: "新增 REVERT 操作码，允许合约优雅地回滚状态改变并返回错误信息，不消耗剩余 gas" },
+                    { eip: "EIP-196", name: "bn256 加法预编译", desc: "椭圆曲线 bn256 上的点加法预编译合约，支持 zk-SNARKs 验证" },
+                    { eip: "EIP-197", name: "bn256 标量乘法预编译", major: true, desc: "椭圆曲线 bn256 上的标量乘法预编译合约，是 zk-SNARKs 的核心运算" },
+                    { eip: "EIP-198", name: "大整数模幂预编译", desc: "大整数模幂运算预编译合约，支持 RSA 签名验证" },
+                    { eip: "EIP-211", name: "RETURNDATASIZE/COPY", desc: "新增操作码支持动态大小返回数据，提升合约间交互能力" },
+                    { eip: "EIP-214", name: "STATICCALL", desc: "新增 STATICCALL 操作码，保证被调用合约不会修改状态，提升安全性" },
+                    { eip: "EIP-649", name: "出块奖励降低", major: true, desc: "将出块奖励从 5 ETH 降至 3 ETH，推迟难度炸弹" },
+                    { eip: "EIP-658", name: "状态根替代返回状态", desc: "用状态根替代交易收据中的返回状态字段" }
+                ]
+            },
+            {
+                name: "Constantinople",
+                date: "2019-02-28",
+                displayDate: "2019年2月",
+                block: "7,280,000",
+                type: ["execution", "economic", "l2"],
+                icon: "⚙️",
+                desc: "大都会升级的第二阶段。继续降低出块奖励（3→2 ETH），优化 EVM 操作码成本，引入 CREATE2 允许确定性地预计算合约地址，为状态通道和 Layer 2 方案提供支持。",
+                features: [
+                    { eip: "EIP-145", name: "SHL/SHR 移位操作码", desc: "新增左移和右移操作码，使位运算更便宜高效" },
+                    { eip: "EIP-1014", name: "CREATE2", major: true, desc: "允许在合约部署前确定其地址，是状态通道、Counterfactual 和 Layer 2 方案的关键" },
+                    { eip: "EIP-1052", name: "EXTCODEHASH", desc: "新增 EXTCODEHASH 操作码，返回合约代码的 keccak256 哈希，提升合约验证效率" },
+                    { eip: "EIP-1234", name: "难度炸弹延迟+减产", major: true, desc: "再次推迟难度炸弹 12 个月，将出块奖励从 3 ETH 降至 2 ETH" },
+                    { eip: "EIP-1283", name: "SSTORE gas 计量调整", desc: "调整 SSTORE 的 gas 计量方式（后在 Petersburg 中撤销）" }
+                ]
+            },
+            {
+                name: "Petersburg",
+                date: "2019-02-28",
+                displayDate: "2019年2月（同区块）",
+                block: "7,280,000",
+                type: ["execution", "security"],
+                icon: "🛡️",
+                desc: "与 Constantinople 同区块执行的紧急修复。发现 EIP-1283 存在重入攻击漏洞后，在主网升级前紧急禁用该 EIP， Constantinople 的其余 EIP 正常执行。",
+                features: [
+                    { eip: null, name: "禁用 EIP-1283", major: true, desc: "撤销 Constantinople 中引入的 EIP-1283，修复 SSTORE 定价变更导致的潜在重入攻击漏洞" },
+                    { eip: null, name: "紧急修复", desc: "在主网升级前发现漏洞并实施应急修复，展示以太坊升级流程的灵活性" }
+                ]
+            },
+            {
+                name: "Istanbul",
+                date: "2019-12-08",
+                displayDate: "2019年12月",
+                block: "9,069,000",
+                type: ["execution", "l2", "security"],
+                icon: "🌉",
+                desc: "性能与互操作性升级。大幅降低 SNARKs/STARKs 预编译合约的 gas 成本，引入链式 ID 操作码，改进 gas 定价，使 Layer 2 扩容方案更经济可行，并实现了与 Zcash 的互操作性。",
+                features: [
+                    { eip: "EIP-152", name: "Blake2 压缩函数预编译", desc: "新增 Blake2 哈希压缩函数预编译合约，实现与 Zcash 的互操作性" },
+                    { eip: "EIP-1108", name: "降低 alt_bn128 gas 成本", major: true, desc: "大幅降低 alt_bn128 预编译合约的 gas 成本，使 zk-SNARKs 验证更经济" },
+                    { eip: "EIP-1344", name: "CHAINID 操作码", desc: "新增 CHAINID 操作码，允许合约在运行时获取当前链 ID" },
+                    { eip: "EIP-1884", name: "状态访问操作码提价", desc: "重新定价 trie 大小相关的操作码，匹配增长的链状态成本" },
+                    { eip: "EIP-2028", name: "降低 Calldata gas 成本", major: true, desc: "将 calldata 的 gas 成本从 68 降至 16，大幅降低 Rollup 等数据可用性方案的成本" },
+                    { eip: "EIP-2200", name: "SSTORE gas 净计量", desc: "改进 SSTORE 的净计量方式，综合考虑原始值、当前值和新值" }
+                ]
+            },
+            {
+                name: "Muir Glacier",
+                date: "2020-01-02",
+                displayDate: "2020年1月",
+                block: "9,200,000",
+                type: ["execution"],
+                icon: "🧊",
+                desc: "又一次难度炸弹延迟。随着 PoW 挖矿难度增加，出块时间开始变长，影响用户体验。Muir Glacier 将难度炸弹推迟约 611 天，为 PoS 转型争取时间。",
+                features: [
+                    { eip: "EIP-2384", name: "难度炸弹延迟", major: true, desc: "将难度炸弹推迟约 611 天（约 4 百万区块），保持出块时间稳定在 ~13 秒" }
+                ]
+            },
+            {
+                name: "Berlin",
+                date: "2021-04-15",
+                displayDate: "2021年4月",
+                block: "12,244,000",
+                type: ["execution"],
+                icon: "🐻",
+                desc: "为 EIP-1559 铺路。优化特定 EVM 操作的 gas 成本，引入多种交易类型支持（EIP-2718），为未来的交易格式演进提供框架。降低 ModExp 预编译的 gas 成本。",
+                features: [
+                    { eip: "EIP-2565", name: "ModExp gas 成本优化", desc: "降低 ModExp 预编译合约的 gas 成本，提升 RSA 等算法效率" },
+                    { eip: "EIP-2718", name: "类型化交易信封", major: true, desc: "引入类型化交易格式，支持未来的交易类型扩展（如 EIP-1559），保持向后兼容" },
+                    { eip: "EIP-2929", name: "状态访问操作码 gas 增加", desc: "增加首次状态访问操作码的 gas 成本，缓解状态访问相关的 DoS 攻击风险" },
+                    { eip: "EIP-2930", name: "可选访问列表交易", desc: "引入包含访问列表的交易类型，降低特定场景下的 gas 成本" }
+                ]
+            },
+            {
+                name: "London",
+                date: "2021-08-05",
+                displayDate: "2021年8月",
+                block: "12,965,000",
+                type: ["execution", "economic", "major"],
+                icon: "💷",
+                desc: "以太坊历史上最重要的经济模型升级之一。引入 EIP-1559 彻底改革交易费用市场——将 gas 费用拆分为基础费（销毁）和小费。引入可变大小区块机制，提升网络弹性。",
+                features: [
+                    { eip: "EIP-1559", name: "费用市场改革", major: true, desc: "革命性变更：引入基础费（base fee）+ 小费（priority fee）模式。基础费根据网络拥堵自动调整并被销毁，使 ETH 进入通缩时代。引入最大 2 倍大小的弹性区块" },
+                    { eip: "EIP-3198", name: "BASEFEE 操作码", desc: "新增 BASEFEE 操作码，允许合约访问当前区块的基础费值" },
+                    { eip: "EIP-3529", name: "减少 gas 退款", desc: "限制 SELFDESTRUCT 和 SSTORE 的 gas 退款，防止利用退款机制进行 gas 套利" },
+                    { eip: "EIP-3541", name: "拒绝 0xEF 开头合约", desc: "拒绝以 0xEF 字节开头的新合约创建，为未来的 EOF（EVM Object Format）升级预留空间" },
+                    { eip: "EIP-3554", name: "难度炸弹延迟", desc: "将难度炸弹推迟至 2021 年 12 月" }
+                ]
+            },
+            {
+                name: "Arrow Glacier",
+                date: "2021-12-09",
+                displayDate: "2021年12月",
+                block: "13,773,000",
+                type: ["execution"],
+                icon: "🏔️",
+                desc: "又一次难度炸弹推迟。此时以太坊社区正全力准备 The Merge，Arrow Glacier 将难度炸弹推迟数月，确保 PoW 链在合并前保持可用。",
+                features: [
+                    { eip: "EIP-4345", name: "难度炸弹延迟至 2022 年6月", major: true, desc: "将难度炸弹推迟至 2022 年 6 月，为 The Merge 争取时间" }
+                ]
+            },
+            {
+                name: "Gray Glacier",
+                date: "2022-06-30",
+                displayDate: "2022年6月",
+                block: "15,050,000",
+                type: ["execution"],
+                icon: "⬜",
+                desc: "最后一次难度炸弹推迟。The Merge 的准备工作比预期更长，Gray Glacier 将难度炸弹再推后几个月，确保主网在 2022 年 9 月顺利合并。这也是以太坊 PoW 时代的最后一段时光。",
+                features: [
+                    { eip: "EIP-5133", name: "最终难度炸弹延迟", major: true, desc: "将难度炸弹推迟至 2022 年 9 月——这是以太坊 PoW 的'死刑执行令'，合并后难度炸弹将永久不再相关" }
+                ]
+            },
+            {
+                name: "The Merge (Paris)",
+                date: "2022-09-15",
+                displayDate: "2022年9月",
+                block: "15,537,394",
+                type: ["consensus", "execution", "major"],
+                icon: "🔀",
+                desc: "以太坊历史上最重要的升级。PoW 链总难度达到 58.75 PH 时触发 Paris 升级，执行层从 PoW 切换到 PoS。Bellatrix 共识层升级同步激活，标志着以太坊正式成为权益证明区块链。能耗降低 99.95%。",
+                features: [
+                    { eip: null, name: "PoW → PoS 切换", major: true, desc: "总难度达到 58.75 PH 时触发，永久关闭 PoW 挖矿，启用 PoS 共识" },
+                    { eip: null, name: "Engine API", major: true, desc: "执行客户端与共识客户端之间的新 API 接口，执行层'听从'共识层的指令" },
+                    { eip: null, name: "能耗降低 99.95%", desc: "从能源密集型挖矿转向质押验证，以太坊年度能耗从 ~112 TWh 降至 ~0.01 TWh" },
+                    { eip: null, name: " issuance 降低", desc: "PoS 时代 ETH 年发行率从 ~4.5% 降至 ~0.5%，配合 EIP-1559 销毁，ETH 进入通缩" }
+                ]
+            },
+            {
+                name: "Shanghai",
+                date: "2023-04-12",
+                displayDate: "2023年4月",
+                block: "17,034,870",
+                type: ["execution", "consensus", "major"],
+                icon: "🔓",
+                desc: "万众期待的质押提款开放。Shanghai（执行层）与 Capella（共识层）同步升级，允许质押者将 ETH 从信标链提取到执行层。这是以太坊 PoS 完整闭环的关键一步。",
+                features: [
+                    { eip: "EIP-3651", name: "COINBASE 预热", desc: "在交易开始时预热 COINBASE 地址，降低直接支付给矿工/验证者的交易成本" },
+                    { eip: "EIP-3855", name: "PUSH0 操作码", desc: "新增 PUSH0 操作码，将 0 推入堆栈，优化合约代码大小和 gas 成本" },
+                    { eip: "EIP-3860", name: "initcode 大小限制", desc: "限制 initcode 最大为 49152 字节，每次 32 字 words 收取 2 gas" },
+                    { eip: "EIP-4895", name: "质押提款", major: true, desc: "启用信标链到执行层的质押提款。部分提款自动处理奖励，完全提款可退出验证者" },
+                    { eip: "EIP-6049", name: "SELFDESTRUCT 弃用警告", desc: "正式标记 SELFDESTRUCT 为弃用，为未来删除做准备" }
+                ]
+            },
+            {
+                name: "Cancun-Deneb (Dencun)",
+                date: "2024-03-13",
+                displayDate: "2024年3月",
+                block: "19,426,587",
+                type: ["execution", "consensus", "l2", "major"],
+                icon: "📦",
+                desc: "以太坊扩容的关键里程碑。引入 Proto-Danksharding（EIP-4844），通过 Blob 交易为 L2 Rollup 提供廉价的数据可用性空间。L2 交易费用降低 90%+。同时引入 Transient Storage、KZG 验证等关键技术。",
+                features: [
+                    { eip: "EIP-4844", name: "Proto-Danksharding / Blob 交易", major: true, desc: "引入携带 Blob 的交易类型。Blob 是短期存储的大容量数据（每个 128KB，每区块最多 6 个），专供 Rollup 提交数据。Blob 数据不永久存储，大幅降低 L2 成本" },
+                    { eip: "EIP-1153", name: "Transient Storage", major: true, desc: "新增 TLOAD/TSTORE 操作码，提供在交易内有效但交易结束后清除的存储，解决重入锁等场景的 gas 效率问题" },
+                    { eip: "EIP-4788", name: "信标区块根", desc: "将信标链区块根暴露给 EVM，允许合约无需信任地访问共识层状态" },
+                    { eip: "EIP-5656", name: "MCOPY 操作码", desc: "新增内存复制操作码，比现有方案更高效的内存拷贝" },
+                    { eip: "EIP-6780", name: "限制 SELFDESTRUCT", desc: "限制 SELFDESTRUCT 仅在合约创建同交易中可用，简化状态管理" },
+                    { eip: "EIP-7516", name: "BLOBBASEFEE 操作码", desc: "新增 BLOBBASEFEE 操作码，允许合约读取 blob 的基础费用" },
+                    { eip: "EIP-7044", name: "永久签名退出消息", desc: "共识层：使自愿退出签名消息永不过期，提升质押者控制权" },
+                    { eip: "EIP-7045", name: "增加证明包含窗口", desc: "共识层：增加 attestation 的包含窗口" },
+                    { eip: "EIP-7514", name: "验证者增长限速", major: true, desc: "共识层：将每个 epoch 的新验证者上限设为 8，限制 ETH 发行增长，降低节点硬件要求" }
+                ]
+            },
+            {
+                name: "Prague-Electra (Pectra)",
+                date: "2025-03-25",
+                displayDate: "2025年3月",
+                block: "22,431,084",
+                type: ["execution", "consensus", "major"],
+                icon: "⚡",
+                desc: "账户抽象化和质押民主化。EIP-7702 让普通 EOA 账户能执行合约代码，解锁交易批处理、gas 代付、账户恢复等无限可能。EIP-7251 将单个验证者最大余额提升至 2048 ETH，提高质押资本效率。",
+                features: [
+                    { eip: "EIP-7702", name: "EOA 代码执行", major: true, desc: "革命性变更：普通非合约账户（EOA）可以像智能合约一样执行代码。解锁交易批处理、gas 代付、替代认证、可编程支出控制、账户恢复等功能" },
+                    { eip: "EIP-7251", name: "验证者最大余额 2048 ETH", major: true, desc: "将单个验证者最大有效余额从 32 ETH 提升至 2048 ETH，大幅减少验证者数量，提高质押资本效率" },
+                    { eip: "EIP-7002", name: "执行层触发验证者退出", desc: "允许执行层地址安全触发验证者退出和部分提款，增强质押者控制权" },
+                    { eip: "EIP-6110", name: "链上验证者存款", desc: "将验证者存款直接提交到执行层区块" },
+                    { eip: "EIP-2935", name: "历史区块哈希保存", desc: "在状态树中保存历史区块哈希，方便合约访问" },
+                    { eip: "EIP-2537", name: "BLS 预编译", desc: "新增 BLS12-381 曲线预编译合约，支持 Beacon Chain 签名验证" }
+                ]
+            },
+            {
+                name: "Fulu-Osaka (Fusaka)",
+                date: "2025-04-29",
+                displayDate: "2025年4月",
+                block: "23,935,694",
+                type: ["execution", "consensus", "l2"],
+                icon: "🌊",
+                desc: "最新升级，继续优化以太坊的可扩展性和性能。作为 Pectra 后的快速跟进升级，进一步改进网络效率和 Layer 2 支持。",
+                features: [
+                    { eip: null, name: "持续扩容优化", desc: "进一步优化网络容量和性能" },
+                    { eip: null, name: "Layer 2 增强", desc: "继续改进 Layer 2 的数据可用性和成本效率" }
+                ]
+            }
+        ];
+
+        const eipDetails = {
+            "EIP-160": {
+                original: "调整 EXP 操作码的 gas 成本计算方式，使其指数增长更贴近实际计算开销。",
+                aiSummary: "DoS 攻击防御的一部分。EXP 操作码的指数运算成本以前偏低，攻击者可以构造极低成本的指数运算交易耗尽节点资源。重新定价后此类攻击不再经济可行。",
+                impact: "low",
+                category: "安全/DoS"
+            },
+            "EIP-7002": {
+                original: "新增一种机制，允许执行层（EL）的地址通过提交交易来安全触发信标链（CL）上的验证者退出和部分提款操作。执行层地址被注册为验证者的'withdrawal credential'，可以发起退出请求。",
+                aiSummary: "质押者的'遥控器'。以前验证者退出需要直接操作共识层节点，对托管质押的用户很不友好。EIP-7002 让执行层地址（如智能合约或普通钱包）可以触发退出，使质押服务、托管方案和智能合约钱包能自主管理验证者生命周期。",
+                impact: "high",
+                category: "质押/共识"
+            },
+            "EIP-2": {
+                original: "Homestead 硬分叉变更，修改协议以支持未来的网络升级。包括：1) 如果合约创建耗尽所有 gas，则整个交易回滚而不是创建空合约；2) 将 sstore 清除退款的成本从 15000 降低到 5000；3) 合约创建交易如果目的地已有代码则失败。",
+                aiSummary: "确保合约创建失败的'全有或全无'语义，防止半成功合约留在链上。同时调整存储清除的经济激励。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-7": {
+                original: "新增 DELEGATECALL 操作码（0xf4），语义类似于 CALLCODE，但保持发送者（msg.sender）和调用值（msg.value）不变。",
+                aiSummary: "代理合约和可升级合约模式的基石。允许合约调用其他合约的代码但保留原始调用上下文，实现委托调用模式（Proxy Pattern）。",
+                impact: "high",
+                category: "智能合约"
+            },
+            "EIP-8": {
+                original: "devp2p 协议的向前兼容性改进。要求实现必须忽略握手消息中的未知字段，允许未来协议扩展而不破坏现有节点。",
+                aiSummary: "网络协议的'优雅升级'机制，确保新功能可以在不强制所有节点同时更新的情况下添加。",
+                impact: "medium",
+                category: "网络协议"
+            },
+            "EIP-150": {
+                original: "提高 IO 密集型操作码的 gas 成本：EXTCODESIZE 从 20 到 700，BALANCE 从 20 到 400，SLOAD 从 50 到 200，EXTCODECOPY 基础从 20 到 700。",
+                aiSummary: "DoS 攻击的紧急止血。攻击者利用这些廉价操作码大量读取状态数据，导致节点同步极慢。提价后此类攻击不再经济可行。",
+                impact: "high",
+                category: "安全/DoS"
+            },
+            "EIP-155": {
+                original: "在交易签名中加入链 ID（v = chain_id * 2 + 35 或 36），使交易只能在特定链上执行。",
+                aiSummary: "ETH 与 ETC 分道扬镳的技术基础。没有这个，一个链上的交易可以被恶意或意外地重放到另一个链上执行，造成资金损失。",
+                impact: "high",
+                category: "安全"
+            },
+            "EIP-161": {
+                original: "引入状态去膨胀机制：如果 SELFDESTRUCT 后账户余额为 0 且 nonce 为 0，则删除该账户；如果向空地址发送 ETH 则创建账户，但如果账户最终状态为空则删除。",
+                aiSummary: "解决早期攻击者创建大量空账户膨胀状态树的问题。这是以太坊首次'清理'链上状态。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-170": {
+                original: "限制合约代码最大为 24576 字节（0x6000）。",
+                aiSummary: "防止超大合约带来的验证和存储问题。这个限制至今仍在，是合约架构师需要绕过的约束（催生了代理模式等设计）。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-196": {
+                original: "在地址 0x06 添加椭圆曲线 alt_bn128 上的点加法预编译合约。",
+                aiSummary: "zk-SNARKs 验证的核心运算之一。零知识证明需要在椭圆曲线上进行点加法，预编译合约使其在 EVM 中可行且经济。",
+                impact: "high",
+                category: "密码学/L2"
+            },
+            "EIP-197": {
+                original: "在地址 0x07 添加椭圆曲线 alt_bn128 上的标量乘法预编译合约。",
+                aiSummary: "zk-SNARKs 的另一核心运算。与 EIP-196 一起构成了零知识证明在以太坊上验证的密码学基础，直接催生了 zk-Rollup 方案。",
+                impact: "high",
+                category: "密码学/L2"
+            },
+            "EIP-198": {
+                original: "在地址 0x05 添加大整数模幂运算预编译合约。",
+                aiSummary: "RSA 签名验证的基础运算。使以太坊可以直接验证传统 RSA 签名，实现与现有 PKI 基础设施的互操作。",
+                impact: "medium",
+                category: "密码学"
+            },
+            "EIP-649": {
+                original: "将出块奖励从 5 ETH 降至 3 ETH，并将难度炸弹推迟约 1 年。",
+                aiSummary: "ETH 发行的第二次减产。在 PoS 准备好之前，通过降低 PoW 奖励来控制通胀。这是以太坊经济模型逐步收紧的一部分。",
+                impact: "high",
+                category: "经济模型"
+            },
+            "EIP-1014": {
+                original: "新增 CREATE2 操作码（0xf5），允许根据 salt、发送者地址和 initcode 哈希确定性地计算合约地址。",
+                aiSummary: "状态通道和 Layer 2 的基石。允许'Counterfactual'模式——在链下确定合约地址、交互，只在必要时上链。催生了 Gnosis Safe、State Channels 等方案。",
+                impact: "high",
+                category: "智能合约/L2"
+            },
+            "EIP-1234": {
+                original: "将难度炸弹推迟约 12 个月，并将出块奖励从 3 ETH 降至 2 ETH。",
+                aiSummary: "ETH 第三次减产，也是 PoW 时代的最后一次减产。2 ETH/区块的奖励持续到 The Merge。推迟难度炸弹为 PoS 开发争取了关键时间。",
+                impact: "high",
+                category: "经济模型"
+            },
+            "EIP-1108": {
+                original: "将 alt_bn128 预编译合约（EIP-196/197）的 gas 成本大幅降低：点加法从 500 降至 150，标量乘法从 40000 降至 6000，配对检查从 100000 + 80000*k 降至 45000 + 34000*k。",
+                aiSummary: "使 zk-SNARKs 验证成本降低约 80%。在此之前，验证一个 zk 证明可能花费数十美元；之后降至几美元，使 zk-Rollup 经济可行。",
+                impact: "high",
+                category: "扩容/L2"
+            },
+            "EIP-2028": {
+                original: "将交易 calldata 的 gas 成本从每字节 68 降至 16。",
+                aiSummary: "Rollup 的救命稻草。Rollup 需要将交易数据发布到 L1 作为 calldata，这占其成本的 90%+。降价后 L2 交易成本立即大幅下降。",
+                impact: "high",
+                category: "扩容/L2"
+            },
+            "EIP-1559": {
+                original: "改革交易费用市场：1) 引入基础费（base fee），根据网络拥堵自动调整，被销毁而非支付给矿工；2) 用户支付基础费 + 可选小费（priority fee）；3) 区块大小可变（最大 2 倍目标大小）；4) 基础费根据区块填充率调整。",
+                aiSummary: "以太坊经济模型的分水岭。基础费的销毁机制使 ETH 从通胀资产转变为通缩/中性资产。区块填充率在 50% 时基础费不变，>50% 则上升，<50% 则下降，实现自动调节。可预测的费用改善了用户体验，但也引发了矿工社区争议。",
+                impact: "high",
+                category: "经济模型"
+            },
+            "EIP-2718": {
+                original: "定义类型化交易信封格式：TransactionType || TransactionPayload。TransactionType 为 0-0x7f 的单字节，区分不同交易格式。",
+                aiSummary: "交易格式的'版本控制系统'。使以太坊可以引入新交易类型（如 EIP-1559、EIP-2930、Blob 交易）而不破坏向后兼容。",
+                impact: "high",
+                category: "协议基础"
+            },
+            "EIP-4844": {
+                original: "引入 Blob 携带交易（Blob Transaction）：1) 新交易类型包含最多 6 个 blob（每个 128KB）；2) Blob 数据使用 KZG 多项式承诺；3) Blob 在共识层短期保存（约 4096 个 epoch ~ 18 天）后删除；4) 独立的 blob gas 市场和基础费；5) EVM 可通过 POINTEVALUATION 预编译验证 KZG 证明。",
+                aiSummary: "以太坊扩容路线图的关键里程碑。Blob 为 Rollup 提供了廉价的数据可用性——每个 blob 约 128KB 数据仅需约 1-10 gwei/字节，比 calldata 便宜 100 倍。KZG 承诺允许 EVM 在不读取完整 blob 的情况下验证数据正确性。这不是完整的 Danksharding，而是'原型'版本，已经让 L2 费用降低 90%+。",
+                impact: "high",
+                category: "扩容/L2"
+            },
+            "EIP-1153": {
+                original: "新增 Transient Storage 操作码 TLOAD (0x5c) 和 TSTORE (0x5d)。Transient Storage 类似于存储但在交易结束时清除，不消耗 gas 退款机制。",
+                aiSummary: "解决重入锁的 gas 效率问题。以前重入保护需要 SSTORE（20000 gas 写入，退还 4800），现在用 TSTORE 仅需 100 gas。对 DeFi 合约（如 Uniswap v4）意义重大，大幅降低了复杂交互的成本。",
+                impact: "medium",
+                category: "智能合约"
+            },
+            "EIP-4895": {
+                original: "引入系统级操作来推送质押提款：1) 验证者可以指定执行层提款地址；2) 部分提款自动处理超过 32 ETH 的余额；3) 完全提款退出验证者并将全部余额转移。",
+                aiSummary: "PoS 闭环的最后拼图。质押者终于可以取回自己的 ETH。这之前，质押是'单向'的——只能存入不能取出。提款开放后，质押量不减反增，因为风险降低了。部分提款机制让验证者可以定期'收割'奖励而不退出。",
+                impact: "high",
+                category: "质押/共识"
+            },
+            "EIP-7702": {
+                original: "引入一种新的交易类型，允许 EOA（外部拥有账户）临时授权一个合约代码来代表它执行操作。交易包含一个 authorization_list，每个条目指定 (chain_id, address, nonce, y_parity, r, s) 签名，授权该地址的代码可以代表签名者执行。",
+                aiSummary: "账户抽象化的'特洛伊木马'方案。不用等待完整的 ERC-4337，EIP-7702 让普通 MetaMask 地址也能执行批量交易、gas 代付、社交恢复等智能合约钱包功能。对用户体验是革命性的——以后可以用 EOA 做 multisig、 session key、订阅支付等。这是 Pectra 最受关注的功能。",
+                impact: "high",
+                category: "账户/UX"
+            },
+            "EIP-7251": {
+                original: "将单个验证者的最大有效余额从 32 ETH 提升至 2048 ETH，同时保持最低质押门槛 32 ETH 不变。",
+                aiSummary: "质押民主化的经济优化。以前大户质押 3200 ETH 需要运行 100 个验证者节点，现在只需 1 个。这将大幅减少验证者总数，降低共识层的消息传播负担，同时保持去中心化（小额质押者仍可以 32 ETH 参与）。",
+                impact: "high",
+                category: "质押/共识"
+            },
+            "EIP-7514": {
+                original: "将每 epoch 的验证者 churn 上限设为 8（即每 6.4 分钟最多 8 个新验证者加入）。",
+                aiSummary: "ETH 发行的刹车片。在质押需求激增时，限制新验证者加入的速度，从而限制 ETH 总发行量的增长。同时降低共识层的消息负载，使节点硬件要求保持在合理水平。",
+                impact: "high",
+                category: "质押/共识"
+            },
+            "EIP-2935": {
+                original: "在每个区块末尾将上一个区块的哈希保存到一个系统合约中，使合约可以访问历史区块哈希而不依赖区块头。",
+                aiSummary: "消除合约对区块头 opcode 的依赖，为未来可能的 statelessness（无状态性）做准备。让智能合约更容易验证历史数据。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-2537": {
+                original: "新增 BLS12-381 曲线预编译合约。BLS12-381 是信标链使用的椭圆曲线。",
+                aiSummary: "让 EVM 可以直接验证信标链的 BLS 签名。为执行层和共识层的深度集成铺路，例如验证聚合签名、检查验证者状态等。",
+                impact: "medium",
+                category: "密码学/共识"
+            },
+            "EIP-100": {
+                original: "修改难度调整公式，将 uncle 区块纳入计算，使得出块时间目标保持在 15 秒。新的公式为：parent_diff + parent_diff / 2048 * max(1 - (block_timestamp - parent_timestamp) / 10, -99) + int(2**((block.number // 100000) - 2))。",
+                aiSummary: "让难度调整更平滑，减少 uncle 率，稳定出块时间。uncle 奖励机制被纳入计算，使矿工更愿意在 uncle 区块基础上继续挖矿。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-140": {
+                original: "新增 REVERT 操作码（0xfd），语义为终止执行、回滚所有状态变更，但保留剩余 gas 并返回指定内存区域的数据作为错误信息。",
+                aiSummary: "合约错误处理的里程碑。以前合约失败会消耗所有剩余 gas，REVERT 让合约可以优雅地报错并退款，大幅降低用户成本。DeFi 协议从此可以安全地做条件检查和前置验证。",
+                impact: "high",
+                category: "智能合约"
+            },
+            "EIP-211": {
+                original: "新增 RETURNDATASIZE (0x3d) 和 RETURNDATACOPY (0x3e) 操作码，允许合约获取并复制上一次 CALL/DELEGATECALL 的返回数据大小和内容到内存。",
+                aiSummary: "解决合约间交互的'黑盒'问题。以前 CALL 返回的数据大小固定且难以动态处理，这两个操作码让合约可以灵活处理任意大小的返回数据，是现代 DeFi 组合性的基础设施。",
+                impact: "medium",
+                category: "智能合约"
+            },
+            "EIP-214": {
+                original: "新增 STATICCALL 操作码（0xfa），语义类似 CALL 但保证被调用合约不会修改状态（任何尝试修改状态的操作都会回滚）。",
+                aiSummary: "状态只读的安全保证。让合约可以在不触发副作用的情况下查询其他合约数据，防止意外的状态变更。这是只读调用的基础，提升了合约间交互的安全性。",
+                impact: "medium",
+                category: "智能合约"
+            },
+            "EIP-658": {
+                original: "用状态根（state root）替代交易收据中的返回状态字段。 receipts 的 status 字段现在是一个布尔值（0=失败，1=成功），取代之前的状态根。",
+                aiSummary: "简化交易收据，让 dApp 更容易判断交易是否成功。以前需要比较状态根哈希来判断交易结果，现在直接读一个布尔值即可。",
+                impact: "low",
+                category: "协议基础"
+            },
+            "EIP-145": {
+                original: "新增 SHL (0x1b) 和 SHR (0x1c) 移位操作码，提供原生的左移和右移位运算，gas 成本固定为 3。",
+                aiSummary: "补齐 EVM 位运算短板。以前移位需要用 MUL/DIV 模拟，gas 成本高且复杂。这两个操作码让位运算像原生 CPU 指令一样高效，对加密算法和位掩码操作意义重大。",
+                impact: "low",
+                category: "协议基础"
+            },
+            "EIP-1052": {
+                original: "新增 EXTCODEHASH 操作码（0x3f），返回指定地址合约代码的 keccak256 哈希值。如果地址没有代码，返回 0；如果地址不存在，返回 0。",
+                aiSummary: "合约身份验证的高效方式。以前验证合约代码需要读取全部字节码，现在只需比较 32 字节的哈希值。广泛用于代理合约检测、合约白名单和工厂模式。",
+                impact: "medium",
+                category: "智能合约"
+            },
+            "EIP-1283": {
+                original: "调整 SSTORE 的净计量方式：当存储值从原始值变为新值时，根据原始值、当前值和新值的三态关系重新定价。新增 SSTORE_RESET_GAS（2000）用于值从非零变为非零的情况。",
+                aiSummary: "一次'好心办坏事'的尝试。目的是降低存储更新的 gas 成本，但引入了重入攻击漏洞，在主网激活前被 Petersburg 紧急禁用。后由 EIP-2200 以更安全的方式重新实现。",
+                impact: "medium",
+                category: "安全/经济"
+            },
+            "EIP-152": {
+                original: "新增 Blake2b 压缩函数 F 的预编译合约（地址 0x09）。输入为 rounds count、h message block、last block flag 和 state vector，输出为新的 state vector。",
+                aiSummary: "以太坊与 Zcash 的桥梁。Blake2b 是 Zcash 的哈希算法，这个预编译让以太坊可以高效验证 Zcash 的 Equihash 工作量证明，为跨链原子交换和隐私互操作铺路。",
+                impact: "medium",
+                category: "互操作/密码学"
+            },
+            "EIP-1344": {
+                original: "新增 CHAINID 操作码（0x46），返回当前执行链的链 ID。 Constantinople 中引入，Istanbul 中重新定价为 2 gas。",
+                aiSummary: "链身份的原生查询。让合约可以在运行时知道自己运行在哪个链上（主网=1、Goerli=5 等），为多链部署和跨链合约提供基础判断能力。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-1884": {
+                original: "重新定价 trie 大小相关的操作码：SLOAD 从 200 提高到 800，BALANCE 从 400 提高到 700，EXTCODEHASH 从 400 提高到 700，EXTCODESIZE 保持 700，EXTCODECOPY 基础保持 700。",
+                aiSummary: "状态膨胀的代价。随着以太坊状态树从 1 亿增长到数十亿节点，读取状态的实际成本上升。这次提价匹配了真实的存储和计算开销，防止滥用廉价状态访问。",
+                impact: "medium",
+                category: "经济/安全"
+            },
+            "EIP-2200": {
+                original: "改进 SSTORE 的净计量（Net Gas Metering），综合原始值、当前值和新值三态：原始=当前=新值时收取 SLOAD_GAS(800)；原始!=当前=新值时收取 SLOAD_GAS(800)；原始=当前!=新值时收取 SSTORE_SET_GAS(20000) 或 SSTORE_RESET_GAS(2900)；原始!=当前!=新值时收取 SLOAD_GAS(800)。",
+                aiSummary: "EIP-1283 的安全重制版。通过更精细的三态 gas 计量，在降低存储更新成本的同时修复了重入漏洞。是 Constantinople 被禁功能的'正确打开方式'。",
+                impact: "medium",
+                category: "经济/安全"
+            },
+            "EIP-2384": {
+                original: "将难度炸弹推迟约 611 天（约 400 万个区块），通过在计算中添加一个 fake_block_number = max(0, block.number - 9_000_000) 来实现。",
+                aiSummary: "又一次'冻住难度炸弹'。PoW 难度呈指数增长已经威胁到网络可用性，这次延迟为 The Merge 争取了超过 1 年半的时间。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-2565": {
+                original: "修改 ModExp 预编译合约（地址 0x05）的 gas 成本计算方式。新公式基于 input 的位长度进行估算，大幅降低中等大小输入的计算成本。",
+                aiSummary: "RSA 签名验证更便宜。ModExp（模幂运算）是 RSA 的核心运算，这次重新定价使基于 RSA 的 zk-SNARK 验证器和传统签名验证更经济。",
+                impact: "low",
+                category: "密码学"
+            },
+            "EIP-2929": {
+                original: "增加首次访问状态的操作码 gas 成本：SLOAD/CALL/DELEGATECALL 等首次访问收取额外 2600 gas（warm access 为 100 gas），将 trie 访问的冷热区分机制引入 EVM。",
+                aiSummary: "DoS 防御的前置成本。攻击者以前可以用极低成本反复访问不同状态路径制造 trie 压力。冷热访问区分让首次访问付出真实成本，后续访问保持廉价。",
+                impact: "medium",
+                category: "安全/DoS"
+            },
+            "EIP-2930": {
+                original: "引入可选访问列表的交易类型（类型 0x01）。交易可以声明将在执行中访问的地址和存储槽列表，这些访问被视为 'warm'（已预热），享受较低 gas 成本。",
+                aiSummary: "交易执行的'提前告知'。用户告诉节点'我会访问这些地址和槽位'，节点提前加载到缓存，用户获得 gas 折扣。适用于 gas 代付、批量操作和已知路径的复杂交易。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-3198": {
+                original: "新增 BASEFEE 操作码（0x48），返回当前区块的基础费值（base fee per gas），gas 成本为 2。",
+                aiSummary: "让合约读懂网络拥堵程度。合约可以通过 BASEFEE 判断当前网络热度，动态调整 gas 策略。例如预言机合约可以拒绝在极度拥堵时执行，节省用户成本。",
+                impact: "low",
+                category: "协议基础"
+            },
+            "EIP-3529": {
+                original: "限制 gas 退款机制：1) 取消 SELFDESTRUCT 的 gas 退款；2) SSTORE 清除的退款从 15000 降低到 4800（与写入成本相同）；3) 退款上限从 gas 的 50% 降低到 20%。",
+                aiSummary: "堵住 gas 套利的漏洞。以前有人故意填充存储再清除来获取 gas 退款，实现负成本交易。这次修复消除了经济攻击向量，同时保留合理的退款激励。",
+                impact: "medium",
+                category: "经济/安全"
+            },
+            "EIP-3541": {
+                original: "拒绝以 0xEF 字节开头的新合约创建。任何尝试创建以 0xEF 开头的 initcode 的交易都会失败并回滚。",
+                aiSummary: "为未来 EOF（EVM Object Format）预留空间。0xEF 被保留作为新版本 EVM 字节码格式的前缀标记，防止现有合约意外使用该前缀造成向后兼容问题。",
+                impact: "low",
+                category: "协议基础"
+            },
+            "EIP-3554": {
+                original: "将难度炸弹推迟至 2021 年 12 月（区块 13773000），通过在计算中使用 fake_block_number = max(0, block.number - 9_700_000) 实现。",
+                aiSummary: "伦敦升级配套的难度炸弹延迟。为 Arrow Glacier 之前的过渡期保持网络可用性。",
+                impact: "low",
+                category: "协议基础"
+            },
+            "EIP-4345": {
+                original: "将难度炸弹推迟至 2022 年 6 月（大约），通过将 fake_block_number 调整为 block.number - 10_700_000 实现。",
+                aiSummary: "为 The Merge 争取最后窗口期。Arrow Glacier 将难度炸弹推到 2022 年中，确保在合并完成前 PoW 链不会变得不可用。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-5133": {
+                original: "将难度炸弹推迟至 2022 年 9 月，fake_block_number = block.number - 11_400_000。",
+                aiSummary: "PoW 时代的'死刑执行令'。这是最后一次推迟难度炸弹——合并定在 2022 年 9 月，合并后 PoS 不再需要难度调整机制，难度炸弹将永久成为历史。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-3651": {
+                original: "在交易开始时预热 COINBASE 地址，使 COINBASE 在首次访问时按 'warm access'（100 gas）计费而非 'cold access'（2600 gas）。",
+                aiSummary: "降低验证者直接收款成本。The Merge 后 COINBASE 是验证者的 fee recipient，预热后 gas 成本从 2600 降至 100，让验证者奖励提取更便宜。",
+                impact: "low",
+                category: "经济/优化"
+            },
+            "EIP-3855": {
+                original: "新增 PUSH0 操作码（0x5f），将 0 推入 EVM 堆栈，gas 成本为 2。",
+                aiSummary: "一个字节优化带来的大节省。以前将 0 推入堆栈需要 PUSH1 0x00（2 字节），现在 PUSH0 只需 1 字节。看似微小，但大型合约可减少数百字节部署成本。",
+                impact: "low",
+                category: "协议基础"
+            },
+            "EIP-3860": {
+                original: "限制合约 initcode 最大为 49152 字节（2 * 0x6000），并对每 32 字节的 initcode words 收取额外 2 gas。",
+                aiSummary: "为 EOF 和 Verkle 树做准备。限制 initcode 大小可以简化未来的 EVM 对象格式升级，同时防止超大 initcode 带来的验证负担。",
+                impact: "low",
+                category: "协议基础"
+            },
+            "EIP-6049": {
+                original: "正式弃用 SELFDESTRUCT 操作码。SELFDESTRUCT 仍保留在协议中，但文档标记为已弃用，未来的升级可能会限制或删除它。",
+                aiSummary: "为未来 statelessness（无状态性）扫清障碍。SELFDESTRUCT 允许合约删除自己并强制将 ETH 发送到任意地址，这在 Verkle 树和无状态客户端设计中造成困难。弃用宣告标志着它的终结倒计时。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-4788": {
+                original: "在每个执行层区块中暴露信标链区块根。信标链区块根被写入一个系统合约（BEACON_ROOTS），合约地址为 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02，使 EVM 合约可以无需信任地读取共识层状态。",
+                aiSummary: "执行层和共识层的'直连通道'。合约可以读取信标链数据来做 staking 衍生品定价、验证者状态检查等，不需要依赖中心化预言机。",
+                impact: "medium",
+                category: "共识/协议"
+            },
+            "EIP-5656": {
+                original: "新增 MCOPY 操作码（0x5e），提供高效的内存复制功能，gas 成本为 3 + 3 * (字字数)。比现有方案（使用 MLOAD/MSTORE 循环）更省 gas 和更快速。",
+                aiSummary: "内存操作的性能提升。大型数据复制（如 ABI 编码、结构体拷贝）以前需要逐字操作，MCOPY 让内存块整体复制成为可能，提升合约执行效率。",
+                impact: "low",
+                category: "协议基础"
+            },
+            "EIP-6780": {
+                original: "限制 SELFDESTRUCT：只有在同一交易中创建并自毁的合约才能将 ETH 转移到指定地址。现有的自毁合约在 Cancun 后行为改变，不再删除代码和存储。",
+                aiSummary: "SELFDESTRUCT 的'温和安乐死'。不直接删除操作码，而是限制其破坏性行为——合约不再能永久删除自己的代码和存储。这是向完全删除 SELFDESTRUCT 的过渡步骤。",
+                impact: "medium",
+                category: "协议基础"
+            },
+            "EIP-7516": {
+                original: "新增 BLOBBASEFEE 操作码（0x4a），返回当前区块的 blob 基础费用（blob base fee per gas），gas 成本为 2。",
+                aiSummary: "让合约感知 L2 成本。Rollup 合约可以读取 blob 费用动态调整其数据发布策略，在费用低时多发布、高时缓存，实现智能成本管理。",
+                impact: "low",
+                category: "协议基础"
+            },
+            "EIP-7044": {
+                original: "共识层变更：使自愿退出签名消息永不过期。质押者签署一次退出消息后，该签名在任何 future epoch 都有效，不再受原始签名的有效期限制。",
+                aiSummary: "质押者的'永久逃生权'。以前退出消息签名有过期时间，质押者需要定期重新签名。现在一次签名永久有效，极大提升对第三方节点运营商的制衡能力。",
+                impact: "medium",
+                category: "质押/共识"
+            },
+            "EIP-7045": {
+                original: "共识层变更：增加 attestation 的包含窗口，从之前的 1 个 epoch 增加到当前 epoch 和下一个 epoch，给验证者更多时间提交证明。",
+                aiSummary: "共识层的小容错提升。验证者网络偶尔延迟时，attestation 有更大的被包含窗口，减少因网络抖动导致的错过奖励。",
+                impact: "low",
+                category: "质押/共识"
+            },
+            "EIP-6110": {
+                original: "共识层变更：将验证者存款直接提交到执行层区块中，而非通过 deposit 合约事件来传递。存款数据现在作为执行层区块的一部分直接可用。",
+                aiSummary: "简化存款验证流程。以前共识层需要监听执行层的事件日志来获取新存款，现在存款数据直接在区块中可用，减少共识层对执行层事件的依赖，提升可靠性。",
+                impact: "medium",
+                category: "质押/共识"
+            }
+
+        // Render
+        function renderTimeline(filter = 'all') {
+            const container = document.getElementById('timeline');
+            // Remove existing cards
+            const existing = container.querySelectorAll('.upgrade-card');
+            existing.forEach(e => e.remove());
+
+            const filtered = filter === 'all' 
+                ? upgrades 
+                : upgrades.filter(u => u.type.includes(filter));
+
+            filtered.forEach((upgrade, idx) => {
+                const card = document.createElement('div');
+                card.className = 'upgrade-card';
+                card.dataset.index = idx;
+
+                const featuresHtml = upgrade.features.map(f => {
+                    const majorClass = f.major ? 'major' : '';
+                    const eipPart = f.eip ? `<span class="eip-num">${f.eip}</span>` : '';
+                    const namePart = f.name;
+                    return `<span class="eip-tag ${majorClass}" data-eip="${f.eip}" data-name="${f.name}" data-desc="${f.desc || ''}">${eipPart}${eipPart ? ' ' : ''}${namePart}${f.major ? ' ★' : ''}</span>`;
+                }).join('');
+
+                const year = upgrade.date.split('-')[0];
+
+                card.innerHTML = `
+                    <div></div>
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">${upgrade.displayDate}</div>
+                    <div class="card-content" onclick="showUpgradeDetail(${upgrades.indexOf(upgrade)})">
+                        <div class="card-header">
+                            <div class="card-icon" style="background: linear-gradient(135deg, rgba(98,126,234,0.2), rgba(168,85,247,0.2));">${upgrade.icon}</div>
+                            <div class="card-title-group">
+                                <div class="card-title">${upgrade.name}</div>
+                                <div class="card-subtitle">区块 ${upgrade.block}</div>
+                            </div>
+                        </div>
+                        <div class="card-desc">${upgrade.desc}</div>
+                        <div class="eip-list">
+                            ${featuresHtml}
+                        </div>
+                        <div class="card-meta">
+                            <span>📅 ${upgrade.displayDate}</span>
+                            <span>🔢 ${upgrade.features.length} 项特性</span>
+                            ${upgrade.type.includes('major') ? '<span>⭐ 里程碑</span>' : ''}
+                        </div>
+                    </div>
+                `;
+
+                // For even cards, adjust layout
+                if (filtered.indexOf(upgrade) % 2 === 1) {
+                    // The layout is handled by CSS nth-child, but we need to ensure proper DOM order
+                }
+
+                container.appendChild(card);
+            });
+
+            // Re-attach EIP click handlers
+            document.querySelectorAll('.eip-tag').forEach(tag => {
+                tag.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const eip = tag.dataset.eip;
+                    const name = tag.dataset.name;
+                    const desc = tag.dataset.desc;
+                    if (eip && eipDetails[eip]) {
+                        showEIPDetail(eip, name);
+                    } else {
+                        showGenericDetail(name, desc, eip);
+                    }
+                });
+            });
+        }
+
+        // Modal functions
+        function showEIPDetail(eip, name) {
+            const detail = eipDetails[eip];
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.innerHTML = `
+                <span style="font-family: monospace; background: var(--bg-card); padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-color);">${eip}</span>
+                ${name}
+            `;
+
+            body.innerHTML = `
+                <div class="detail-section">
+                    <div class="detail-label">🔍 技术规格原文</div>
+                    <div class="detail-text">${detail.original}</div>
+                </div>
+                <div class="detail-section ai-summary">
+                    <div class="detail-label">🤖 AI 解读</div>
+                    <div class="detail-text">${detail.aiSummary}</div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-label">📊 影响评估</div>
+                    <div class="impact-tags">
+                        <span class="impact-tag impact-${detail.impact}">${detail.impact === 'high' ? '🔴 高影响' : detail.impact === 'medium' ? '🟡 中影响' : '🟢 低影响'}</span>
+                        <span class="impact-tag" style="background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color);">${detail.category}</span>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function showGenericDetail(name, desc, eip) {
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.innerHTML = eip 
+                ? `<span style="font-family: monospace; background: var(--bg-card); padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-color);">${eip}</span> ${name}`
+                : name;
+
+            body.innerHTML = `
+                <div class="detail-section">
+                    <div class="detail-label">📝 描述</div>
+                    <div class="detail-text">${desc}</div>
+                </div>
+                <div class="detail-section ai-summary">
+                    <div class="detail-label">🤖 AI 补充</div>
+                    <div class="detail-text">该特性是相应以太坊升级的一部分，具体技术细节可参考官方 EIP 文档。</div>
+                </div>
+            `;
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function showUpgradeDetail(index) {
+            const upgrade = upgrades[index];
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.innerHTML = `${upgrade.icon} ${upgrade.name}`;
+
+            const featuresHtml = upgrade.features.map(f => {
+                const detail = f.eip && eipDetails[f.eip];
+                return `
+                    <div style="padding: 12px; background: var(--bg-card); border-radius: var(--radius-sm); margin-bottom: 8px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            ${f.eip ? `<code style="background: rgba(98,126,234,0.15); color: var(--accent-blue-light); padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${f.eip}</code>` : ''}
+                            <strong style="color: var(--text-primary);">${f.name}</strong>
+                            ${f.major ? '<span style="color: var(--accent-orange); font-size: 0.8rem;">★ 核心</span>' : ''}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem;">${f.desc}</div>
+                        ${detail ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.85rem;"><strong>AI 总结：</strong>${detail.aiSummary}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            body.innerHTML = `
+                <div class="detail-section">
+                    <div class="detail-label">📅 升级信息</div>
+                    <div class="detail-text">
+                        <strong>时间：</strong>${upgrade.displayDate}<br>
+                        <strong>区块高度：</strong>${upgrade.block}<br>
+                        <strong>类型：</strong>${upgrade.type.map(t => ({consensus: '共识层', execution: '执行层', l2: '扩容/L2', economic: '经济模型', security: '安全', major: '里程碑'}[t])).join('、')}
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-label">📝 升级概要</div>
+                    <div class="detail-text">${upgrade.desc}</div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-label">🔧 包含的 EIP/特性</div>
+                    ${featuresHtml}
+                </div>
+            `;
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Filter handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderTimeline(btn.dataset.filter);
+            });
+        });
+
+        // Close modal on overlay click
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Init
+        renderTimeline();
+    </script>
+</body>
+</html>
