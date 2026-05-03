@@ -8,6 +8,7 @@ export default defineConfig({
   output: 'static',
   site: 'https://h2oiswater.github.io',
   base: '/web3-upgrades',
+  trailingSlash: 'always',
   vite: {
     plugins: [tailwindcss()]
   }
