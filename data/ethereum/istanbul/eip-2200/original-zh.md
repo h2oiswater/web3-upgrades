@@ -1,15 +1,170 @@
-# EIP-2200: SSTORE gas 净计量
+# EIP-2200: 官方原文
 
-## 技术要点
-
-1. 改进 SSTORE 的净计量（Net Gas Metering），综合原始值、当前值和新值三态：原始=当前=新值时收取 SLOAD_GAS(
-2. 原始!=当前=新值时收取 SLOAD_GAS(
-3. 原始=当前!=新值时收取 SSTORE_SET_GAS(
-4. 或 SSTORE_RESET_GAS(
-5. 原始!=当前!=新值时收取 SLOAD_GAS(
-
-- **类别**: 经济/安全
-- **影响等级**: 中
+> 来源：https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2200.md
 
 ---
-*技术原文基于以太坊官方 EIP 文档整理*
+
+## Abstract
+
+This EIP provides a structured definition of net gas metering changes
+for `SSTORE` opcode, enabling new usages for contract storage, and
+reducing excessive gas costs where it doesn’t match how most
+implementation works.
+
+This is a combination of [EIP-1283] and [EIP-1706].
+
+---
+
+## Motivation
+
+This EIP proposes a way for gas metering on `SSTORE`, using information
+that is more universally available to most implementations, and
+require as little change in implementation structures as possible.
+
+* Storage slot’s original value.
+* Storage slot’s current value.
+* Refund counter.
+
+Usages that benefits from this EIP’s gas reduction scheme includes:
+
+* Subsequent storage write operations within the same call frame. This
+  includes reentry locks, same-contract multi-send, etc.
+* Exchange storage information between sub call frame and parent call
+  frame, where this information does not need to be persistent outside
+  of a transaction. This includes sub-frame error codes and message
+  passing, etc.
+
+The original definition of EIP-1283 created a danger of a new kind of
+reentrancy attacks on existing contracts as Solidity by default grants
+a "stipend" of 2300 gas to simple transfer calls. This danger is
+easily mitigated if `SSTORE` is not allowed in low gasleft state,
+without breaking the backward compatibility and the original intention
+of EIP-1283.
+
+This EIP also replaces the original EIP-1283 value definitions of gas
+by parameters, so that it's more structured, and easier to define
+changes in the future.
+
+---
+
+## Specification
+
+Define variables `SLOAD_GAS`, `SSTORE_SET_GAS`, `SSTORE_RESET_GAS` and
+`SSTORE_CLEARS_SCHEDULE`. The old and new values for those variables
+are:
+
+* `SLOAD_GAS`: changed from `200` to `800`.
+* `SSTORE_SET_GAS`: `20000`, not changed.
+* `SSTORE_RESET_GAS`: `5000`, not changed.
+* `SSTORE_CLEARS_SCHEDULE`: `15000`, not changed.
+
+Change the definition of EIP-1283 using those variables. The new
+specification, combining EIP-1283 and EIP-1706, will look like
+below. The terms *original value*, *current value* and *new value* are
+defined in EIP-1283.
+
+Replace `SSTORE` opcode gas cost calculation (including refunds) with
+the following logic:
+
+* If *gasleft* is less than or equal to gas stipend, fail the current
+  call frame with 'out of gas' exception.
+* If *current value* equals *new value* (this is a no-op), `SLOAD_GAS`
+  is deducted.
+* If *current value* does not equal *new value*
+  * If *original value* equals *current value* (this storage slot has
+    not been changed by the current execution context)
+    * If *original value* is 0, `SSTORE_SET_GAS` is deducted.
+    * Otherwise, `SSTORE_RESET_GAS` gas is deducted. If *new value* is
+      0, add `SSTORE_CLEARS_SCHEDULE` gas to refund counter.
+  * If *original value* does not equal *current value* (this storage
+    slot is dirty), `SLOAD_GAS` gas is deducted. Apply both of the
+    following clauses.
+    * If *original value* is not 0
+      * If *current value* is 0 (also means that *new value* is not
+        0), remove `SSTORE_CLEARS_SCHEDULE` gas from refund
+        counter.
+      * If *new value* is 0 (also means that *current value* is not
+        0), add `SSTORE_CLEARS_SCHEDULE` gas to refund counter.
+    * If *original value* equals *new value* (this storage slot is
+      reset)
+      * If *original value* is 0, add `SSTORE_SET_GAS - SLOAD_GAS` to
+        refund counter.
+      * Otherwise, add `SSTORE_RESET_GAS - SLOAD_GAS` gas to refund
+        counter.
+
+An implementation should also note that with the above definition, if
+the implementation uses call-frame refund counter, the counter can go
+negative. If the implementation uses transaction-wise refund counter,
+the counter always stays positive.
+
+---
+
+## Rationale
+
+This EIP mostly achieves what a transient storage tries to do
+([EIP-1087] and [EIP-1153]), but without the complexity of introducing the
+concept of "dirty maps", or an extra storage struct.
+
+* We don't suffer from the optimization limitation of
+  EIP-1087. EIP-1087 requires keeping a dirty map for storage changes,
+  and implicitly makes the assumption that a transaction's storage
+  changes are committed to the storage trie at the end of a
+  transaction. This works well for some implementations, but not for
+  others. After [EIP-658], an efficient storage cache implementation
+  would probably use an in-memory trie (without RLP encoding/decoding)
+  or other immutable data structures to keep track of storage changes,
+  and only commit changes at the end of a block. For them, it is
+  possible to know a storage's original value and current value, but
+  it is not possible to iterate over all storage changes without
+  incurring additional memory or processing costs.
+* It never costs more gas compared with the current scheme.
+* It covers all usages for a transient storage. Clients that are easy
+  to implement EIP-1087 will also be easy to implement this
+  specification. Some other clients might require a little bit extra
+  refactoring on this. Nonetheless, no extra memory or processing cost
+  is needed on runtime.
+
+Regarding `SSTORE` gas cost and refunds, see Appendix for proofs of
+properties that this EIP satisfies.
+
+* For *absolute gas used* (that is, actual *gas used* minus *refund*),
+  this EIP is equivalent to EIP-1087 for all cases.
+* For one particular case, where a storage slot is changed, reset to
+  its original value, and then changed again, EIP-1283 would move more
+  gases to refund counter compared with EIP-1087.
+
+Examine examples provided in EIP-1087's Motivation (with `SLOAD_GAS` being
+`200`):
+
+* If a contract with empty storage sets slot 0 to 1, then back to 0,
+  it will be charged `20000 + 200 - 19800 = 400` gas.
+* A contract with empty storage that increments slot 0 5 times will be
+  charged `20000 + 5 * 200 = 21000` gas.
+* A balance transfer from account A to account B followed by a
+  transfer from B to C, with all accounts having nonzero starting and
+  ending balances, it will cost `5000 * 3 + 200 - 4800 = 10400` gas.
+
+In order to keep in place the implicit reentrancy protection of
+existing contracts, transactions should not be allowed to modify state
+if the remaining gas is lower than the gas stipend given to
+"transfer"/"send" in Solidity. These are other proposed remediations
+and objections to implementing them:
+
+* Drop EIP-1283 and abstain from modifying `SSTORE` cost
+  * EIP-1283 is an important update 
+  * It was accepted and implemented on test networks and in clients.
+* Add a new call context that permits LOG opcodes but not changes to state.
+  * Adds another call type beyond existing regular/staticcall
+* Raise the cost of `SSTORE` to dirty slots to >=2300 gas
+  * Makes net gas metering much less useful.
+* Reduce the gas stipend
+  * Makes the stipend almost useless.
+* Increase the cost of writes to dirty slots back to 5000 gas, but add
+  4800 gas to the refund counter
+  * Still doesn’t make the invariant explicit.
+  * Requires callers to supply more gas, just to have it refunded
+* Add contract metadata specifying per-contract EVM version, and only
+  apply `SSTORE` changes to contracts deployed with the new version.
+
+---
+

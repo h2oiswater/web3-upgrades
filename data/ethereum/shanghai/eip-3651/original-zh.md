@@ -1,11 +1,41 @@
-# EIP-3651: COINBASE 预热
+# EIP-3651: 官方原文
 
-## 技术概要
-
-在交易开始时预热 COINBASE 地址，使 COINBASE 在首次访问时按 'warm access'（100 gas）计费而非 'cold access'（2600 gas）。
-
-- **类别**: 经济/优化
-- **影响等级**: 低
+> 来源：https://github.com/ethereum/EIPs/blob/master/EIPS/eip-3651.md
 
 ---
-*技术原文基于以太坊官方 EIP 文档整理*
+
+## Abstract
+
+The `COINBASE` address shall be warm at the start of transaction execution, in accordance with the actual cost of reading that account.
+
+---
+
+## Motivation
+
+Direct `COINBASE` payments are becoming increasingly popular because they allow conditional payments, which provide benefits such as implicit cancellation of transactions that would revert.
+But accessing `COINBASE` is overpriced; the address is initially cold under the access list framework introduced in [EIP-2929](./eip-2929.md).
+This gas cost mismatch can incentivize alternative payments besides ETH, such as [ERC-20](./eip-20.md), but ETH should be the primary means of paying for transactions on Ethereum.
+
+---
+
+## Specification
+
+At the start of transaction execution, `accessed_addresses` shall be initialized to also include the address returned by `COINBASE` (`0x41`).
+
+---
+
+## Rationale
+
+The addresses currently initialized warm are the addresses that should already be loaded at the start of transaction validation.
+The `ORIGIN` address is always loaded to check its balance against the gas limit and the gas price.
+The `tx.to` address is always loaded to begin execution.
+The `COINBASE` address should also be always be loaded because it receives the block reward and the transaction fees.
+
+---
+
+## Security considerations
+
+There are no known security considerations introduced by this change.
+
+---
+

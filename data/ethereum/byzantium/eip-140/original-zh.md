@@ -1,11 +1,38 @@
-# EIP-140: REVERT 操作码
+# EIP-140: 官方原文
 
-## 技术概要
-
-新增 REVERT 操作码（0xfd），语义为终止执行、回滚所有状态变更，但保留剩余 gas 并返回指定内存区域的数据作为错误信息。
-
-- **类别**: 智能合约
-- **影响等级**: 高
+> 来源：https://github.com/ethereum/EIPs/blob/master/EIPS/eip-140.md
 
 ---
-*技术原文基于以太坊官方 EIP 文档整理*
+
+## Abstract
+
+The `REVERT` instruction will stop execution, roll back all state changes done so far and provide a pointer to a memory section, which can be interpreted as an error code or message. While doing so, it will not consume all the remaining gas.
+
+---
+
+## Motivation
+
+Currently this is not possible. There are two practical ways to revert a transaction from within a contract: running out of gas or executing an invalid instruction. Both of these options will consume all remaining gas. Additionally, reverting an EVM execution means that all changes, including LOGs, are lost and there is no way to convey a reason for aborting an EVM execution.
+
+---
+
+## Specification
+
+On blocks with `block.number >= BYZANTIUM_FORK_BLKNUM`, the `REVERT` instruction is introduced at `0xfd`. It expects two stack items, the top item is the `memory_offset` followed by `memory_length`. It does not produce any stack elements because it stops execution.
+
+The semantics of `REVERT` with respect to memory and memory cost are identical to those of `RETURN`. The sequence of bytes given by `memory_offset` and `memory_length` is called "error message" in the following.
+
+The effect of `REVERT` is that execution is aborted, considered as failed, and state changes are rolled back. The error message will be available to the caller in the returndata buffer and will also be copied to the output area, i.e. it is handled in the same way as the regular return data is handled.
+
+The cost of the `REVERT` instruction equals to that of the `RETURN` instruction, i.e. the rollback itself does not consume all gas, the contract only has to pay for memory.
+
+In case there is not enough gas left to cover the cost of `REVERT` or there is a stack underflow, the effect of the `REVERT` instruction will equal to that of a regular out of gas exception, i.e. it will consume all gas.
+
+In the same way as all other failures, the calling opcode returns `0` on the stack following a `REVERT` opcode in the callee.
+
+In case `REVERT` is used in the context of a `CREATE` or `CREATE2` call, no code is deployed, `0` is put on the stack and the error message is available in the returndata buffer.
+
+The content of the optionally provided memory section is not defined by this EIP, but is a candidate for another Informational EIP.
+
+---
+

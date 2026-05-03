@@ -1,11 +1,38 @@
-# EIP-6049: SELFDESTRUCT 弃用警告
+# EIP-6049: 官方原文
 
-## 技术概要
-
-正式弃用 SELFDESTRUCT 操作码。SELFDESTRUCT 仍保留在协议中，但文档标记为已弃用，未来的升级可能会限制或删除它。
-
-- **类别**: 协议基础
-- **影响等级**: 中
+> 来源：https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6049.md
 
 ---
-*技术原文基于以太坊官方 EIP 文档整理*
+
+## Abstract
+
+This EIP deprecates the `SELFDESTRUCT` opcode and warns against its use. A breaking change to this functionality is likely to come in the future.
+
+---
+
+## Motivation
+
+Discussions about how to change `SELFDESTRUCT` are ongoing. But there is a strong consensus that *something* will change.
+
+---
+
+## Specification
+
+Documentation of the `SELFDESTRUCT` opcode is updated to warn against its use and to note that a breaking change may be forthcoming.
+
+---
+
+## Rationale
+
+As time goes on, the cost of doing something increases, because any change to `SELFDESTRUCT` will be a breaking change.
+
+The Ethereum Blog and other official sources have not provided any warning to developers about a potential forthcoming change.
+
+---
+
+## Security considerations
+
+None.
+
+---
+

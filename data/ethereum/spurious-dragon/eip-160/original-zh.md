@@ -1,11 +1,30 @@
-# EIP-160: EXP 操作码定价调整
+# EIP-160: 官方原文
 
-## 技术概要
-
-调整 EXP 操作码的 gas 成本计算方式，使其指数增长更贴近实际计算开销。
-
-- **类别**: 安全/DoS
-- **影响等级**: 低
+> 来源：https://github.com/ethereum/EIPs/blob/master/EIPS/eip-160.md
 
 ---
-*技术原文基于以太坊官方 EIP 文档整理*
+
+## Specification
+
+If `block.number >= FORK_BLKNUM`, increase the gas cost of EXP from 10 + 10 per byte in the exponent to 10 + 50 per byte in the exponent.
+
+### Rationale
+
+Benchmarks suggest that EXP is currently underpriced by a factor of about 4–8.
+
+### References
+
+1. EIP-160 issue and discussion: https://github.com/ethereum/EIPs/issues/160
+
+---
+
+## Rationale
+
+Benchmarks suggest that EXP is currently underpriced by a factor of about 4–8.
+
+### References
+
+1. EIP-160 issue and discussion: https://github.com/ethereum/EIPs/issues/160
+
+---
+
