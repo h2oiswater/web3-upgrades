@@ -3,6 +3,7 @@ import Layout from '../../../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { marked } from 'marked';
 
 export async function getStaticPaths() {
   const allItems = await getCollection('chains');
@@ -30,36 +31,71 @@ const dataDir = join(process.cwd(), 'data', chain, upgrade, feature);
 try {
   originalContent = readFileSync(join(dataDir, 'original-zh.md'), 'utf-8');
 } catch {
-  originalContent = '暂无技术原文。';
+  originalContent = '# 暂无技术原文\n\n官方 EIP 文档尚未收录。';
 }
 
 try {
   aiContent = readFileSync(join(dataDir, 'ai-introduce-zh.md'), 'utf-8');
 } catch {
-  aiContent = '暂无 AI 解读。';
+  aiContent = '# 暂无 AI 解读\n\n正在生成中...';
 }
 
-// 简单的 Markdown 转 HTML（去除 frontmatter）
-function mdToHtml(md: string): string {
-  let text = md.replace(/^---[\s\S]*?---\n*/, '');
-  text = text
-    .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-white mb-4">$1</h1>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-white mt-6 mb-3">$1</h2>')
-    .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold text-white mt-4 mb-2">$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#8aa4f0]">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code class="bg-[#0a0a0f] px-1.5 py-0.5 rounded text-sm text-[#00d4aa]">$1</code>')
-    .replace(/^- (.+)$/gm, '<li class="ml-4 text-[#9a9ab0]">$1</li>')
-    .replace(/\n\n/g, '</p><p class="text-[#9a9ab0] mb-4 leading-relaxed">')
-    .replace(/^([\s\S]*)$/, '<p class="text-[#9a9ab0] mb-4 leading-relaxed">$1</p>');
-  return text;
+// 建立 EIP → 升级 映射（用于站内链接）
+const allItems = await getCollection('chains');
+const eipToUpgrade: Record<string, string> = {};
+for (const item of allItems) {
+  if (item.data.type === 'eip' && item.data.number && item.data.upgradeId) {
+    eipToUpgrade[String(item.data.number)] = item.data.upgradeId;
+  }
 }
 
-const originalHtml = mdToHtml(originalContent);
-const aiHtml = mdToHtml(aiContent);
+// 自定义 marked 渲染器
+const renderer = new marked.Renderer();
+
+// 表格包装器
+renderer.table = ({ header, body }) => {
+  return `<div class="table-wrapper"><table><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
+};
+
+// 代码块
+renderer.code = ({ text, lang }) => {
+  return `<pre><code class="language-${lang || 'text'}">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+};
+
+// 链接处理：EIP 链接转为站内
+renderer.link = ({ href, title, text }) => {
+  // 处理 GitHub EIP 链接 → 站内链接
+  const eipMatch = href.match(/eip-(\d+)\.md$/);
+  if (eipMatch) {
+    const eipNum = eipMatch[1];
+    const targetUpgrade = eipToUpgrade[eipNum];
+    if (targetUpgrade) {
+      return `<a href="${baseUrl}${chain}/${targetUpgrade}/eip-${eipNum}/">${text}</a>`;
+    }
+  }
+  // 处理相对 EIP 链接
+  const relMatch = href.match(/^\.\/eip-(\d+)\.md$/);
+  if (relMatch) {
+    const eipNum = relMatch[1];
+    const targetUpgrade = eipToUpgrade[eipNum];
+    if (targetUpgrade) {
+      return `<a href="${baseUrl}${chain}/${targetUpgrade}/eip-${eipNum}/">${text}</a>`;
+    }
+  }
+  return `<a href="${href}"${title ? ` title="${title}"` : ''}${href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${text}</a>`;
+};
+
+marked.setOptions({
+  renderer,
+  gfm: true,
+  breaks: true,
+});
+
+// 渲染 HTML
+const originalHtml = marked.parse(originalContent);
+const aiHtml = marked.parse(aiContent);
 
 // 获取升级信息用于面包屑
-const allItems = await getCollection('chains');
 const upgradeData = allItems.find(u => u.data.id === upgrade && !u.data.upgradeId)?.data;
 const chainData = allItems.find(c => c.data.id === chain && !c.data.chainId)?.data;
 
@@ -110,28 +146,28 @@ const impact = impactLabels[featureData.impact || 'medium'] || impactLabels.medi
     <!-- Tabs -->
     <div class="flex gap-1 mb-6 border-b border-[#2a2a3a]">
       <button 
-        id="tab-original"
-        class="pb-3 px-4 text-[#8aa4f0] border-b-2 border-[#627eea] font-medium transition-colors"
-        onclick="switchTab('original')"
-      >
-        📋 技术原文
-      </button>
-      <button 
         id="tab-ai"
-        class="pb-3 px-4 text-[#6a6a80] hover:text-[#9a9ab0] font-medium transition-colors border-b-2 border-transparent"
+        class="pb-3 px-4 text-[#8aa4f0] border-b-2 border-[#3b82f6] font-medium transition-colors"
         onclick="switchTab('ai')"
       >
         🤖 AI 解读
       </button>
+      <button 
+        id="tab-original"
+        class="pb-3 px-4 text-[#6a6a80] hover:text-[#9a9ab0] font-medium transition-colors border-b-2 border-transparent"
+        onclick="switchTab('original')"
+      >
+        📋 官方原文
+      </button>
     </div>
 
     <!-- Content -->
-    <div id="content-original" class="prose prose-invert max-w-none">
-      <div set:html={originalHtml} />
+    <div id="content-ai" class="markdown-content">
+      <Fragment set:html={aiHtml} />
     </div>
     
-    <div id="content-ai" class="prose prose-invert max-w-none hidden">
-      <div set:html={aiHtml} />
+    <div id="content-original" class="markdown-content hidden">
+      <Fragment set:html={originalHtml} />
     </div>
   </main>
 
@@ -142,20 +178,20 @@ const impact = impactLabels[featureData.impact || 'medium'] || impactLabels.medi
       const contentOriginal = document.getElementById('content-original');
       const contentAi = document.getElementById('content-ai');
       
-      if (tab === 'original') {
-        tabOriginal.classList.add('text-[#8aa4f0]', 'border-[#627eea]');
-        tabOriginal.classList.remove('text-[#6a6a80]', 'border-transparent');
-        tabAi.classList.remove('text-[#8aa4f0]', 'border-[#627eea]');
-        tabAi.classList.add('text-[#6a6a80]', 'border-transparent');
-        contentOriginal.classList.remove('hidden');
-        contentAi.classList.add('hidden');
-      } else {
-        tabAi.classList.add('text-[#8aa4f0]', 'border-[#627eea]');
+      if (tab === 'ai') {
+        tabAi.classList.add('text-[#8aa4f0]', 'border-[#3b82f6]');
         tabAi.classList.remove('text-[#6a6a80]', 'border-transparent');
-        tabOriginal.classList.remove('text-[#8aa4f0]', 'border-[#627eea]');
+        tabOriginal.classList.remove('text-[#8aa4f0]', 'border-[#3b82f6]');
         tabOriginal.classList.add('text-[#6a6a80]', 'border-transparent');
         contentAi.classList.remove('hidden');
         contentOriginal.classList.add('hidden');
+      } else {
+        tabOriginal.classList.add('text-[#8aa4f0]', 'border-[#3b82f6]');
+        tabOriginal.classList.remove('text-[#6a6a80]', 'border-transparent');
+        tabAi.classList.remove('text-[#8aa4f0]', 'border-[#3b82f6]');
+        tabAi.classList.add('text-[#6a6a80]', 'border-transparent');
+        contentOriginal.classList.remove('hidden');
+        contentAi.classList.add('hidden');
       }
     }
   </script>
