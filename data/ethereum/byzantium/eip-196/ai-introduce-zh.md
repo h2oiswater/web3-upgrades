@@ -55,7 +55,7 @@ Outpu
 **3. Gas costs**
 
 - Gas cost for ``ECADD``: 500
- - Gas cost for ``ECMUL``: 40000
+- Gas cost for ``ECMUL``: 40000
 
 *通俗理解：高速公路收费站——不同车辆收费标准不同*
 

@@ -70,7 +70,7 @@ Specifically, we use the following methods from [`polynomial-commitments.md`]
 
 python
 def kzg_to_versioned_hash(commitment: KZGCommitment) -> VersionedHash:
-    return VERSIONED_HASH_VERSION_KZG + sha256(commitment)[1:]
+return VERSIONED_HASH_VERSION_KZG + sha256(commitment)[1:]
 
 
 Approximates `factor * e ** (numerator / denominator)` using Taylor expansion:

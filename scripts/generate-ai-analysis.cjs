@@ -380,8 +380,10 @@ function extractMechanisms(content) {
     let rawContent = lines.slice(1).join('\n').trim().substring(0, 300);
     
     // Remove ``` fence markers to prevent nested code block conflicts
-    // We replace them with indentation or plain text markers
     rawContent = rawContent.replace(/```/g, '');
+    
+    // Trim leading whitespace from each line to prevent indented code blocks (4+ spaces)
+    rawContent = rawContent.split('\n').map(l => l.trimStart()).join('\n');
     
     if (title && rawContent) {
       mechanisms.push({

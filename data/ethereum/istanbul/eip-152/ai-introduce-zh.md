@@ -38,9 +38,9 @@ The precompile can be wrapped easily in Solidity to provide a more development-f
 
 solidity
 function F(uint32 rounds, bytes32[2] memory h, bytes32[4] memory m, bytes8[2] memory t, bool f) public view returns (bytes32[2] memory) {
-  bytes32[2] memory output;
+bytes32[2] memory output;
 
-  bytes memory
+bytes memory
 
 *通俗理解：草稿纸——临时使用，用完就扔*
 
