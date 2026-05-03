@@ -24,6 +24,7 @@ const chainsCollection = defineCollection({
     ]).optional(),
     summary: z.string().optional(),
     summaryZh: z.string().optional(),
+    status: z.enum(['completed', 'upcoming', 'in_progress']).default('completed'),
     number: z.number().optional(),
     impact: z.enum(['high', 'medium', 'low']).default('medium'),
     category: z.string().optional(),

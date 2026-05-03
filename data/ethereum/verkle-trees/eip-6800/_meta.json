@@ -1,0 +1,14 @@
+{
+  "id": "eip-6800",
+  "name": "Verkle Tree State Root",
+  "nameZh": "Verkle 树状态根",
+  "chainId": "ethereum",
+  "upgradeId": "verkle-trees",
+  "sortOrder": 1,
+  "type": "eip",
+  "number": 6800,
+  "impact": "high",
+  "category": "状态存储",
+  "summary": "定义 Verkle 树作为以太坊状态承诺方案的技术规范。",
+  "summaryZh": "定义 Verkle 树作为以太坊状态承诺方案的技术规范。"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "eof-format",
+  "name": "EVM Object Format",
+  "nameZh": "EVM 对象格式",
+  "date": "TBD",
+  "type": ["execution"],
+  "icon": "📐",
+  "summary": "EVM 字节码的标准化容器格式。将代码和数据分离，支持更高效的验证、分析和未来扩展，是 EVM 现代化的基础工程。",
+  "summaryZh": "EVM 字节码的标准化容器格式。将代码和数据分离，支持更高效的验证、分析和未来扩展，是 EVM 现代化的基础工程。",
+  "sortOrder": 22,
+  "chainId": "ethereum",
+  "status": "upcoming"
+}

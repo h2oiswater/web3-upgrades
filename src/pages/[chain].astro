@@ -20,11 +20,15 @@ const allItems = await getCollection('chains');
 const chainUpgrades = allItems
   .filter(item => item.data.chainId === chain && !item.data.upgradeId)
   .sort((a, b) => {
-    if (a.data.date && b.data.date) {
-      return new Date(a.data.date).getTime() - new Date(b.data.date).getTime();
+    if (a.data.date && b.data.date && a.data.date !== 'TBD' && b.data.date !== 'TBD') {
+      return new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
     }
-    return (a.data.sortOrder || 999) - (b.data.sortOrder || 999);
+    return (b.data.sortOrder || 999) - (a.data.sortOrder || 999);
   });
+
+// 分离已完成和即将上线
+const completedUpgrades = chainUpgrades.filter(u => u.data.status === 'completed');
+const upcomingUpgrades = chainUpgrades.filter(u => u.data.status === 'upcoming' || u.data.status === 'in_progress');
 
 const baseUrl = import.meta.env.BASE_URL;
 ---
@@ -48,18 +52,99 @@ const baseUrl = import.meta.env.BASE_URL;
       </div>
     </section>
 
-    <!-- Timeline -->
-    <section class="max-w-5xl mx-auto px-4 py-12">
+    <!-- Tab Navigation -->
+    {(completedUpgrades.length > 0 && upcomingUpgrades.length > 0) && (
+      <section class="max-w-5xl mx-auto px-4 pt-8">
+        <div class="flex gap-2 border-b border-[#2a2a3a]">
+          <button 
+            id="tab-completed"
+            class="tab-btn px-4 py-3 text-sm font-medium text-[#627eea] border-b-2 border-[#627eea] transition-colors"
+            onclick="showTab('completed')"
+          >
+            已上线 ({completedUpgrades.length})
+          </button>
+          <button 
+            id="tab-upcoming"
+            class="tab-btn px-4 py-3 text-sm font-medium text-[#6a6a80] border-b-2 border-transparent hover:text-[#9a9ab0] transition-colors"
+            onclick="showTab('upcoming')"
+          >
+            即将上线 ({upcomingUpgrades.length})
+          </button>
+        </div>
+      </section>
+    )}
+
+    <!-- Completed Timeline -->
+    <section id="panel-completed" class="max-w-5xl mx-auto px-4 py-12">
       <div class="relative">
         {/* 时间线中线 */}
         <div class="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-[#2a2a3a] md:-translate-x-1/2"/>
         
         <div class="space-y-8">
-          {chainUpgrades.map((upgrade, idx) => (
+          {completedUpgrades.map((upgrade, idx) => (
             <UpgradeCard upgrade={upgrade.data} index={idx} chainId={chain} />
           ))}
         </div>
       </div>
     </section>
+
+    <!-- Upcoming Timeline -->
+    {upcomingUpgrades.length > 0 && (
+      <section id="panel-upcoming" class="max-w-5xl mx-auto px-4 py-12 hidden">
+        <div class="space-y-6">
+          {upcomingUpgrades.map((upgrade) => (
+            <div class="relative">
+              <a 
+                href={`${baseUrl}${chain}/${upgrade.data.id}/`}
+                class="block p-5 rounded-xl border border-[#2a2a3a] bg-[#16161e] hover:bg-[#1c1c26] hover:border-[#3a3a50] transition-all"
+              >
+                <div class="flex items-start gap-4">
+                  <span class="text-3xl">{upgrade.data.icon}</span>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <h3 class="text-lg font-bold text-white">{upgrade.data.nameZh || upgrade.data.name}</h3>
+                      <span class="px-2 py-0.5 rounded text-xs bg-[#627eea]/10 text-[#627eea] border border-[#627eea]/20">
+                        {upgrade.data.status === 'in_progress' ? '进行中' : '即将上线'}
+                      </span>
+                    </div>
+                    <p class="text-sm text-[#9a9ab0] mb-3">{upgrade.data.summaryZh || upgrade.data.summary}</p>
+                    {upgrade.data.date && upgrade.data.date !== 'TBD' && (
+                      <div class="text-xs text-[#6a6a80]">
+                        📅 预计 {upgrade.data.date}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
   </main>
+
+  <script is:inline>
+    function showTab(tab) {
+      const completedPanel = document.getElementById('panel-completed');
+      const upcomingPanel = document.getElementById('panel-upcoming');
+      const completedTab = document.getElementById('tab-completed');
+      const upcomingTab = document.getElementById('tab-upcoming');
+
+      if (tab === 'completed') {
+        completedPanel.classList.remove('hidden');
+        upcomingPanel.classList.add('hidden');
+        completedTab.classList.add('text-[#627eea]', 'border-[#627eea]');
+        completedTab.classList.remove('text-[#6a6a80]', 'border-transparent');
+        upcomingTab.classList.add('text-[#6a6a80]', 'border-transparent');
+        upcomingTab.classList.remove('text-[#627eea]', 'border-[#627eea]');
+      } else {
+        completedPanel.classList.add('hidden');
+        upcomingPanel.classList.remove('hidden');
+        upcomingTab.classList.add('text-[#627eea]', 'border-[#627eea]');
+        upcomingTab.classList.remove('text-[#6a6a80]', 'border-transparent');
+        completedTab.classList.add('text-[#6a6a80]', 'border-transparent');
+        completedTab.classList.remove('text-[#627eea]', 'border-[#627eea]');
+      }
+    }
+  </script>
 </Layout>

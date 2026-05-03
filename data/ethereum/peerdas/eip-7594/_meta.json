@@ -1,0 +1,14 @@
+{
+  "id": "eip-7594",
+  "name": "PeerDAS",
+  "nameZh": "PeerDAS",
+  "chainId": "ethereum",
+  "upgradeId": "peerdas",
+  "sortOrder": 1,
+  "type": "eip",
+  "number": 7594,
+  "impact": "high",
+  "category": "数据可用性",
+  "summary": "在以太坊共识层实现 Peer Data Availability Sampling。",
+  "summaryZh": "在以太坊共识层实现 Peer Data Availability Sampling。"
+}

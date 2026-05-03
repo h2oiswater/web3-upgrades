@@ -1,0 +1,13 @@
+{
+  "id": "peerdas",
+  "name": "PeerDAS",
+  "nameZh": "Peer 数据可用性采样",
+  "date": "TBD",
+  "type": ["consensus", "l2", "major"],
+  "icon": "🔍",
+  "summary": "Danksharding 路线图的核心组件。允许节点通过采样少量数据片段来验证整个数据块的可用性，无需下载完整数据，大幅降低 L2 数据成本。",
+  "summaryZh": "Danksharding 路线图的核心组件。允许节点通过采样少量数据片段来验证整个数据块的可用性，无需下载完整数据，大幅降低 L2 数据成本。",
+  "sortOrder": 23,
+  "chainId": "ethereum",
+  "status": "upcoming"
+}

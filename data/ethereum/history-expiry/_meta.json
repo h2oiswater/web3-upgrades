@@ -1,0 +1,13 @@
+{
+  "id": "history-expiry",
+  "name": "History Expiry",
+  "nameZh": "历史数据过期",
+  "date": "TBD",
+  "type": ["execution"],
+  "icon": "⏳",
+  "summary": "通过 EIP-4444 限制客户端存储历史数据的时间窗口。减轻节点存储负担，使运行全节点更轻量化，历史数据由专门的门户网络维护。",
+  "summaryZh": "通过 EIP-4444 限制客户端存储历史数据的时间窗口。减轻节点存储负担，使运行全节点更轻量化，历史数据由专门的门户网络维护。",
+  "sortOrder": 24,
+  "chainId": "ethereum",
+  "status": "upcoming"
+}

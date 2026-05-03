@@ -1,0 +1,14 @@
+{
+  "id": "eip-7692",
+  "name": "EOFv1 Implementation",
+  "nameZh": "EOFv1 实现",
+  "chainId": "ethereum",
+  "upgradeId": "eof-format",
+  "sortOrder": 1,
+  "type": "eip",
+  "number": 7692,
+  "impact": "high",
+  "category": "执行层",
+  "summary": "EOFv1 的完整实现，包含代码/数据分离、版本控制等。",
+  "summaryZh": "EOFv1 的完整实现，包含代码/数据分离、版本控制等。"
+}

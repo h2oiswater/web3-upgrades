@@ -1,0 +1,14 @@
+{
+  "id": "eip-4444",
+  "name": "Bound Historical Data",
+  "nameZh": "历史数据边界",
+  "chainId": "ethereum",
+  "upgradeId": "history-expiry",
+  "sortOrder": 1,
+  "type": "eip",
+  "number": 4444,
+  "impact": "medium",
+  "category": "客户端",
+  "summary": "客户端停止提供超过一年的历史数据服务。",
+  "summaryZh": "客户端停止提供超过一年的历史数据服务。"
+}

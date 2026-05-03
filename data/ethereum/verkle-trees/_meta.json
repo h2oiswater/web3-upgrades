@@ -1,0 +1,13 @@
+{
+  "id": "verkle-trees",
+  "name": "Verkle Trees",
+  "nameZh": "Verkle 状态树",
+  "date": "TBD",
+  "type": ["execution", "major"],
+  "icon": "🌳",
+  "summary": "以太坊状态存储架构的根本性重构。用 Verkle 树替代当前的 Merkle Patricia 树，使见证数据缩小约 20-40 倍，是实现无状态客户端的关键一步。",
+  "summaryZh": "以太坊状态存储架构的根本性重构。用 Verkle 树替代当前的 Merkle Patricia 树，使见证数据缩小约 20-40 倍，是实现无状态客户端的关键一步。",
+  "sortOrder": 21,
+  "chainId": "ethereum",
+  "status": "upcoming"
+}
