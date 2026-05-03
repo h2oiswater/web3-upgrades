@@ -1,0 +1,13 @@
+{
+  "id": "eip-161",
+  "name": "状态去膨胀",
+  "nameZh": "状态去膨胀",
+  "type": "eip",
+  "number": 161,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": true,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "spurious-dragon"
+}

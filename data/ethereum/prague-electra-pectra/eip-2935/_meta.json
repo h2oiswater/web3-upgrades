@@ -1,0 +1,13 @@
+{
+  "id": "eip-2935",
+  "name": "历史区块哈希保存",
+  "nameZh": "历史区块哈希保存",
+  "type": "eip",
+  "number": 2935,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 5,
+  "chainId": "ethereum",
+  "upgradeId": "prague-electra-pectra"
+}

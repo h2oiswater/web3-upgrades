@@ -1,0 +1,13 @@
+{
+  "id": "eip-7044",
+  "name": "永久签名退出消息",
+  "nameZh": "永久签名退出消息",
+  "type": "eip",
+  "number": 7044,
+  "impact": "medium",
+  "category": "质押/共识",
+  "major": false,
+  "sortOrder": 7,
+  "chainId": "ethereum",
+  "upgradeId": "cancun-deneb-dencun"
+}

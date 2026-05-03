@@ -1,0 +1,15 @@
+{
+  "id": "frontier-thawing",
+  "name": "Frontier Thawing",
+  "nameZh": "前沿解冻",
+  "date": "2015-09-07",
+  "blockNumber": "200,000",
+  "type": [
+    "execution"
+  ],
+  "icon": "🧊",
+  "summary": "Frontier 的解冻升级。取消每个区块 5000 gas 的限制，将默认 gas 价格设为 51 gwei，使普通交易（21000 gas）成为可能。引入了难度炸弹确保未来必须转向 PoS。",
+  "summaryZh": "Frontier 的解冻升级。取消每个区块 5000 gas 的限制，将默认 gas 价格设为 51 gwei，使普通交易（21000 gas）成为可能。引入了难度炸弹确保未来必须转向 PoS。",
+  "sortOrder": 2,
+  "chainId": "ethereum"
+}

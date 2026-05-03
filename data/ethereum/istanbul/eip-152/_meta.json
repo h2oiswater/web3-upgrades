@@ -1,0 +1,13 @@
+{
+  "id": "eip-152",
+  "name": "Blake2 压缩函数预编译",
+  "nameZh": "Blake2 压缩函数预编译",
+  "type": "eip",
+  "number": 152,
+  "impact": "medium",
+  "category": "互操作/密码学",
+  "major": false,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "istanbul"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "eip-140",
+  "name": "REVERT 操作码",
+  "nameZh": "REVERT 操作码",
+  "type": "eip",
+  "number": 140,
+  "impact": "high",
+  "category": "智能合约",
+  "major": false,
+  "sortOrder": 2,
+  "chainId": "ethereum",
+  "upgradeId": "byzantium"
+}

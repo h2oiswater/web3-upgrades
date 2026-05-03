@@ -1,0 +1,17 @@
+{
+  "id": "the-merge-paris",
+  "name": "The Merge (Paris)",
+  "nameZh": "合并（巴黎）",
+  "date": "2022-09-15",
+  "blockNumber": "15,537,394",
+  "type": [
+    "consensus",
+    "execution",
+    "major"
+  ],
+  "icon": "🔀",
+  "summary": "以太坊历史上最重要的升级。PoW 链总难度达到 58.75 PH 时触发 Paris 升级，执行层从 PoW 切换到 PoS。Bellatrix 共识层升级同步激活，标志着以太坊正式成为权益证明区块链。能耗降低 99.95%。",
+  "summaryZh": "以太坊历史上最重要的升级。PoW 链总难度达到 58.75 PH 时触发 Paris 升级，执行层从 PoW 切换到 PoS。Bellatrix 共识层升级同步激活，标志着以太坊正式成为权益证明区块链。能耗降低 99.95%。",
+  "sortOrder": 16,
+  "chainId": "ethereum"
+}

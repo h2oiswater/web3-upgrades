@@ -1,0 +1,13 @@
+{
+  "id": "eip-6780",
+  "name": "限制 SELFDESTRUCT",
+  "nameZh": "限制 SELFDESTRUCT",
+  "type": "eip",
+  "number": 6780,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 5,
+  "chainId": "ethereum",
+  "upgradeId": "cancun-deneb-dencun"
+}

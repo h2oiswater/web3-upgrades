@@ -1,0 +1,13 @@
+{
+  "id": "eip-3855",
+  "name": "PUSH0 操作码",
+  "nameZh": "PUSH0 操作码",
+  "type": "eip",
+  "number": 3855,
+  "impact": "low",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 2,
+  "chainId": "ethereum",
+  "upgradeId": "shanghai"
+}

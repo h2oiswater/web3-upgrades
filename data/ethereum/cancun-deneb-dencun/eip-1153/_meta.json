@@ -1,0 +1,13 @@
+{
+  "id": "eip-1153",
+  "name": "Transient Storage",
+  "nameZh": "Transient Storage",
+  "type": "eip",
+  "number": 1153,
+  "impact": "medium",
+  "category": "智能合约",
+  "major": true,
+  "sortOrder": 2,
+  "chainId": "ethereum",
+  "upgradeId": "cancun-deneb-dencun"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "ethereum",
+  "name": "Ethereum",
+  "nameZh": "以太坊",
+  "icon": "🔷",
+  "description": "World Computer",
+  "descriptionZh": "世界计算机",
+  "website": "https://ethereum.org",
+  "active": true,
+  "sortOrder": 1
+}

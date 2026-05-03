@@ -1,0 +1,12 @@
+{
+  "id": "资金回收",
+  "name": "资金回收",
+  "nameZh": "资金回收",
+  "type": "feature",
+  "impact": "high",
+  "category": "协议基础",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "dao-fork"
+}

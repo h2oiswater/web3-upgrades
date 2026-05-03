@@ -1,0 +1,162 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+export async function getStaticPaths() {
+  const allItems = await getCollection('chains');
+  const features = allItems.filter(item => item.data.upgradeId && item.data.chainId);
+  return features.map(f => ({
+    params: { 
+      chain: f.data.chainId,
+      upgrade: f.data.upgradeId,
+      feature: f.data.id
+    },
+    props: { featureData: f.data },
+  }));
+}
+
+const { chain, upgrade, feature } = Astro.params;
+const { featureData } = Astro.props;
+const baseUrl = import.meta.env.BASE_URL;
+
+// 读取 Markdown 文件
+let originalContent = '';
+let aiContent = '';
+
+const dataDir = join(process.cwd(), 'data', chain, upgrade, feature);
+
+try {
+  originalContent = readFileSync(join(dataDir, 'original-zh.md'), 'utf-8');
+} catch {
+  originalContent = '暂无技术原文。';
+}
+
+try {
+  aiContent = readFileSync(join(dataDir, 'ai-introduce-zh.md'), 'utf-8');
+} catch {
+  aiContent = '暂无 AI 解读。';
+}
+
+// 简单的 Markdown 转 HTML（去除 frontmatter）
+function mdToHtml(md: string): string {
+  let text = md.replace(/^---[\s\S]*?---\n*/, '');
+  text = text
+    .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-white mb-4">$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-white mt-6 mb-3">$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold text-white mt-4 mb-2">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#8aa4f0]">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code class="bg-[#0a0a0f] px-1.5 py-0.5 rounded text-sm text-[#00d4aa]">$1</code>')
+    .replace(/^- (.+)$/gm, '<li class="ml-4 text-[#9a9ab0]">$1</li>')
+    .replace(/\n\n/g, '</p><p class="text-[#9a9ab0] mb-4 leading-relaxed">')
+    .replace(/^([\s\S]*)$/, '<p class="text-[#9a9ab0] mb-4 leading-relaxed">$1</p>');
+  return text;
+}
+
+const originalHtml = mdToHtml(originalContent);
+const aiHtml = mdToHtml(aiContent);
+
+// 获取升级信息用于面包屑
+const allItems = await getCollection('chains');
+const upgradeData = allItems.find(u => u.data.id === upgrade && !u.data.upgradeId)?.data;
+const chainData = allItems.find(c => c.data.id === chain && !c.data.chainId)?.data;
+
+const impactLabels: Record<string, { label: string; color: string }> = {
+  high: { label: '🔴 高影响', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
+  medium: { label: '🟡 中影响', color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' },
+  low: { label: '🟢 低影响', color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+};
+
+const impact = impactLabels[featureData.impact || 'medium'] || impactLabels.medium;
+---
+
+<Layout title={`${featureData.id} ${featureData.nameZh || featureData.name}`} description={featureData.nameZh || featureData.name}>
+  <main class="min-h-screen max-w-4xl mx-auto px-4 py-12">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-[#6a6a80] mb-8">
+      <a href={baseUrl} class="hover:text-[#8aa4f0]">首页</a>
+      <span>/</span>
+      {chainData && <a href={`${baseUrl}${chain}/`} class="hover:text-[#8aa4f0]">{chainData.nameZh}</a>}
+      <span>/</span>
+      {upgradeData && <a href={`${baseUrl}${chain}/${upgrade}/`} class="hover:text-[#8aa4f0]">{upgradeData.nameZh || upgradeData.name}</a>}
+      <span>/</span>
+      <span class="text-[#9a9ab0]">{featureData.nameZh || featureData.name}</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-2">
+        {featureData.type === 'eip' && featureData.number && (
+          <span class="font-mono text-sm px-3 py-1 rounded bg-[#627eea]/10 text-[#8aa4f0] border border-[#627eea]/20">
+            EIP-{featureData.number}
+          </span>
+        )}
+        <h1 class="text-3xl font-bold text-white">{featureData.nameZh || featureData.name}</h1>
+      </div>
+      
+      <div class="flex gap-2 flex-wrap">
+        <span class={`px-3 py-1 rounded text-sm border ${impact.color}`}>{impact.label}</span>
+        {featureData.category && (
+          <span class="px-3 py-1 rounded text-sm bg-[#16161e] text-[#9a9ab0] border border-[#2a2a3a]">{featureData.category}</span>
+        )}
+        {featureData.major && (
+          <span class="px-3 py-1 rounded text-sm bg-orange-500/10 text-orange-400 border border-orange-500/20">⭐ 核心特性</span>
+        )}
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-1 mb-6 border-b border-[#2a2a3a]">
+      <button 
+        id="tab-original"
+        class="pb-3 px-4 text-[#8aa4f0] border-b-2 border-[#627eea] font-medium transition-colors"
+        onclick="switchTab('original')"
+      >
+        📋 技术原文
+      </button>
+      <button 
+        id="tab-ai"
+        class="pb-3 px-4 text-[#6a6a80] hover:text-[#9a9ab0] font-medium transition-colors border-b-2 border-transparent"
+        onclick="switchTab('ai')"
+      >
+        🤖 AI 解读
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div id="content-original" class="prose prose-invert max-w-none">
+      <div set:html={originalHtml} />
+    </div>
+    
+    <div id="content-ai" class="prose prose-invert max-w-none hidden">
+      <div set:html={aiHtml} />
+    </div>
+  </main>
+
+  <script is:inline>
+    function switchTab(tab) {
+      const tabOriginal = document.getElementById('tab-original');
+      const tabAi = document.getElementById('tab-ai');
+      const contentOriginal = document.getElementById('content-original');
+      const contentAi = document.getElementById('content-ai');
+      
+      if (tab === 'original') {
+        tabOriginal.classList.add('text-[#8aa4f0]', 'border-[#627eea]');
+        tabOriginal.classList.remove('text-[#6a6a80]', 'border-transparent');
+        tabAi.classList.remove('text-[#8aa4f0]', 'border-[#627eea]');
+        tabAi.classList.add('text-[#6a6a80]', 'border-transparent');
+        contentOriginal.classList.remove('hidden');
+        contentAi.classList.add('hidden');
+      } else {
+        tabAi.classList.add('text-[#8aa4f0]', 'border-[#627eea]');
+        tabAi.classList.remove('text-[#6a6a80]', 'border-transparent');
+        tabOriginal.classList.remove('text-[#8aa4f0]', 'border-[#627eea]');
+        tabOriginal.classList.add('text-[#6a6a80]', 'border-transparent');
+        contentAi.classList.remove('hidden');
+        contentOriginal.classList.add('hidden');
+      }
+    }
+  </script>
+</Layout>

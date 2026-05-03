@@ -1,0 +1,17 @@
+{
+  "id": "london",
+  "name": "London",
+  "nameZh": "伦敦",
+  "date": "2021-08-05",
+  "blockNumber": "12,965,000",
+  "type": [
+    "execution",
+    "economic",
+    "major"
+  ],
+  "icon": "💷",
+  "summary": "以太坊历史上最重要的经济模型升级之一。引入 EIP-1559 彻底改革交易费用市场——将 gas 费用拆分为基础费（销毁）和小费。引入可变大小区块机制，提升网络弹性。",
+  "summaryZh": "以太坊历史上最重要的经济模型升级之一。引入 EIP-1559 彻底改革交易费用市场——将 gas 费用拆分为基础费（销毁）和小费。引入可变大小区块机制，提升网络弹性。",
+  "sortOrder": 13,
+  "chainId": "ethereum"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "eip-211",
+  "name": "RETURNDATASIZE/COPY",
+  "nameZh": "RETURNDATASIZE/COPY",
+  "type": "eip",
+  "number": 211,
+  "impact": "medium",
+  "category": "智能合约",
+  "major": false,
+  "sortOrder": 6,
+  "chainId": "ethereum",
+  "upgradeId": "byzantium"
+}

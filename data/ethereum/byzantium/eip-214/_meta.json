@@ -1,0 +1,13 @@
+{
+  "id": "eip-214",
+  "name": "STATICCALL",
+  "nameZh": "STATICCALL",
+  "type": "eip",
+  "number": 214,
+  "impact": "medium",
+  "category": "智能合约",
+  "major": false,
+  "sortOrder": 7,
+  "chainId": "ethereum",
+  "upgradeId": "byzantium"
+}

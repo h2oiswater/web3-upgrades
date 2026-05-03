@@ -1,0 +1,13 @@
+{
+  "id": "eip-2565",
+  "name": "ModExp gas 成本优化",
+  "nameZh": "ModExp gas 成本优化",
+  "type": "eip",
+  "number": 2565,
+  "impact": "low",
+  "category": "密码学",
+  "major": false,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "berlin"
+}

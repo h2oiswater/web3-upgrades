@@ -1,0 +1,13 @@
+{
+  "id": "eip-2537",
+  "name": "BLS 预编译",
+  "nameZh": "BLS 预编译",
+  "type": "eip",
+  "number": 2537,
+  "impact": "medium",
+  "category": "密码学/共识",
+  "major": false,
+  "sortOrder": 6,
+  "chainId": "ethereum",
+  "upgradeId": "prague-electra-pectra"
+}

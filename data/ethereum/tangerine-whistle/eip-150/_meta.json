@@ -1,0 +1,13 @@
+{
+  "id": "eip-150",
+  "name": "IO 密集型操作码提价",
+  "nameZh": "IO 密集型操作码提价",
+  "type": "eip",
+  "number": 150,
+  "impact": "high",
+  "category": "安全/DoS",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "tangerine-whistle"
+}

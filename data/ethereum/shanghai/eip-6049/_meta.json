@@ -1,0 +1,13 @@
+{
+  "id": "eip-6049",
+  "name": "SELFDESTRUCT 弃用警告",
+  "nameZh": "SELFDESTRUCT 弃用警告",
+  "type": "eip",
+  "number": 6049,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 5,
+  "chainId": "ethereum",
+  "upgradeId": "shanghai"
+}

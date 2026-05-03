@@ -1,0 +1,1 @@
+引入一种新的交易类型，允许 EOA（外部拥有账户）临时授权一个合约代码来代表它执行操作。交易包含一个 authorization_list，每个条目指定 (chain_id, address, nonce, y_parity, r, s) 签名，授权该地址的代码可以代表签名者执行。

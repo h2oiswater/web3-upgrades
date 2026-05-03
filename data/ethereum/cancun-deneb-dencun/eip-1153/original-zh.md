@@ -1,0 +1,1 @@
+新增 Transient Storage 操作码 TLOAD (0x5c) 和 TSTORE (0x5d)。Transient Storage 类似于存储但在交易结束时清除，不消耗 gas 退款机制。

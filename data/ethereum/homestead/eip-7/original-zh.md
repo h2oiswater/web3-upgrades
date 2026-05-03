@@ -1,0 +1,1 @@
+新增 DELEGATECALL 操作码（0xf4），语义类似于 CALLCODE，但保持发送者（msg.sender）和调用值（msg.value）不变。

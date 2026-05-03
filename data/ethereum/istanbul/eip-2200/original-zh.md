@@ -1,0 +1,1 @@
+改进 SSTORE 的净计量（Net Gas Metering），综合原始值、当前值和新值三态：原始=当前=新值时收取 SLOAD_GAS(800)；原始!=当前=新值时收取 SLOAD_GAS(800)；原始=当前!=新值时收取 SSTORE_SET_GAS(20000) 或 SSTORE_RESET_GAS(2900)；原始!=当前!=新值时收取 SLOAD_GAS(800)。

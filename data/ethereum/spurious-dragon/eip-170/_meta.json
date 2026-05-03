@@ -1,0 +1,13 @@
+{
+  "id": "eip-170",
+  "name": "合约大小限制",
+  "nameZh": "合约大小限制",
+  "type": "eip",
+  "number": 170,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "spurious-dragon"
+}

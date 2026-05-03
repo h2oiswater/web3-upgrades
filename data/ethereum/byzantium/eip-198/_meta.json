@@ -1,0 +1,13 @@
+{
+  "id": "eip-198",
+  "name": "大整数模幂预编译",
+  "nameZh": "大整数模幂预编译",
+  "type": "eip",
+  "number": 198,
+  "impact": "medium",
+  "category": "密码学",
+  "major": false,
+  "sortOrder": 5,
+  "chainId": "ethereum",
+  "upgradeId": "byzantium"
+}

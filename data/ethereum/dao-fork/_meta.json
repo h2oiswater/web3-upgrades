@@ -1,0 +1,16 @@
+{
+  "id": "dao-fork",
+  "name": "DAO Fork",
+  "nameZh": "DAO 分叉",
+  "date": "2016-07-20",
+  "blockNumber": "1,920,000",
+  "type": [
+    "execution",
+    "major"
+  ],
+  "icon": "🔀",
+  "summary": "针对 The DAO 攻击事件的社区投票应急分叉。黑客利用合约漏洞窃取了 360 万 ETH（当时价值约 6000 万美元）。社区 85% 投票支持分叉，将资金转移到恢复合约。拒绝分叉的矿工后来形成了 Ethereum Classic。",
+  "summaryZh": "针对 The DAO 攻击事件的社区投票应急分叉。黑客利用合约漏洞窃取了 360 万 ETH（当时价值约 6000 万美元）。社区 85% 投票支持分叉，将资金转移到恢复合约。拒绝分叉的矿工后来形成了 Ethereum Classic。",
+  "sortOrder": 4,
+  "chainId": "ethereum"
+}

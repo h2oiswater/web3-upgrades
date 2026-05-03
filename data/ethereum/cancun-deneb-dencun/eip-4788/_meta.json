@@ -1,0 +1,13 @@
+{
+  "id": "eip-4788",
+  "name": "信标区块根",
+  "nameZh": "信标区块根",
+  "type": "eip",
+  "number": 4788,
+  "impact": "medium",
+  "category": "共识/协议",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "cancun-deneb-dencun"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "eip-1884",
+  "name": "状态访问操作码提价",
+  "nameZh": "状态访问操作码提价",
+  "type": "eip",
+  "number": 1884,
+  "impact": "medium",
+  "category": "经济/安全",
+  "major": false,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "istanbul"
+}

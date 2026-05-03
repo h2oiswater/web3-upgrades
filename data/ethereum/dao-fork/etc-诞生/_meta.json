@@ -1,0 +1,12 @@
+{
+  "id": "etc-诞生",
+  "name": "ETC 诞生",
+  "nameZh": "ETC 诞生",
+  "type": "feature",
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "dao-fork"
+}

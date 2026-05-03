@@ -1,0 +1,1 @@
+在交易开始时预热 COINBASE 地址，使 COINBASE 在首次访问时按 'warm access'（100 gas）计费而非 'cold access'（2600 gas）。

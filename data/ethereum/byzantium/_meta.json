@@ -1,0 +1,17 @@
+{
+  "id": "byzantium",
+  "name": "Byzantium",
+  "nameZh": "拜占庭",
+  "date": "2017-10-16",
+  "blockNumber": "4,370,000",
+  "type": [
+    "execution",
+    "l2",
+    "economic"
+  ],
+  "icon": "🏛️",
+  "summary": "大都会（Metropolis）升级的第一阶段。降低出块奖励（5→3 ETH），引入 zk-SNARKs 预编译合约为 Layer 2 扩容铺路，同时再次延迟难度炸弹一年。",
+  "summaryZh": "大都会（Metropolis）升级的第一阶段。降低出块奖励（5→3 ETH），引入 zk-SNARKs 预编译合约为 Layer 2 扩容铺路，同时再次延迟难度炸弹一年。",
+  "sortOrder": 7,
+  "chainId": "ethereum"
+}

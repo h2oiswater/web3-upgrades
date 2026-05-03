@@ -1,0 +1,12 @@
+{
+  "id": "禁用-eip-1283",
+  "name": "禁用 EIP-1283",
+  "nameZh": "禁用 EIP-1283",
+  "type": "feature",
+  "impact": "high",
+  "category": "协议基础",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "petersburg"
+}

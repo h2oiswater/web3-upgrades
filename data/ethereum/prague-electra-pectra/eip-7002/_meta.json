@@ -1,0 +1,13 @@
+{
+  "id": "eip-7002",
+  "name": "执行层触发验证者退出",
+  "nameZh": "执行层触发验证者退出",
+  "type": "eip",
+  "number": 7002,
+  "impact": "high",
+  "category": "质押/共识",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "prague-electra-pectra"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "prague-electra-pectra",
+  "name": "Prague-Electra (Pectra)",
+  "nameZh": "布拉格-埃莱克特拉（佩克特拉）",
+  "date": "2025-03-25",
+  "blockNumber": "22,431,084",
+  "type": [
+    "execution",
+    "consensus",
+    "major"
+  ],
+  "icon": "⚡",
+  "summary": "账户抽象化和质押民主化。EIP-7702 让普通 EOA 账户能执行合约代码，解锁交易批处理、gas 代付、账户恢复等无限可能。EIP-7251 将单个验证者最大余额提升至 2048 ETH，提高质押资本效率。",
+  "summaryZh": "账户抽象化和质押民主化。EIP-7702 让普通 EOA 账户能执行合约代码，解锁交易批处理、gas 代付、账户恢复等无限可能。EIP-7251 将单个验证者最大余额提升至 2048 ETH，提高质押资本效率。",
+  "sortOrder": 19,
+  "chainId": "ethereum"
+}

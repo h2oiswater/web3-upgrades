@@ -1,0 +1,13 @@
+{
+  "id": "eip-4844",
+  "name": "Proto-Danksharding / Blob 交易",
+  "nameZh": "Proto-Danksharding / Blob 交易",
+  "type": "eip",
+  "number": 4844,
+  "impact": "high",
+  "category": "扩容/L2",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "cancun-deneb-dencun"
+}

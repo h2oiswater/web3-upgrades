@@ -1,0 +1,13 @@
+{
+  "id": "eip-1014",
+  "name": "CREATE2",
+  "nameZh": "CREATE2",
+  "type": "eip",
+  "number": 1014,
+  "impact": "high",
+  "category": "智能合约/L2",
+  "major": true,
+  "sortOrder": 2,
+  "chainId": "ethereum",
+  "upgradeId": "constantinople"
+}

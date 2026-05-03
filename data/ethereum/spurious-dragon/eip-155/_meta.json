@@ -1,0 +1,13 @@
+{
+  "id": "eip-155",
+  "name": "链式 ID 重放保护",
+  "nameZh": "链式 ID 重放保护",
+  "type": "eip",
+  "number": 155,
+  "impact": "high",
+  "category": "安全",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "spurious-dragon"
+}

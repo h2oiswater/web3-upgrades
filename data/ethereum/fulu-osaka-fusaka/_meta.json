@@ -1,0 +1,17 @@
+{
+  "id": "fulu-osaka-fusaka",
+  "name": "Fulu-Osaka (Fusaka)",
+  "nameZh": "富鲁-大阪（富萨卡）",
+  "date": "2025-04-29",
+  "blockNumber": "23,935,694",
+  "type": [
+    "execution",
+    "consensus",
+    "l2"
+  ],
+  "icon": "🌊",
+  "summary": "最新升级，继续优化以太坊的可扩展性和性能。作为 Pectra 后的快速跟进升级，进一步改进网络效率和 Layer 2 支持。",
+  "summaryZh": "最新升级，继续优化以太坊的可扩展性和性能。作为 Pectra 后的快速跟进升级，进一步改进网络效率和 Layer 2 支持。",
+  "sortOrder": 20,
+  "chainId": "ethereum"
+}

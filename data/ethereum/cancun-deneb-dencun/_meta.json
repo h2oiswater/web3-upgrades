@@ -1,0 +1,18 @@
+{
+  "id": "cancun-deneb-dencun",
+  "name": "Cancun-Deneb (Dencun)",
+  "nameZh": "坎昆-德内布（登村）",
+  "date": "2024-03-13",
+  "blockNumber": "19,426,587",
+  "type": [
+    "execution",
+    "consensus",
+    "l2",
+    "major"
+  ],
+  "icon": "📦",
+  "summary": "以太坊扩容的关键里程碑。引入 Proto-Danksharding（EIP-4844），通过 Blob 交易为 L2 Rollup 提供廉价的数据可用性空间。L2 交易费用降低 90%+。同时引入 Transient Storage、KZG 验证等关键技术。",
+  "summaryZh": "以太坊扩容的关键里程碑。引入 Proto-Danksharding（EIP-4844），通过 Blob 交易为 L2 Rollup 提供廉价的数据可用性空间。L2 交易费用降低 90%+。同时引入 Transient Storage、KZG 验证等关键技术。",
+  "sortOrder": 18,
+  "chainId": "ethereum"
+}

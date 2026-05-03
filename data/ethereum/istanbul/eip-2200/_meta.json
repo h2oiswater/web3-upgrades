@@ -1,0 +1,13 @@
+{
+  "id": "eip-2200",
+  "name": "SSTORE gas 净计量",
+  "nameZh": "SSTORE gas 净计量",
+  "type": "eip",
+  "number": 2200,
+  "impact": "medium",
+  "category": "经济/安全",
+  "major": false,
+  "sortOrder": 6,
+  "chainId": "ethereum",
+  "upgradeId": "istanbul"
+}

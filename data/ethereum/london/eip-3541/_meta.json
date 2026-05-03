@@ -1,0 +1,13 @@
+{
+  "id": "eip-3541",
+  "name": "拒绝 0xEF 开头合约",
+  "nameZh": "拒绝 0xEF 开头合约",
+  "type": "eip",
+  "number": 3541,
+  "impact": "low",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "london"
+}

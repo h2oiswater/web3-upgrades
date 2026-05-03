@@ -1,0 +1,1 @@
+为 EOF 和 Verkle 树做准备。限制 initcode 大小可以简化未来的 EVM 对象格式升级，同时防止超大 initcode 带来的验证负担。

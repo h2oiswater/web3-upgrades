@@ -1,0 +1,12 @@
+{
+  "id": "gas-上限-5000",
+  "name": "gas 上限 5000",
+  "nameZh": "gas 上限 5000",
+  "type": "feature",
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 2,
+  "chainId": "ethereum",
+  "upgradeId": "frontier"
+}

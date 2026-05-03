@@ -1,0 +1,1 @@
+提高 IO 密集型操作码的 gas 成本：EXTCODESIZE 从 20 到 700，BALANCE 从 20 到 400，SLOAD 从 50 到 200，EXTCODECOPY 基础从 20 到 700。

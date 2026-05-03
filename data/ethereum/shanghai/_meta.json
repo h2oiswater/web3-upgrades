@@ -1,0 +1,17 @@
+{
+  "id": "shanghai",
+  "name": "Shanghai",
+  "nameZh": "上海",
+  "date": "2023-04-12",
+  "blockNumber": "17,034,870",
+  "type": [
+    "execution",
+    "consensus",
+    "major"
+  ],
+  "icon": "🔓",
+  "summary": "万众期待的质押提款开放。Shanghai（执行层）与 Capella（共识层）同步升级，允许质押者将 ETH 从信标链提取到执行层。这是以太坊 PoS 完整闭环的关键一步。",
+  "summaryZh": "万众期待的质押提款开放。Shanghai（执行层）与 Capella（共识层）同步升级，允许质押者将 ETH 从信标链提取到执行层。这是以太坊 PoS 完整闭环的关键一步。",
+  "sortOrder": 17,
+  "chainId": "ethereum"
+}

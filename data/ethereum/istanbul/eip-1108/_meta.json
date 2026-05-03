@@ -1,0 +1,13 @@
+{
+  "id": "eip-1108",
+  "name": "降低 alt_bn128 gas 成本",
+  "nameZh": "降低 alt_bn128 gas 成本",
+  "type": "eip",
+  "number": 1108,
+  "impact": "high",
+  "category": "扩容/L2",
+  "major": true,
+  "sortOrder": 2,
+  "chainId": "ethereum",
+  "upgradeId": "istanbul"
+}

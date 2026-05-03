@@ -1,0 +1,37 @@
+---
+interface Props {
+  chain: {
+    id: string;
+    name: string;
+    nameZh: string;
+    icon?: string;
+    description: string;
+    descriptionZh: string;
+  };
+}
+
+const { chain } = Astro.props;
+const url = import.meta.env.BASE_URL + chain.id + '/';
+---
+
+<a 
+  href={url}
+  class="block p-6 rounded-xl border border-[#2a2a3a] bg-[#16161e] hover:bg-[#1c1c26] transition-all hover:-translate-y-1 group"
+>
+  <div class="flex items-center gap-4 mb-3">
+    <div class="text-3xl">{chain.icon || '🔗'}</div>
+    <div>
+      <h2 class="text-xl font-bold text-white group-hover:text-[#8aa4f0] transition-colors">
+        {chain.nameZh}
+      </h2>
+      <span class="text-sm text-[#6a6a80]">{chain.name}</span>
+    </div>
+  </div>
+  <p class="text-sm text-[#9a9ab0]">{chain.descriptionZh}</p>
+  <div class="mt-4 flex items-center text-sm text-[#627eea]">
+    <span>查看升级记录</span>
+    <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+    </svg>
+  </div>
+</a>

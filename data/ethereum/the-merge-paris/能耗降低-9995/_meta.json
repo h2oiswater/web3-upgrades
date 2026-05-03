@@ -1,0 +1,12 @@
+{
+  "id": "能耗降低-9995",
+  "name": "能耗降低 99.95%",
+  "nameZh": "能耗降低 99.95%",
+  "type": "feature",
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "the-merge-paris"
+}

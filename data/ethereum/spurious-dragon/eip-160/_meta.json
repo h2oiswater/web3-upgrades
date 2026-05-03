@@ -1,0 +1,13 @@
+{
+  "id": "eip-160",
+  "name": "EXP 操作码定价调整",
+  "nameZh": "EXP 操作码定价调整",
+  "type": "eip",
+  "number": 160,
+  "impact": "low",
+  "category": "安全/DoS",
+  "major": false,
+  "sortOrder": 2,
+  "chainId": "ethereum",
+  "upgradeId": "spurious-dragon"
+}

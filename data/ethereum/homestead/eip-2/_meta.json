@@ -1,0 +1,13 @@
+{
+  "id": "eip-2",
+  "name": "Homestead 硬分叉变更",
+  "nameZh": "Homestead 硬分叉变更",
+  "type": "eip",
+  "number": 2,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "homestead"
+}

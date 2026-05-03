@@ -1,0 +1,12 @@
+{
+  "id": "gas-限制解除",
+  "name": "gas 限制解除",
+  "nameZh": "gas 限制解除",
+  "type": "feature",
+  "impact": "high",
+  "category": "协议基础",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "frontier-thawing"
+}

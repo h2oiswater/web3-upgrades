@@ -1,0 +1,52 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ChainCard from '../components/ChainCard.astro';
+import { getCollection } from 'astro:content';
+
+const allItems = await getCollection('chains');
+// 链级别的 item 没有 chainId 字段
+const chains = allItems.filter(item => !item.data.chainId);
+const sortedChains = chains.sort((a, b) => (a.data.sortOrder || 999) - (b.data.sortOrder || 999));
+---
+
+<Layout title="Web3 Upgrades" description="区块链协议升级知识库 - 以太坊、比特币等主流公链的历次升级记录">
+  <main class="min-h-screen">
+    <!-- Hero -->
+    <section class="relative py-20 px-4 text-center overflow-hidden">
+      <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(ellipse_at_50%_30%,rgba(98,126,234,0.08)_0%,transparent_50%),radial-gradient(ellipse_at_30%_70%,rgba(168,85,247,0.06)_0%,transparent_50%),radial-gradient(ellipse_at_70%_60%,rgba(0,212,170,0.06)_0%,transparent_50%)]"></div>
+      </div>
+      <div class="relative z-10 max-w-3xl mx-auto">
+        <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-[#627eea] via-[#a855f7] to-[#00d4aa] flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-blue-500/20">
+          Ξ
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4 text-white">Web3 Upgrades</h1>
+        <p class="text-lg text-[#9a9ab0] max-w-xl mx-auto">区块链协议升级知识库。从 Frontier 到 Fusaka，追踪每一次协议进化。</p>
+        
+        <div class="flex justify-center gap-8 mt-10">
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white">20+</div>
+            <div class="text-sm text-[#6a6a80]">次重大升级</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white">11年</div>
+            <div class="text-sm text-[#6a6a80]">持续演进</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white">100+</div>
+            <div class="text-sm text-[#6a6a80]">核心 EIP</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chain Cards -->
+    <section class="max-w-6xl mx-auto px-4 pb-20">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {sortedChains.map(chain => (
+          <ChainCard chain={chain.data} />
+        ))}
+      </div>
+    </section>
+  </main>
+</Layout>

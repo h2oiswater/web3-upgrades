@@ -1,0 +1,13 @@
+{
+  "id": "eip-1052",
+  "name": "EXTCODEHASH",
+  "nameZh": "EXTCODEHASH",
+  "type": "eip",
+  "number": 1052,
+  "impact": "medium",
+  "category": "智能合约",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "constantinople"
+}

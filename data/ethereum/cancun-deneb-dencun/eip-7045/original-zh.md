@@ -1,0 +1,1 @@
+共识层变更：增加 attestation 的包含窗口，从之前的 1 个 epoch 增加到当前 epoch 和下一个 epoch，给验证者更多时间提交证明。

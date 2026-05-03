@@ -1,0 +1,15 @@
+{
+  "id": "frontier",
+  "name": "Frontier",
+  "nameZh": "前沿",
+  "date": "2015-07-30",
+  "blockNumber": "0",
+  "type": [
+    "execution"
+  ],
+  "icon": "🏁",
+  "summary": "以太坊的创世时刻。Frontier 是一个'裸机'版的上线实现，面向开发者和技术用户。gas 上限限制在 5000，合约部署需要手动操作。",
+  "summaryZh": "以太坊的创世时刻。Frontier 是一个'裸机'版的上线实现，面向开发者和技术用户。gas 上限限制在 5000，合约部署需要手动操作。",
+  "sortOrder": 1,
+  "chainId": "ethereum"
+}

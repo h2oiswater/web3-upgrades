@@ -1,0 +1,17 @@
+{
+  "id": "istanbul",
+  "name": "Istanbul",
+  "nameZh": "伊斯坦布尔",
+  "date": "2019-12-08",
+  "blockNumber": "9,069,000",
+  "type": [
+    "execution",
+    "l2",
+    "security"
+  ],
+  "icon": "🌉",
+  "summary": "性能与互操作性升级。大幅降低 SNARKs/STARKs 预编译合约的 gas 成本，引入链式 ID 操作码，改进 gas 定价，使 Layer 2 扩容方案更经济可行，并实现了与 Zcash 的互操作性。",
+  "summaryZh": "性能与互操作性升级。大幅降低 SNARKs/STARKs 预编译合约的 gas 成本，引入链式 ID 操作码，改进 gas 定价，使 Layer 2 扩容方案更经济可行，并实现了与 Zcash 的互操作性。",
+  "sortOrder": 10,
+  "chainId": "ethereum"
+}

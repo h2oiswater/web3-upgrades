@@ -1,0 +1,1 @@
+将难度炸弹推迟至 2022 年 6 月（大约），通过将 fake_block_number 调整为 block.number - 10_700_000 实现。

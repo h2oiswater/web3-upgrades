@@ -1,0 +1,13 @@
+{
+  "id": "eip-1283",
+  "name": "SSTORE gas 计量调整",
+  "nameZh": "SSTORE gas 计量调整",
+  "type": "eip",
+  "number": 1283,
+  "impact": "medium",
+  "category": "安全/经济",
+  "major": false,
+  "sortOrder": 5,
+  "chainId": "ethereum",
+  "upgradeId": "constantinople"
+}

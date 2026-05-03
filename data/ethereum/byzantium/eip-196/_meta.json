@@ -1,0 +1,13 @@
+{
+  "id": "eip-196",
+  "name": "bn256 加法预编译",
+  "nameZh": "bn256 加法预编译",
+  "type": "eip",
+  "number": 196,
+  "impact": "high",
+  "category": "密码学/L2",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "byzantium"
+}

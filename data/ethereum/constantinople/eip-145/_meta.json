@@ -1,0 +1,13 @@
+{
+  "id": "eip-145",
+  "name": "SHL/SHR 移位操作码",
+  "nameZh": "SHL/SHR 移位操作码",
+  "type": "eip",
+  "number": 145,
+  "impact": "low",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "constantinople"
+}

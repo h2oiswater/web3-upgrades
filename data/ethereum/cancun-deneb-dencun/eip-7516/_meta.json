@@ -1,0 +1,13 @@
+{
+  "id": "eip-7516",
+  "name": "BLOBBASEFEE 操作码",
+  "nameZh": "BLOBBASEFEE 操作码",
+  "type": "eip",
+  "number": 7516,
+  "impact": "low",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 6,
+  "chainId": "ethereum",
+  "upgradeId": "cancun-deneb-dencun"
+}

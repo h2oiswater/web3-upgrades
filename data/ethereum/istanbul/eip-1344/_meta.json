@@ -1,0 +1,13 @@
+{
+  "id": "eip-1344",
+  "name": "CHAINID 操作码",
+  "nameZh": "CHAINID 操作码",
+  "type": "eip",
+  "number": 1344,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "istanbul"
+}

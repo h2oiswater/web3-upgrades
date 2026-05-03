@@ -1,0 +1,13 @@
+{
+  "id": "eip-100",
+  "name": "难度调整算法变更",
+  "nameZh": "难度调整算法变更",
+  "type": "eip",
+  "number": 100,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "byzantium"
+}

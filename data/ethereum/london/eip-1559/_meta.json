@@ -1,0 +1,13 @@
+{
+  "id": "eip-1559",
+  "name": "费用市场改革",
+  "nameZh": "费用市场改革",
+  "type": "eip",
+  "number": 1559,
+  "impact": "high",
+  "category": "经济模型",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "london"
+}

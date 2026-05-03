@@ -1,0 +1,12 @@
+{
+  "id": "pow-pos-切换",
+  "name": "PoW → PoS 切换",
+  "nameZh": "PoW → PoS 切换",
+  "type": "feature",
+  "impact": "high",
+  "category": "协议基础",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "the-merge-paris"
+}

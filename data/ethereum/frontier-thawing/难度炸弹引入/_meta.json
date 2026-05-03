@@ -1,0 +1,12 @@
+{
+  "id": "难度炸弹引入",
+  "name": "难度炸弹引入",
+  "nameZh": "难度炸弹引入",
+  "type": "feature",
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "frontier-thawing"
+}

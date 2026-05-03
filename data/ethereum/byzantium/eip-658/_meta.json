@@ -1,0 +1,13 @@
+{
+  "id": "eip-658",
+  "name": "状态根替代返回状态",
+  "nameZh": "状态根替代返回状态",
+  "type": "eip",
+  "number": 658,
+  "impact": "low",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 9,
+  "chainId": "ethereum",
+  "upgradeId": "byzantium"
+}

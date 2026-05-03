@@ -1,0 +1,13 @@
+{
+  "id": "eip-3554",
+  "name": "难度炸弹延迟",
+  "nameZh": "难度炸弹延迟",
+  "type": "eip",
+  "number": 3554,
+  "impact": "low",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 5,
+  "chainId": "ethereum",
+  "upgradeId": "london"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "eip-4895",
+  "name": "质押提款",
+  "nameZh": "质押提款",
+  "type": "eip",
+  "number": 4895,
+  "impact": "high",
+  "category": "质押/共识",
+  "major": true,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "shanghai"
+}

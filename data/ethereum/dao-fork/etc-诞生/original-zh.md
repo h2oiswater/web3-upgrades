@@ -1,0 +1,1 @@
+拒绝分叉的矿工继续维护原链，形成 Ethereum Classic

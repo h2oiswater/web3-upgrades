@@ -1,0 +1,12 @@
+{
+  "id": "持续扩容优化",
+  "name": "持续扩容优化",
+  "nameZh": "持续扩容优化",
+  "type": "feature",
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "fulu-osaka-fusaka"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "issuance-降低",
+  "name": " issuance 降低",
+  "nameZh": " issuance 降低",
+  "type": "feature",
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "the-merge-paris"
+}

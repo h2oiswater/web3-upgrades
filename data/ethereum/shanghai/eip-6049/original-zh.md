@@ -1,0 +1,1 @@
+正式弃用 SELFDESTRUCT 操作码。SELFDESTRUCT 仍保留在协议中，但文档标记为已弃用，未来的升级可能会限制或删除它。

@@ -1,0 +1,13 @@
+{
+  "id": "eip-2028",
+  "name": "降低 Calldata gas 成本",
+  "nameZh": "降低 Calldata gas 成本",
+  "type": "eip",
+  "number": 2028,
+  "impact": "high",
+  "category": "扩容/L2",
+  "major": true,
+  "sortOrder": 5,
+  "chainId": "ethereum",
+  "upgradeId": "istanbul"
+}

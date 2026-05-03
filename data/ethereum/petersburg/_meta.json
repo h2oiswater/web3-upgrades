@@ -1,0 +1,16 @@
+{
+  "id": "petersburg",
+  "name": "Petersburg",
+  "nameZh": "圣彼得堡",
+  "date": "2019-02-28",
+  "blockNumber": "7,280,000",
+  "type": [
+    "execution",
+    "security"
+  ],
+  "icon": "🛡️",
+  "summary": "与 Constantinople 同区块执行的紧急修复。发现 EIP-1283 存在重入攻击漏洞后，在主网升级前紧急禁用该 EIP， Constantinople 的其余 EIP 正常执行。",
+  "summaryZh": "与 Constantinople 同区块执行的紧急修复。发现 EIP-1283 存在重入攻击漏洞后，在主网升级前紧急禁用该 EIP， Constantinople 的其余 EIP 正常执行。",
+  "sortOrder": 9,
+  "chainId": "ethereum"
+}

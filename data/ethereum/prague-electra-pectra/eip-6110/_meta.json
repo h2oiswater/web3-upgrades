@@ -1,0 +1,13 @@
+{
+  "id": "eip-6110",
+  "name": "链上验证者存款",
+  "nameZh": "链上验证者存款",
+  "type": "eip",
+  "number": 6110,
+  "impact": "medium",
+  "category": "质押/共识",
+  "major": false,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "prague-electra-pectra"
+}

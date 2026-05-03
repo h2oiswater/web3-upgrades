@@ -1,0 +1,15 @@
+{
+  "id": "muir-glacier",
+  "name": "Muir Glacier",
+  "nameZh": "缪尔冰川",
+  "date": "2020-01-02",
+  "blockNumber": "9,200,000",
+  "type": [
+    "execution"
+  ],
+  "icon": "🧊",
+  "summary": "又一次难度炸弹延迟。随着 PoW 挖矿难度增加，出块时间开始变长，影响用户体验。Muir Glacier 将难度炸弹推迟约 611 天，为 PoS 转型争取时间。",
+  "summaryZh": "又一次难度炸弹延迟。随着 PoW 挖矿难度增加，出块时间开始变长，影响用户体验。Muir Glacier 将难度炸弹推迟约 611 天，为 PoS 转型争取时间。",
+  "sortOrder": 11,
+  "chainId": "ethereum"
+}

@@ -1,0 +1,1 @@
+新增 BLOBBASEFEE 操作码（0x4a），返回当前区块的 blob 基础费用（blob base fee per gas），gas 成本为 2。

@@ -1,0 +1,13 @@
+{
+  "id": "eip-197",
+  "name": "bn256 标量乘法预编译",
+  "nameZh": "bn256 标量乘法预编译",
+  "type": "eip",
+  "number": 197,
+  "impact": "high",
+  "category": "密码学/L2",
+  "major": true,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "byzantium"
+}

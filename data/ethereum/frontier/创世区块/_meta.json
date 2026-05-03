@@ -1,0 +1,12 @@
+{
+  "id": "创世区块",
+  "name": "创世区块",
+  "nameZh": "创世区块",
+  "type": "feature",
+  "impact": "high",
+  "category": "协议基础",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "frontier"
+}

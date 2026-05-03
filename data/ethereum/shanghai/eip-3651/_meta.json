@@ -1,0 +1,13 @@
+{
+  "id": "eip-3651",
+  "name": "COINBASE 预热",
+  "nameZh": "COINBASE 预热",
+  "type": "eip",
+  "number": 3651,
+  "impact": "low",
+  "category": "经济/优化",
+  "major": false,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "shanghai"
+}

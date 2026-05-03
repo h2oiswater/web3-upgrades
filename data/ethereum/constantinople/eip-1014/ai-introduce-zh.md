@@ -1,0 +1,1 @@
+状态通道和 Layer 2 的基石。允许'Counterfactual'模式——在链下确定合约地址、交互，只在必要时上链。催生了 Gnosis Safe、State Channels 等方案。

@@ -1,0 +1,13 @@
+{
+  "id": "eip-5133",
+  "name": "最终难度炸弹延迟",
+  "nameZh": "最终难度炸弹延迟",
+  "type": "eip",
+  "number": 5133,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "gray-glacier"
+}

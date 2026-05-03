@@ -1,0 +1,13 @@
+{
+  "id": "eip-1234",
+  "name": "难度炸弹延迟+减产",
+  "nameZh": "难度炸弹延迟+减产",
+  "type": "eip",
+  "number": 1234,
+  "impact": "high",
+  "category": "经济模型",
+  "major": true,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "constantinople"
+}

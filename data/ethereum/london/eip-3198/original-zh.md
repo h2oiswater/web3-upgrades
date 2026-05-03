@@ -1,0 +1,1 @@
+新增 BASEFEE 操作码（0x48），返回当前区块的基础费值（base fee per gas），gas 成本为 2。

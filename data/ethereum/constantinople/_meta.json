@@ -1,0 +1,17 @@
+{
+  "id": "constantinople",
+  "name": "Constantinople",
+  "nameZh": "君士坦丁堡",
+  "date": "2019-02-28",
+  "blockNumber": "7,280,000",
+  "type": [
+    "execution",
+    "economic",
+    "l2"
+  ],
+  "icon": "⚙️",
+  "summary": "大都会升级的第二阶段。继续降低出块奖励（3→2 ETH），优化 EVM 操作码成本，引入 CREATE2 允许确定性地预计算合约地址，为状态通道和 Layer 2 方案提供支持。",
+  "summaryZh": "大都会升级的第二阶段。继续降低出块奖励（3→2 ETH），优化 EVM 操作码成本，引入 CREATE2 允许确定性地预计算合约地址，为状态通道和 Layer 2 方案提供支持。",
+  "sortOrder": 8,
+  "chainId": "ethereum"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "eip-7702",
+  "name": "EOA 代码执行",
+  "nameZh": "EOA 代码执行",
+  "type": "eip",
+  "number": 7702,
+  "impact": "high",
+  "category": "账户/UX",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "prague-electra-pectra"
+}

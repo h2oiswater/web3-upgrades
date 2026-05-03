@@ -1,0 +1,13 @@
+{
+  "id": "eip-4345",
+  "name": "难度炸弹延迟至 2022 年6月",
+  "nameZh": "难度炸弹延迟至 2022 年6月",
+  "type": "eip",
+  "number": 4345,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": true,
+  "sortOrder": 1,
+  "chainId": "ethereum",
+  "upgradeId": "arrow-glacier"
+}

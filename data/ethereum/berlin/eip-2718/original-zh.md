@@ -1,0 +1,1 @@
+定义类型化交易信封格式：TransactionType || TransactionPayload。TransactionType 为 0-0x7f 的单字节，区分不同交易格式。

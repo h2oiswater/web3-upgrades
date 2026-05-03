@@ -1,0 +1,13 @@
+{
+  "id": "eip-2930",
+  "name": "可选访问列表交易",
+  "nameZh": "可选访问列表交易",
+  "type": "eip",
+  "number": 2930,
+  "impact": "medium",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "berlin"
+}

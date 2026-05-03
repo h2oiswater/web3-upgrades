@@ -1,0 +1,13 @@
+{
+  "id": "eip-7514",
+  "name": "验证者增长限速",
+  "nameZh": "验证者增长限速",
+  "type": "eip",
+  "number": 7514,
+  "impact": "high",
+  "category": "质押/共识",
+  "major": true,
+  "sortOrder": 9,
+  "chainId": "ethereum",
+  "upgradeId": "cancun-deneb-dencun"
+}

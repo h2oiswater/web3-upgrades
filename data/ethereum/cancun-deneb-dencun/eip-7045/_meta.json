@@ -1,0 +1,13 @@
+{
+  "id": "eip-7045",
+  "name": "增加证明包含窗口",
+  "nameZh": "增加证明包含窗口",
+  "type": "eip",
+  "number": 7045,
+  "impact": "low",
+  "category": "质押/共识",
+  "major": false,
+  "sortOrder": 8,
+  "chainId": "ethereum",
+  "upgradeId": "cancun-deneb-dencun"
+}

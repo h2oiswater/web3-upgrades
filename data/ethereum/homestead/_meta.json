@@ -1,0 +1,16 @@
+{
+  "id": "homestead",
+  "name": "Homestead",
+  "nameZh": "家园",
+  "date": "2016-03-14",
+  "blockNumber": "1,150,000",
+  "type": [
+    "execution",
+    "major"
+  ],
+  "icon": "🏠",
+  "summary": "以太坊的第一个正式稳定版本。引入了多个协议改进和网络层变更，为后续的网络升级奠定基础。标志着以太坊从实验阶段进入生产环境。",
+  "summaryZh": "以太坊的第一个正式稳定版本。引入了多个协议改进和网络层变更，为后续的网络升级奠定基础。标志着以太坊从实验阶段进入生产环境。",
+  "sortOrder": 3,
+  "chainId": "ethereum"
+}

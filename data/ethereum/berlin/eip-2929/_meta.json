@@ -1,0 +1,13 @@
+{
+  "id": "eip-2929",
+  "name": "状态访问操作码 gas 增加",
+  "nameZh": "状态访问操作码 gas 增加",
+  "type": "eip",
+  "number": 2929,
+  "impact": "medium",
+  "category": "安全/DoS",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "berlin"
+}

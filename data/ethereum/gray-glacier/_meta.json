@@ -1,0 +1,15 @@
+{
+  "id": "gray-glacier",
+  "name": "Gray Glacier",
+  "nameZh": "灰色冰川",
+  "date": "2022-06-30",
+  "blockNumber": "15,050,000",
+  "type": [
+    "execution"
+  ],
+  "icon": "⬜",
+  "summary": "最后一次难度炸弹推迟。The Merge 的准备工作比预期更长，Gray Glacier 将难度炸弹再推后几个月，确保主网在 2022 年 9 月顺利合并。这也是以太坊 PoW 时代的最后一段时光。",
+  "summaryZh": "最后一次难度炸弹推迟。The Merge 的准备工作比预期更长，Gray Glacier 将难度炸弹再推后几个月，确保主网在 2022 年 9 月顺利合并。这也是以太坊 PoW 时代的最后一段时光。",
+  "sortOrder": 15,
+  "chainId": "ethereum"
+}

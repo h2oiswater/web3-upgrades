@@ -1,0 +1,13 @@
+{
+  "id": "eip-5656",
+  "name": "MCOPY 操作码",
+  "nameZh": "MCOPY 操作码",
+  "type": "eip",
+  "number": 5656,
+  "impact": "low",
+  "category": "协议基础",
+  "major": false,
+  "sortOrder": 4,
+  "chainId": "ethereum",
+  "upgradeId": "cancun-deneb-dencun"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "tangerine-whistle",
+  "name": "Tangerine Whistle",
+  "nameZh": "橘子哨",
+  "date": "2016-10-18",
+  "blockNumber": "2,463,000",
+  "type": [
+    "execution",
+    "security"
+  ],
+  "icon": "🍊",
+  "summary": "2016 年 9-10 月 DoS 攻击后的首次应急响应。攻击者利用定价过低的操作码进行资源耗尽攻击。Tangerine Whistle 通过调高关键操作码的 gas 成本来缓解这一问题。",
+  "summaryZh": "2016 年 9-10 月 DoS 攻击后的首次应急响应。攻击者利用定价过低的操作码进行资源耗尽攻击。Tangerine Whistle 通过调高关键操作码的 gas 成本来缓解这一问题。",
+  "sortOrder": 5,
+  "chainId": "ethereum"
+}

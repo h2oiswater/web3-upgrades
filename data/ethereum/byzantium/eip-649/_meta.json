@@ -1,0 +1,13 @@
+{
+  "id": "eip-649",
+  "name": "出块奖励降低",
+  "nameZh": "出块奖励降低",
+  "type": "eip",
+  "number": 649,
+  "impact": "high",
+  "category": "经济模型",
+  "major": true,
+  "sortOrder": 8,
+  "chainId": "ethereum",
+  "upgradeId": "byzantium"
+}

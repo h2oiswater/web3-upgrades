@@ -1,0 +1,1 @@
+降低验证者直接收款成本。The Merge 后 COINBASE 是验证者的 fee recipient，预热后 gas 成本从 2600 降至 100，让验证者奖励提取更便宜。

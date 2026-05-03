@@ -1,0 +1,65 @@
+---
+import Layout from '../layouts/Layout.astro';
+import UpgradeCard from '../components/UpgradeCard.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const allItems = await getCollection('chains');
+  const chains = allItems.filter(item => !item.data.chainId);
+  return chains.map(chain => ({
+    params: { chain: chain.data.id },
+    props: { chainData: chain.data },
+  }));
+}
+
+const { chain } = Astro.params;
+const { chainData } = Astro.props;
+
+// 读取该链的升级（有 chainId 且没有 upgradeId）
+const allItems = await getCollection('chains');
+const chainUpgrades = allItems
+  .filter(item => item.data.chainId === chain && !item.data.upgradeId)
+  .sort((a, b) => {
+    if (a.data.date && b.data.date) {
+      return new Date(a.data.date).getTime() - new Date(b.data.date).getTime();
+    }
+    return (a.data.sortOrder || 999) - (b.data.sortOrder || 999);
+  });
+
+const baseUrl = import.meta.env.BASE_URL;
+---
+
+<Layout title={`${chainData.nameZh} 升级记录`} description={`${chainData.nameZh} (${chainData.name}) 历次协议升级时间线`}>
+  <main class="min-h-screen">
+    <!-- Header -->
+    <section class="py-12 px-4 text-center border-b border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-5xl mb-4">{chainData.icon}</div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">{chainData.nameZh}</h1>
+        <p class="text-[#9a9ab0]">{chainData.descriptionZh}</p>
+        <div class="mt-6">
+          <a href={baseUrl} class="inline-flex items-center text-sm text-[#627eea] hover:text-[#8aa4f0]">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            返回首页
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Timeline -->
+    <section class="max-w-5xl mx-auto px-4 py-12">
+      <div class="relative">
+        {/* 时间线中线 */}
+        <div class="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-[#2a2a3a] md:-translate-x-1/2"/>
+        
+        <div class="space-y-8">
+          {chainUpgrades.map((upgrade, idx) => (
+            <UpgradeCard upgrade={upgrade.data} index={idx} chainId={chain} />
+          ))}
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>

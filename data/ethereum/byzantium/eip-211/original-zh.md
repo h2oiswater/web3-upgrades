@@ -1,0 +1,1 @@
+新增 RETURNDATASIZE (0x3d) 和 RETURNDATACOPY (0x3e) 操作码，允许合约获取并复制上一次 CALL/DELEGATECALL 的返回数据大小和内容到内存。

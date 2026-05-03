@@ -1,0 +1,15 @@
+{
+  "id": "arrow-glacier",
+  "name": "Arrow Glacier",
+  "nameZh": "箭形冰川",
+  "date": "2021-12-09",
+  "blockNumber": "13,773,000",
+  "type": [
+    "execution"
+  ],
+  "icon": "🏔️",
+  "summary": "又一次难度炸弹推迟。此时以太坊社区正全力准备 The Merge，Arrow Glacier 将难度炸弹推迟数月，确保 PoW 链在合并前保持可用。",
+  "summaryZh": "又一次难度炸弹推迟。此时以太坊社区正全力准备 The Merge，Arrow Glacier 将难度炸弹推迟数月，确保 PoW 链在合并前保持可用。",
+  "sortOrder": 14,
+  "chainId": "ethereum"
+}

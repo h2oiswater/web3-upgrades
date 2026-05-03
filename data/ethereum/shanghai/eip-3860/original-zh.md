@@ -1,0 +1,1 @@
+限制合约 initcode 最大为 49152 字节（2 * 0x6000），并对每 32 字节的 initcode words 收取额外 2 gas。

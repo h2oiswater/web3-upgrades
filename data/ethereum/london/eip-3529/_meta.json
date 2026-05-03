@@ -1,0 +1,13 @@
+{
+  "id": "eip-3529",
+  "name": "减少 gas 退款",
+  "nameZh": "减少 gas 退款",
+  "type": "eip",
+  "number": 3529,
+  "impact": "medium",
+  "category": "经济/安全",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "london"
+}

@@ -1,0 +1,1 @@
+新增 CHAINID 操作码（0x46），返回当前执行链的链 ID。 Constantinople 中引入，Istanbul 中重新定价为 2 gas。

@@ -1,0 +1,13 @@
+{
+  "id": "eip-8",
+  "name": "devp2p 向前兼容性",
+  "nameZh": "devp2p 向前兼容性",
+  "type": "eip",
+  "number": 8,
+  "impact": "medium",
+  "category": "网络协议",
+  "major": false,
+  "sortOrder": 3,
+  "chainId": "ethereum",
+  "upgradeId": "homestead"
+}
