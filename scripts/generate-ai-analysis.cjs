@@ -346,19 +346,8 @@ function generateAiMd(feature) {
   lines.push(generateHistory(eipNum, detail));
   lines.push('');
   
-  // 9/10. Terminology
-  const terms = generateTerminology(eipNum, detail, original);
-  if (terms) {
-    lines.push(ecosystem ? '## 十、关键术语表' : '## 九、关键术语表');
-    lines.push('');
-    lines.push('| 术语 | 通俗解释 |');
-    lines.push('|------|----------|');
-    lines.push(terms);
-    lines.push('');
-  }
-  
-  // 10/11. Extension
-  lines.push(ecosystem ? '## 十一、思考与延伸' : '## 十、思考与延伸');
+  // 9/10. Extension
+  lines.push(ecosystem ? '## 十、思考与延伸' : '## 九、思考与延伸');
   lines.push('');
   lines.push(generateExtension(eipNum, detail, original));
   lines.push('');
@@ -645,41 +634,6 @@ function generateHistory(eipNum, detail) {
   if (histories[eipNum]) return histories[eipNum];
   
   return `此特性是${detail?.category || '以太坊协议'}演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。`;
-}
-
-function generateTerminology(eipNum, detail, original) {
-  const text = (detail?.original || '') + ' ' + (detail?.aiSummary || '');
-  const terms = [];
-  
-  const knownTerms = {
-    'gas': '交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。',
-    'opcode': 'EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。',
-    'calldata': '以太坊交易中携带的输入数据，永久存储在链上，费用较高。',
-    'storage': '智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。',
-    'precompile': '预编译合约：EVM 中内置的高效算法实现，用原生代码而非 EVM 字节码执行，gas 成本更低。',
-    'hash': '哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。',
-    'zk': '零知识证明：证明"我知道某个秘密"，但不需要透露秘密本身。用于隐私和扩容。',
-    'rollup': 'L2 扩容方案：在链下处理交易，只把压缩后的数据提交到主链，主链验证数据可用性即可。',
-    'blob': '临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。',
-    'staking': '质押：把 ETH 锁起来帮网络做安全检查，作为回报你能获得利息。类似于银行定期存款。',
-    'validator': '验证者：运行以太坊 PoS 共识软件的节点，负责提议和验证区块，需要质押 32 ETH（或更多）。',
-    'epoch': '时隙的集合，每 32 个 slot（约 6.4 分钟）为一个 epoch。是共识层计时的基本单位。',
-    'slot': '时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。',
-    'eip': '以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。',
-    'hard fork': '硬分叉：协议规则的不兼容变更，所有节点必须升级才能继续参与网络。',
-  };
-  
-  for (const [key, val] of Object.entries(knownTerms)) {
-    if (text.toLowerCase().includes(key.toLowerCase()) || original.toLowerCase().includes(key.toLowerCase())) {
-      terms.push(`| **${key}** | ${val} |`);
-    }
-  }
-  
-  if (terms.length === 0 && detail?.category) {
-    terms.push(`| **${detail.category}** | 本次 EIP 涉及的核心技术领域，详见技术实现详解章节。 |`);
-  }
-  
-  return terms.join('\n');
 }
 
 function generateExtension(eipNum, detail, original) {
