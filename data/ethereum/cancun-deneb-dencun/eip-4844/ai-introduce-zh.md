@@ -68,14 +68,14 @@ Specifically, we use the following methods from [`polynomial-commitments.md`]
 
 **3. Helpers**
 
-```python
+python
 def kzg_to_versioned_hash(commitment: KZGCommitment) -> VersionedHash:
     return VERSIONED_HASH_VERSION_KZG + sha256(commitment)[1:]
-```
+
 
 Approximates `factor * e ** (numerator / denominator)` using Taylor expansion:
 
-```python
+python
 def fake_exponential(factor: int, numerator: int, denominator
 
 *通俗理解：数字指纹——任何数据都有唯一指纹，改了数据指纹就变*
@@ -84,7 +84,7 @@ def fake_exponential(factor: int, numerator: int, denominator
 
 We introduce a new type of [EIP-2718](./eip-2718.md) transaction, "blob transaction", where the `TransactionType` is `BLOB_TX_TYPE` and the `TransactionPayload` is the RLP serialization of the following `TransactionPayloadBody`:
 
-```
+
 [chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_l
 
 *通俗理解：临时寄存柜——比永久存档便宜100倍，18天后自动清理*
@@ -174,6 +174,17 @@ STARK-based L2，Blob交易降低其on-chain数据成本
 ## 九、历史背景与演进
 
 EIP-4844 是"The Surge"扩容路线图的核心。Proto-Danksharding 概念由 Dankrad Feist 提出，它在完整 Danksharding 实现前就已经让 L2 费用降低了 90%+，被称为"最小可行扩容"。
+
+## 十、思考与延伸
+
+**Proto-Danksharding → Full Danksharding**
+
+EIP-4844 是 Danksharding 的 MVP 版本，未来还需要：
+- **PeerDAS**（Peer Data Availability Sampling）：让轻节点也能验证数据可用性
+- **完整分片**：将 blob 数量从每区块 6 个提升到 64+ 个
+- **去中心化程度提升**：轻节点参与验证，降低对全节点的依赖
+
+这是以太坊扩容路线图的核心里程碑。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

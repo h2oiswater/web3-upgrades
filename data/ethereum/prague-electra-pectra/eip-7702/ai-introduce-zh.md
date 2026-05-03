@@ -60,7 +60,7 @@ A new [EIP-2718](./eip-2718.md) transaction known as the "set code transaction"
 is introduced, where the `TransactionType` is `SET_CODE_TX_TYPE` and the
 `TransactionPayload` is the RLP serialization of the following:
 
-```
+
 rlp([chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit,
 de
 
@@ -147,6 +147,12 @@ Gas代付基础设施，利用EIP-7702的sponsorship功能
 ## 九、历史背景与演进
 
 EIP-7702 是账户抽象化的"捷径方案"。完整的 ERC-4337 账户抽象仍在开发中，但 EIP-7702 让 EOA 能立即获得智能合约钱包功能，被誉为"用一年实现十年愿景"的巧妙设计。
+
+## 十、思考与延伸
+
+**ERC-4337 完全账户抽象**
+
+EIP-7702 是 EOA 的"临时升级"，而完整的 ERC-4337 账户抽象正在开发中，未来可能完全取代 EOA 模式，让所有账户都成为智能合约账户。7702 为这一过渡提供了无缝的桥梁。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

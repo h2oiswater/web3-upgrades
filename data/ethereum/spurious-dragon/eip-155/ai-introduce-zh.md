@@ -36,7 +36,7 @@ Consider a transaction with `nonce = 9`, `gasprice = 20 * 10**9`, `startgas = 21
 
 The "signing data" becomes:
 
-```
+
 0xec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080
 
 *通俗理解：高速公路收费站——不同车辆收费标准不同*
@@ -84,6 +84,10 @@ This would provide a way to send transactions that work on Ethereum without work
 ## 八、历史背景与演进
 
 2016 年 The DAO 事件后，ETH 与 ETC 分道扬镳。EIP-155 的链 ID 机制成为两条链安全共存的技术基石。没有这个机制，ETC 上的交易可以在 ETH 上重放，反之亦然。
+
+## 九、思考与延伸
+
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

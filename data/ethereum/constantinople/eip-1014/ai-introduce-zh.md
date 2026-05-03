@@ -128,5 +128,9 @@ The `CREATE2` has the same `gas` schema as `CREATE`, but also an extra `hashcost
 
 CREATE2 催生了"Counterfactual"理念——在链下预先确定合约地址并进行交互，只在必要时上链。这是状态通道、Gnosis Safe、以及现代 Account Abstraction 的基础设施。
 
+## 十、思考与延伸
+
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
+
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

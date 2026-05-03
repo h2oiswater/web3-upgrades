@@ -377,12 +377,17 @@ function extractMechanisms(content) {
   for (const sub of subsections.slice(0, 4)) {
     const lines = sub.split('\n');
     const title = lines[0].trim().replace(/^#+\s*/, '');
-    const content = lines.slice(1).join('\n').trim().substring(0, 300);
-    if (title && content) {
+    let rawContent = lines.slice(1).join('\n').trim().substring(0, 300);
+    
+    // Remove ``` fence markers to prevent nested code block conflicts
+    // We replace them with indentation or plain text markers
+    rawContent = rawContent.replace(/```/g, '');
+    
+    if (title && rawContent) {
       mechanisms.push({
         title,
-        content,
-        analogy: generateSimpleAnalogy(title + ' ' + content)
+        content: rawContent,
+        analogy: generateSimpleAnalogy(title + ' ' + rawContent)
       });
     }
   }

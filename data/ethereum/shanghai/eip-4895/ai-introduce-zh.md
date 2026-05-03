@@ -62,7 +62,7 @@ The execution payload gains a new field for the `withdrawals` which is an RLP li
 
 For example:
 
-```python
+python
 withdrawal_0 = [index_0, validator_index_0, address_0, amount_0]
 withdrawal_1 = [index_1, validator_index_1, address_1, amount_1]
 withdrawals = [withdrawal_0, withdrawal_
@@ -82,7 +82,7 @@ each withdrawal into a Merkle-Patricia trie keyed by index in the list o
 
 Assuming the execution payload is well-formatted, the execution client has an additional payload validation to ensure that the `withdrawals_root` matches the expected value given the list in the payload.
 
-```python
+python
 assert execution_payload_header.withdrawals_root == compute_trie_root_from_indexed_da
 
 *通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
@@ -153,6 +153,14 @@ Moreover, this approac
 ## 九、历史背景与演进
 
 在上海升级前，约 1800 万 ETH（占当时流通量的 15%）被锁定在信标链中无法提取。提款开放后，市场曾担心会出现大规模抛售，但实际上质押量不减反增——因为流动性风险的消除让质押变得更安全。
+
+## 十、思考与延伸
+
+**质押民主化的下一步**
+
+- **降低最低门槛**：32 ETH 可能进一步降低，让更多小额持有者参与
+- **分布式验证者（DVT）**：让多人共同运行一个验证者节点，降低单点风险
+- **再质押（Restaking）**：EigenLayer 等协议在质押基础上构建新服务
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

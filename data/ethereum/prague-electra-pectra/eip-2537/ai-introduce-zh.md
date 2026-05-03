@@ -38,7 +38,7 @@ The motivation of this precompile is to add a cryptographic primitive that allow
 
 The BLS12 curve is fully defined by the following set of parameters (coefficient `A=0` for all BLS12 curves):
 
-```
+
 Base field modulus = p = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
 Fp - finite field of size p
 Curve Fp equation: Y^2 = X^3+B (m
@@ -115,6 +115,10 @@ The motivation of this precompile is to add a cryptographic primitive that allow
 ## 八、历史背景与演进
 
 此特性是密码学/共识演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
+
+## 九、思考与延伸
+
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

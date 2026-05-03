@@ -36,9 +36,9 @@ EVM is lacking bitwise shifting operators, but supports other logical and arithm
 
 The `SHL` instruction (shift left) pops 2 values from the stack, first `arg1` and then `arg2`, and pushes on the stack `arg2` shifted to the left by `arg1` number of bits. The result is equal to
 
-```
+
 (arg2 * 2^arg1) mod 2^256
-```
+
 
 Notes:
 
@@ -51,9 +51,9 @@ Notes:
 
 The `SHR` instruction (logical shift right) pops 2 values from the stack, first `arg1` and then `arg2`, and pushes on the stack `arg2` shifted to the right by `arg1` number of bits with zero fill. The result is equal to
 
-```
+
 floor(arg2 / 2^arg1)
-```
+
 
 Notes:
 
@@ -65,9 +65,9 @@ Notes:
 
 The `SAR` instruction (arithmetic shift right) pops 2 values from the stack, first `arg1` and then `arg2`, and pushes on the stack `arg2` shifted to the right by `arg1` number of bits with sign extension. The result is equal to
 
-```
+
 floor(arg2 / 2^arg1)
-```
+
 
 Notes:
 
@@ -116,6 +116,10 @@ Notes:
 ## 八、历史背景与演进
 
 此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
+
+## 九、思考与延伸
+
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

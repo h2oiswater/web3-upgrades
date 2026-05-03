@@ -36,7 +36,7 @@ Besides being a useful cryptographic hash function and SHA3 finalist, BLAKE2 all
 
 The precompile can be wrapped easily in Solidity to provide a more development-friendly interface to `F`.
 
-```solidity
+solidity
 function F(uint32 rounds, bytes32[2] memory h, bytes32[4] memory m, bytes8[2] memory t, bool f) public view returns (bytes32[2] memory) {
   bytes32[2] memory output;
 
@@ -86,6 +86,10 @@ The precompile requires 6 inputs tightly encoded, taking exactly 213 bytes, as e
 ## 八、历史背景与演进
 
 此特性是互操作/密码学演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
+
+## 九、思考与延伸
+
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*
