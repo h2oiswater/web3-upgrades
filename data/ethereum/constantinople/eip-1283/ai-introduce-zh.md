@@ -6,73 +6,114 @@
 
 ### 当时的痛点
 
-在Constantinople升级之前，攻击者利用定价过低的操作码（如 EXTCODESIZE、SLOAD、BALANCE）反复读取状态数据，构造极低成本的资源耗尽攻击。节点 CPU 和 IO 被拖垮，同步速度急剧下降，普通用户的交易被阻塞。
+根据官方 EIP 文档，这项技术旨在This EIP proposes net gas metering changes for `SSTORE` opcode, enabling
+new usages for contract storage, and reducing excessive gas costs
+where it do...
 
-这不仅是技术问题，更是经济问题——攻击者的成本远低于网络防御成本，导致 DoS 攻击可持续数周。
+这是以太坊协议演进中的重要一步，解决了安全/经济的关键挑战。
 
 ### 核心矛盾
 
-**SSTORE gas 计量调整**
+**安全/经济**
 
-调整 SSTORE 的净计量方式：当存储值从原始值变为新值时，根据原始值、当前值和新值的三态关系重新定价。新增 SSTORE_RESET_GAS（2000）用于值从非零变为非零的情况。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化调整 SSTORE 的净计量方式：当存储值从原始值变为新值时，根据原始值、当前值和新值的三态关系重新定价。新增 SSTO，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过SSTORE gas 计量调整优化以太坊协议，提升网络性能、安全性或可用性。
+This EIP proposes a way for gas metering on SSTORE (as an alternative
+for EIP-1087 and EIP-1153), using information that is more universally
+available to most implementations, and requires as little c...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 消除了已知的安全风险和攻击向量
+此变更在安全/经济产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**SSTORE gas 计量调整**
+**安全/经济**
 
-调整 SSTORE 的净计量方式：当存储值从原始值变为新值时，根据原始值、当前值和新值的三态关系重新定价。新增 SSTORE_RESET_GAS（2000）用于值从非零变为非零的情况。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化调整 SSTORE 的净计量方式：当存储值从原始值变为新值时，根据原始值、当前值和新值的三态关系重新定价。新增 SSTO，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-调整 SSTORE 的净计量方式：当存储值从原始值变为新值时，根据原始值、当前值和新值的三态关系重新定价。新增 SSTORE_RESET_GAS（2000）用于值从非零变为非零的情况。
+This EIP proposes net gas metering changes for `SSTORE` opcode, enabling
+new usages for contract storage, and reducing excessive gas costs
+where it doesn't match how most implementations work.
 
-### 设计思路
+This acts as an alternative for EIP-1087, where it tries to be
+friendlier to implementations that use different optimization
+strategies for storage change caches.
 
-一次'好心办坏事'的尝试。目的是降低存储更新的 gas 成本，但引入了重入攻击漏洞，在主网激活前被 Petersburg 紧急禁用。后由 EIP-2200 以更安全的方式重新实现。
+### 设计动机（Motivation）
 
+This EIP proposes a way for gas metering on SSTORE (as an alternative
+for EIP-1087 and EIP-1153), using information that is more universally
+available to most implementations, and requires as little change in
+implementation structures as possible.
+
+* *Storage slot's original value*.
+* *Storage slot's current value*. 
+* Refund counter.
+
+Usages that benefits from this EIP's gas reduction scheme includes:
+
+* Subsequent storage write operations within the same call frame. This
+  includes reentry locks, same-contract multi-send, etc.
+* Exchange storage information between sub call frame and parent call
+  frame, where this information does not need to be persistent outside
+  of a transaction. This includes sub-frame error codes and message
+  passing, etc.
+
+### 关键参数与机制
+
+Definitions of terms are as below:
+
+* *Storage slot's original value*: This is the value of the storage if
+  a reversion happens on the *current transaction*.
+* *Storage slot's current value*: This is the value of the storage
+  before SSTORE operation happens.
+* *Storage slot's new value*: This is the value of the storage after
+  SSTORE operation happens.
+
+Replace `SSTORE` opcode gas cost calculation (including refunds) with
+the following logic:
+
+* If *current value* equals *new value* (this is 
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-145** — SHL/SHR 移位操作码: 新增左移和右移操作码，使位运算更便宜高效...
-- **EIP-1014** — CREATE2: 允许在合约部署前确定其地址，是状态通道、Counterfactual 和 Layer 2 方案的关键...
-- **EIP-1052** — EXTCODEHASH: 新增 EXTCODEHASH 操作码，返回合约代码的 keccak256 哈希，提升合约验证效率...
-- **EIP-1234** — 难度炸弹延迟+减产: 再次推迟难度炸弹 12 个月，将出块奖励从 3 ETH 降至 2 ETH...
+- **EIP-1087** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1087.md)
+- **EIP-1153** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md)
+- **EIP-658** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-658.md)
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Constantinople升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是安全/经济演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
 | **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

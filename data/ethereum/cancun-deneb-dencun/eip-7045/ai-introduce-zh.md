@@ -6,82 +6,98 @@
 
 ### 当时的痛点
 
-随着 DeFi、NFT、SocialFi 等应用的爆发，以太坊主链 TPS 成为瓶颈。Layer 2 方案（Rollup）能把计算放到链下，但**数据存储成本仍是硬伤**——Rollup 必须把交易数据发布到 L1 作为"证据"，而 L1 的 calldata 存储费用高达 ~16-20 gwei/字节。
+根据官方 EIP 文档，这项技术旨在Increases max attestation inclusion slot from `attestation.slot + SLOTS_PER_EPOCH` to the last slot of epoch `N+1` where `N` is the epoch containing t...
 
-结果是：L2 虽然计算便宜了，但**数据发布成本占了总费用的 90% 以上**。用户在 L2 做一次 Swap 仍需支付 $0.5-$2，距离"大规模采用"差一个数量级。
+这是以太坊协议演进中的重要一步，解决了质押/共识的关键挑战。
 
 ### 核心矛盾
 
-**从"一人一票"到"加权投票"**
+**质押/共识**
 
-以前质押像"一人一票"——不管你有 32 ETH 还是 3200 ETH，都只能运行一个验证者节点，权重一样。大户被迫拆成 100 个节点来管理，复杂且低效。
-
-EIP-7251 改为"加权投票"：
-- 单个验证者最大余额从 32 ETH 提升到 2048 ETH
-- 3200 ETH 大户以前需要 100 个节点，现在只需 2 个
-- 保留最低门槛 32 ETH：小额质押者仍可以参与
-- 共识层消息传播压力大幅降低
+这项技术通过优化共识层变更：增加 attestation 的包含窗口，从之前的 1 个 epoch 增加到当前 epoch 和下一个 e，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过增加证明包含窗口优化以太坊协议，提升网络性能、安全性或可用性。
+Attestations can currently be included after some minimum delay (`1` slot on mainnet) up until `SLOTS_PER_EPOCH` slots after the slot the attestation was created in. This rolling window of one epoch w...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更为协议层面的渐进式优化：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更为协议层面的渐进式优化，为长期发展奠定了基础。
 
 ## 四、技术概述：用类比讲清楚
 
-**从"一人一票"到"加权投票"**
+**质押/共识**
 
-以前质押像"一人一票"——不管你有 32 ETH 还是 3200 ETH，都只能运行一个验证者节点，权重一样。大户被迫拆成 100 个节点来管理，复杂且低效。
+这项技术通过优化共识层变更：增加 attestation 的包含窗口，从之前的 1 个 epoch 增加到当前 epoch 和下一个 e，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-EIP-7251 改为"加权投票"：
-- 单个验证者最大余额从 32 ETH 提升到 2048 ETH
-- 3200 ETH 大户以前需要 100 个节点，现在只需 2 个
-- 保留最低门槛 32 ETH：小额质押者仍可以参与
-- 共识层消息传播压力大幅降低
+### 核心机制拆解
+
+**1. Execution layer**
+
+This requires no changes to the Execution Layer.
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**2. Consensus layer**
+
+Specification changes are built into the Consensus Specs Deneb upgrade.
+
+The specification makes two minor changes to the state transition function:
+
+* Modify [`process_attestation`](https://github.com/ethereum/consensus-specs/blob/95f36d99cf4aa59974da06af24ef9a7c12d3c301/specs/deneb/beacon-chain.md
+
+*通俗理解：临时寄存柜——比永久存档便宜100倍，18天后自动清理*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-共识层变更：增加 attestation 的包含窗口，从之前的 1 个 epoch 增加到当前 epoch 和下一个 epoch，给验证者更多时间提交证明。
+Increases max attestation inclusion slot from `attestation.slot + SLOTS_PER_EPOCH` to the last slot of epoch `N+1` where `N` is the epoch containing the attestation slot.
 
-### 设计思路
+This increase is critical to the current LMD-GHOST security analysis as well as the confirmation rule.
 
-共识层的小容错提升。验证者网络偶尔延迟时，attestation 有更大的被包含窗口，减少因网络抖动导致的错过奖励。
+### 设计动机（Motivation）
 
+Attestations can currently be included after some minimum delay (`1` slot on mainnet) up until `SLOTS_PER_EPOCH` slots after the slot the attestation was created in. This rolling window of one epoch was decided upon during Phase 0 because the equal inclusion window for any attestation was assessed as "fair". The alternative considered path was to allow inclusion during the current and next epoch which means attestations created during the start of an epoch have more potential slots of inclusion than those at the end of the epoch.
+
+Since this decision, it has become apparent that the alternative design is critical for current LMD-GHOST security proofs as well as a new confirmation rule (which will allow for block confirmations in approximately 3-4 slots in normal mainnet conditions).
+
+This 
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+| Name | Value | Comment |
+| - | - | - |
+|`FORK_TIMESTAMP` | `1710338135` | Mainnet |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-4844** — Proto-Danksharding / Blob 交易: 引入携带 Blob 的交易类型。Blob 是短期存储的大容量数据（每个 128KB，每区块最多 6 个），专供 Roll...
-- **EIP-1153** — Transient Storage: 新增 TLOAD/TSTORE 操作码，提供在交易内有效但交易结束后清除的存储，解决重入锁等场景的 gas 效率问题...
-- **EIP-4788** — 信标区块根: 将信标链区块根暴露给 EVM，允许合约无需信任地访问共识层状态...
-- **EIP-5656** — MCOPY 操作码: 新增内存复制操作码，比现有方案更高效的内存拷贝...
-- **EIP-6780** — 限制 SELFDESTRUCT: 限制 SELFDESTRUCT 仅在合约创建同交易中可用，简化状态管理...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **质押者**: 质押操作更灵活，风险更可控
-- **验证者/矿工**: 收益结构和操作模式发生变化
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Cancun-Deneb (Dencun)升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是质押/共识演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
 | **epoch** | 时隙的集合，每 32 个 slot（约 6.4 分钟）为一个 epoch。是共识层计时的基本单位。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

@@ -6,74 +6,92 @@
 
 ### 当时的痛点
 
-随着 DeFi、NFT、SocialFi 等应用的爆发，以太坊主链 TPS 成为瓶颈。Layer 2 方案（Rollup）能把计算放到链下，但**数据存储成本仍是硬伤**——Rollup 必须把交易数据发布到 L1 作为"证据"，而 L1 的 calldata 存储费用高达 ~16-20 gwei/字节。
+根据官方 EIP 文档，这项技术旨在Lock validator voluntary exit signature domain on Capella for perpetual validity. Currently, signed voluntary exits are only valid for two upgrades....
 
-结果是：L2 虽然计算便宜了，但**数据发布成本占了总费用的 90% 以上**。用户在 L2 做一次 Swap 仍需支付 $0.5-$2，距离"大规模采用"差一个数量级。
+这是以太坊协议演进中的重要一步，解决了质押/共识的关键挑战。
 
 ### 核心矛盾
 
-**永久签名退出消息**
+**质押/共识**
 
-共识层变更：使自愿退出签名消息永不过期。质押者签署一次退出消息后，该签名在任何 future epoch 都有效，不再受原始签名的有效期限制。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化共识层变更：使自愿退出签名消息永不过期。质押者签署一次退出消息后，该签名在任何 future epoch 都有效，不再受，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过永久签名退出消息优化以太坊协议，提升网络性能、安全性或可用性。
+Currently, signed voluntary exits are valid up-to only two upgrades for block inclusion due to the Beacon Chain state considering only the current and previous fork version. This limitation increases ...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更在质押/共识产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**永久签名退出消息**
+**质押/共识**
 
-共识层变更：使自愿退出签名消息永不过期。质押者签署一次退出消息后，该签名在任何 future epoch 都有效，不再受原始签名的有效期限制。。
+这项技术通过优化共识层变更：使自愿退出签名消息永不过期。质押者签署一次退出消息后，该签名在任何 future epoch 都有效，不再受，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. Execution Layer**
+
+This specification does not require any changes to the Execution Layer.
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-共识层变更：使自愿退出签名消息永不过期。质押者签署一次退出消息后，该签名在任何 future epoch 都有效，不再受原始签名的有效期限制。
+Lock validator voluntary exit signature domain on Capella for perpetual validity. Currently, signed voluntary exits are only valid for two upgrades.
 
-### 设计思路
+### 设计动机（Motivation）
 
-质押者的'永久逃生权'。以前退出消息签名有过期时间，质押者需要定期重新签名。现在一次签名永久有效，极大提升对第三方节点运营商的制衡能力。
+Currently, signed voluntary exits are valid up-to only two upgrades for block inclusion due to the Beacon Chain state considering only the current and previous fork version. This limitation increases the complexity of some staking operations, specifically those in which the staking operator (holder of active key) is distinct from the owner of the funds (holder of the withdrawal credential). Because voluntary exits can only be signed by the active key, such a relationship requires the exchange of signed exits ahead of time for an unbounded number of forks.
 
+The limited validity of voluntary exits was originally motivated to isolate them in the event of a hard fork that results in two maintained chains. If fork A and B exist and a validator operates on both, if they send an exit, it will be 
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+### Consensus Layer
+
+Specification changes are built into the Consensus Specs Deneb upgrade.
+
+The specific makes one change to the state transition function:
+
+- Modify [`process_voluntary_exit`](https://github.com/ethereum/consensus-specs/blob/75971a8c218b1d76d605dd8b88a08d39c42de221/specs/deneb/beacon-chain.md#modified-process_voluntary_exit) to compute the signing domain and root fixed on `CAPELLA_FORK_VERSION`.
+
+Additionally, the `voluntary_exit` gossip conditions are implicitly modified to s
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-4844** — Proto-Danksharding / Blob 交易: 引入携带 Blob 的交易类型。Blob 是短期存储的大容量数据（每个 128KB，每区块最多 6 个），专供 Roll...
-- **EIP-1153** — Transient Storage: 新增 TLOAD/TSTORE 操作码，提供在交易内有效但交易结束后清除的存储，解决重入锁等场景的 gas 效率问题...
-- **EIP-4788** — 信标区块根: 将信标链区块根暴露给 EVM，允许合约无需信任地访问共识层状态...
-- **EIP-5656** — MCOPY 操作码: 新增内存复制操作码，比现有方案更高效的内存拷贝...
-- **EIP-6780** — 限制 SELFDESTRUCT: 限制 SELFDESTRUCT 仅在合约创建同交易中可用，简化状态管理...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **质押者**: 质押操作更灵活，风险更可控
-- **节点运营者**: 同步和存储负担得到优化
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Cancun-Deneb (Dencun)升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是质押/共识演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **staking** | 质押：把 ETH 锁起来帮网络做安全检查，作为回报你能获得利息。类似于银行定期存款。 |
+| **validator** | 验证者：运行以太坊 PoS 共识软件的节点，负责提议和验证区块，需要质押 32 ETH（或更多）。 |
 | **epoch** | 时隙的集合，每 32 个 slot（约 6.4 分钟）为一个 epoch。是共识层计时的基本单位。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
+| **hard fork** | 硬分叉：协议规则的不兼容变更，所有节点必须升级才能继续参与网络。 |
 
 ## 十、思考与延伸
 
-**质押民主化的下一步**: EIP-7251 提升了单节点质押上限，未来还可能进一步降低 32 ETH 的最低门槛，让更多小额持有者参与质押。同时，分布式验证者技术（DVT）正在探索让多人共同运行一个验证者节点。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

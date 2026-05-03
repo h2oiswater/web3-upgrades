@@ -6,73 +6,114 @@
 
 ### 当时的痛点
 
-在Berlin升级之前，特定 EVM 操作码的 gas 定价与实际计算成本严重脱节。某些操作（如状态读取、指数运算）定价过低，攻击者可以构造极低成本的恶意交易，反复执行这些操作来耗尽节点资源。
+根据官方 EIP 文档，这项技术旨在`TransactionType || TransactionPayload` is a valid transaction and `TransactionType || ReceiptPayload` is a valid transaction receipt where `Transacti...
 
-这是经济激励与安全防护之间的失衡——合法用户支付的费用不能反映真实资源消耗，而攻击者却能以极低成本瘫痪网络。
+这是以太坊协议演进中的重要一步，解决了协议基础的关键挑战。
 
 ### 核心矛盾
 
-**类型化交易信封**
+**协议基础**
 
-定义类型化交易信封格式：TransactionType || TransactionPayload。TransactionType 为 0-0x7f 的单字节，区分不同交易格式。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化定义类型化交易信封格式：TransactionType || TransactionPayload。Transactio，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过类型化交易信封优化以太坊协议，提升网络性能、安全性或可用性。
+In the past, when we have wanted to add new transaction types we have had to ensure they were backward compatible with all other transactions, meaning that you could differentiate them based only on t...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更对以太坊生态产生了深远影响，推动了协议基础的技术发展和应用创新。
 
 ## 四、技术概述：用类比讲清楚
 
-**类型化交易信封**
+**协议基础**
 
-定义类型化交易信封格式：TransactionType || TransactionPayload。TransactionType 为 0-0x7f 的单字节，区分不同交易格式。。
+这项技术通过优化定义类型化交易信封格式：TransactionType || TransactionPayload。Transactio，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. Transactions**
+
+As of `FORK_BLOCK_NUMBER`, the transaction root in the block header **MUST** be the root hash of `patriciaTrie(rlp(Index) => Transaction)` where:
+* `Index` is the index in the block of this transaction
+* `Transaction` is either `TransactionType || TransactionPayload` or `LegacyTransaction`
+* `Transa
+
+*通俗理解：数字指纹——任何数据都有唯一指纹，改了数据指纹就变*
+
+**2. Receipts**
+
+As of `FORK_BLOCK_NUMBER`, the receipt root in the block header **MUST** be the root hash of `patriciaTrie(rlp(Index) => Receipt)` where:
+* `Index` is the index in the block of the transaction this receipt is for
+* `Receipt` is either `TransactionType || ReceiptPayload` or `LegacyReceipt`
+* `Transac
+
+*通俗理解：数字指纹——任何数据都有唯一指纹，改了数据指纹就变*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-定义类型化交易信封格式：TransactionType || TransactionPayload。TransactionType 为 0-0x7f 的单字节，区分不同交易格式。
+`TransactionType || TransactionPayload` is a valid transaction and `TransactionType || ReceiptPayload` is a valid transaction receipt where `TransactionType` identifies the format of the transaction and `*Payload` is the transaction/receipt contents, which are defined in future EIPs.
 
-### 设计思路
+### 设计动机（Motivation）
 
-交易格式的'版本控制系统'。使以太坊可以引入新交易类型（如 EIP-1559、EIP-2930、Blob 交易）而不破坏向后兼容。
+In the past, when we have wanted to add new transaction types we have had to ensure they were backward compatible with all other transactions, meaning that you could differentiate them based only on the encoded payload, and it was not possible to have a transaction that matched both types.
+This was seen in [EIP-155](./eip-155.md) where the new value was bit-packed into one of the encoded fields.
+There are multiple proposals in discussion that define new transaction types such as one that allows EOA accounts to execute code directly within their context, one that enables someone besides `msg.sender` to pay for gas, and proposals related to layer 1 multi-sig transactions.
+These all need to be defined in a way that is mutually compatible, which quickly becomes burdensome to EIP authors and to
 
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+||` is the byte/byte-array concatenation operator.
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-2565** — ModExp gas 成本优化: 降低 ModExp 预编译合约的 gas 成本，提升 RSA 等算法效率...
-- **EIP-2929** — 状态访问操作码 gas 增加: 增加首次状态访问操作码的 gas 成本，缓解状态访问相关的 DoS 攻击风险...
-- **EIP-2930** — 可选访问列表交易: 引入包含访问列表的交易类型，降低特定场景下的 gas 成本...
+- **EIP-155** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
+
+### 📊 关键数据
+
+> 类型化交易信封是交易格式的"版本控制系统"，使EIP-1559、Blob交易等新类型可以无缝引入。
+
+### 🔗 相关协议与项目
+
+**MetaMask**
+支持多种交易类型（Legacy、EIP-2930、EIP-1559、Blob）
+
+**Rainbow**
+移动端钱包优雅处理不同类型交易
+
+---
+
+## 八、谁会受到影响？
 
 - **核心开发者**: 协议层面的优化，为长期发展铺平道路
 - **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
-## 八、历史背景与演进
+## 九、历史背景与演进
 
-此特性是Berlin升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
-## 九、关键术语表
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
 | **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
 | **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

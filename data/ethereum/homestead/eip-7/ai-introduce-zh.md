@@ -6,70 +6,84 @@
 
 ### 当时的痛点
 
-随着以太坊应用生态的蓬勃发展，EVM 的原始设计逐渐暴露出限制——缺少关键操作码（如移位、内存复制）、存储机制效率低下、合约间交互能力受限。开发者被迫用复杂且昂贵的变通方案实现基本功能。
-
-这些限制不仅增加了 gas 成本，也制约了智能合约的创新空间。补齐 EVM 的能力短板，是协议长期竞争力的关键。
+这项技术解决了以太坊网络在智能合约面临的关键挑战。其目标是提升网络性能、安全性或可用性，为以太坊的长期演进奠定基础。
 
 ### 核心矛盾
 
-**DELEGATECALL**
+**智能合约**
 
-新增 DELEGATECALL 操作码（0xf4），语义类似于 CALLCODE，但保持发送者（msg.sender）和调用值（msg.value）不变。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 DELEGATECALL 操作码（0xf4），语义类似于 CALLCODE，但保持发送者（msg.sender）和，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过DELEGATECALL优化以太坊协议，提升网络性能、安全性或可用性。
+通过优化智能合约，提升以太坊网络的性能、安全性或可用性，为后续技术演进奠定基础。
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更对以太坊生态产生了深远影响，推动了智能合约的技术发展和应用创新。
 
 ## 四、技术概述：用类比讲清楚
 
-**DELEGATECALL**
+**智能合约**
 
-新增 DELEGATECALL 操作码（0xf4），语义类似于 CALLCODE，但保持发送者（msg.sender）和调用值（msg.value）不变。。
+这项技术通过优化新增 DELEGATECALL 操作码（0xf4），语义类似于 CALLCODE，但保持发送者（msg.sender）和，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. Rationale**
+
+Propagating the sender and value from the parent scope to the child scope makes it much easier for a contract to store another address as a mutable source of code and ''pass through'' calls to it, as the child code would execute in essentially the same environment (except for reduced gas and increas
+
+*通俗理解：高速公路收费站——不同车辆收费标准不同*
+
+**2. Possible arguments against**
+
+* You can replicate this functionality by just sticking the sender into the first twenty bytes of the call data. However, this would mean that code would need to be specially compiled for delegated contracts, and would not be usable in delegated and raw contexts at the same time.
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 关键参数与机制
 
-新增 DELEGATECALL 操作码（0xf4），语义类似于 CALLCODE，但保持发送者（msg.sender）和调用值（msg.value）不变。
+`DELEGATECALL`: `0xf4`, takes 6 operands:
+- `gas`: the amount of gas the code may use in order to execute;
+- `to`: the destination address whose code is to be executed;
+- `in_offset`: the offset into memory of the input;
+- `in_size`: the size of the input in bytes;
+- `out_offset`: the offset into memory of the output;
+- `out_size`: the size of the scratch pad for the output.
 
-### 设计思路
-
-代理合约和可升级合约模式的基石。允许合约调用其他合约的代码但保留原始调用上下文，实现委托调用模式（Proxy Pattern）。
-
+#### Notes on gas
+- The basic stipend is not given; `gas` is the total amount the callee receives.
+- Like `CALLCODE`, acc
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-2** — Homestead 硬分叉变更: 协议层面的多项改进，包括合约创建 gas 成本调整和 sstore 操作码定价...
-- **EIP-8** — devp2p 向前兼容性: 改进 devp2p 网络协议的向前兼容性，使节点能够更好地适应未来协议变更...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Homestead升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是智能合约演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
-| **DELEGATECALL** | 本次升级引入的核心技术特性，新增 DELEGATECALL 操作码，允许合约在保持发送者和数值上下文的情况下调用其他合约代码，实。 |
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

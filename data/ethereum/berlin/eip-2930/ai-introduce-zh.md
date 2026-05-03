@@ -6,72 +6,121 @@
 
 ### 当时的痛点
 
-在Berlin升级之前，特定 EVM 操作码的 gas 定价与实际计算成本严重脱节。某些操作（如状态读取、指数运算）定价过低，攻击者可以构造极低成本的恶意交易，反复执行这些操作来耗尽节点资源。
+根据官方 EIP 文档，这项技术旨在We introduce a new [EIP-2718](./eip-2718.md) transaction type, with the format `0x01 || rlp([chainId, nonce, gasPrice, gasLimit, to, value, data, acce...
 
-这是经济激励与安全防护之间的失衡——合法用户支付的费用不能反映真实资源消耗，而攻击者却能以极低成本瘫痪网络。
+这是以太坊协议演进中的重要一步，解决了协议基础的关键挑战。
 
 ### 核心矛盾
 
-**可选访问列表交易**
+**协议基础**
 
-引入可选访问列表的交易类型（类型 0x01）。交易可以声明将在执行中访问的地址和存储槽列表，这些访问被视为 'warm'（已预热），享受较低 gas 成本。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化引入可选访问列表的交易类型（类型 0x01）。交易可以声明将在执行中访问的地址和存储槽列表，这些访问被视为 'warm'，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+This EIP serves two functions:
+
+1. Mitigates contract breakage risks introduced by [EIP-2929](./eip-2929.md), as transactions could pre-specify and pre-pay for the accounts and storage slots that the ...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更在协议基础产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**可选访问列表交易**
+**协议基础**
 
-引入可选访问列表的交易类型（类型 0x01）。交易可以声明将在执行中访问的地址和存储槽列表，这些访问被视为 'warm'（已预热），享受较低 gas 成本。。
+这项技术通过优化引入可选访问列表的交易类型（类型 0x01）。交易可以声明将在执行中访问的地址和存储槽列表，这些访问被视为 'warm'，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. Parameters**
+
+| Constant | Value |
+| - | - |
+| `FORK_BLOCK` | 12244000 |
+| `ACCESS_LIST_STORAGE_KEY_COST` | 1900 |
+| `ACCESS_LIST_ADDRESS_COST` | 2400 |
+
+As of `FORK_BLOCK_NUMBER`, a new [EIP-2718](./eip-2718.md) transaction is introduced with `TransactionType` `1`.
+
+The [EIP-2718](./eip-2718.md) `TransactionPayl
+
+*通俗理解：保险箱——永久存储但存取费用高*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-引入可选访问列表的交易类型（类型 0x01）。交易可以声明将在执行中访问的地址和存储槽列表，这些访问被视为 'warm'（已预热），享受较低 gas 成本。
+We introduce a new [EIP-2718](./eip-2718.md) transaction type, with the format `0x01 || rlp([chainId, nonce, gasPrice, gasLimit, to, value, data, accessList, signatureYParity, signatureR, signatureS])`.
 
-### 设计思路
+The `accessList` specifies a list of addresses and storage keys; these addresses and storage keys are added into the `accessed_addresses` and `accessed_storage_keys` global sets (introduced in [EIP-2929](./eip-2929.md)). A gas cost is charged, though at a discount relative to the cost of accessing outside the list.
 
-交易执行的'提前告知'。用户告诉节点'我会访问这些地址和槽位'，节点提前加载到缓存，用户获得 gas 折扣。适用于 gas 代付、批量操作和已知路径的复杂交易。
+### 设计动机（Motivation）
 
+This EIP serves two functions:
+
+1. Mitigates contract breakage risks introduced by [EIP-2929](./eip-2929.md), as transactions could pre-specify and pre-pay for the accounts and storage slots that the transaction plans to access; as a result, in the actual execution, the SLOAD and EXT* opcodes would only cost 100 gas: low enough that it would not only prevent breakage due to that EIP but also "unstuck" any contracts that became stuck due to EIP 1884.
+2. Introduces the access list format and the logic for handling the format. This logic can later be repurposed for many other purposes, including block-wide witnesses, use in ReGenesis, moving toward static state access over time, and more.
+
+### 关键参数与机制
+
+| Constant | Value |
+| - | - |
+| `FORK_BLOCK` | 12244000 |
+| `ACCESS_LIST_STORAGE_KEY_COST` | 1900 |
+| `ACCESS_LIST_ADDRESS_COST` | 2400 |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-2565** — ModExp gas 成本优化: 降低 ModExp 预编译合约的 gas 成本，提升 RSA 等算法效率...
-- **EIP-2718** — 类型化交易信封: 引入类型化交易格式，支持未来的交易类型扩展（如 EIP-1559），保持向后兼容...
-- **EIP-2929** — 状态访问操作码 gas 增加: 增加首次状态访问操作码的 gas 成本，缓解状态访问相关的 DoS 攻击风险...
+- **EIP-2718** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2718.md)
+- **EIP-2929** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2929.md)
+- **EIP-2028** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2028.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **节点运营者**: 同步和存储负担得到优化
+### 📊 关键数据
 
-## 八、历史背景与演进
+> 访问列表交易让用户提前声明访问路径，获得gas折扣。适用于多跳swap、批量操作等复杂场景。
 
-此特性是Berlin升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+### 🔗 相关协议与项目
 
-## 九、关键术语表
+**1inch**
+DEX聚合器利用访问列表优化多跳交易gas成本
+
+**Matcha**
+0x协议前端，使用EIP-2930降低复杂交易费用
+
+---
+
+## 八、谁会受到影响？
+
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
+
+## 九、历史背景与演进
+
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
+
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
+| **hard fork** | 硬分叉：协议规则的不兼容变更，所有节点必须升级才能继续参与网络。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

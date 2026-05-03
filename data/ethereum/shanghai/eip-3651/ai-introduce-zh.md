@@ -6,82 +6,90 @@
 
 ### 当时的痛点
 
-PoS 转型后，信标链于 2020 年 12 月启动，但质押是"单向"的——只能存入，不能取出。到 2023 年初，**约 1800 万 ETH（占流通量 15%）被锁在信标链中无法提取**。
+根据官方 EIP 文档，这项技术旨在The `COINBASE` address shall be warm at the start of transaction execution, in accordance with the actual cost of reading that account....
 
-质押者面临巨大的流动性风险：紧急情况下无法取回资金，小额质押者更是被套牢。这不仅抑制了质押意愿，也让 ETH 的实际流通量被人为压低。上海升级前，社区最大的呼声就是"开放提款"。
+这是以太坊协议演进中的重要一步，解决了经济/优化的关键挑战。
 
 ### 核心矛盾
 
-**从"一人一票"到"加权投票"**
+**经济/优化**
 
-以前质押像"一人一票"——不管你有 32 ETH 还是 3200 ETH，都只能运行一个验证者节点，权重一样。大户被迫拆成 100 个节点来管理，复杂且低效。
-
-EIP-7251 改为"加权投票"：
-- 单个验证者最大余额从 32 ETH 提升到 2048 ETH
-- 3200 ETH 大户以前需要 100 个节点，现在只需 2 个
-- 保留最低门槛 32 ETH：小额质押者仍可以参与
-- 共识层消息传播压力大幅降低
+这项技术通过优化在交易开始时预热 COINBASE 地址，使 COINBASE 在首次访问时按 'warm access'（100 ga，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过COINBASE 预热优化以太坊协议，提升网络性能、安全性或可用性。
+Direct `COINBASE` payments are becoming increasingly popular because they allow conditional payments, which provide benefits such as implicit cancellation of transactions that would revert.
+But access...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更为协议层面的渐进式优化：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更为协议层面的渐进式优化，为长期发展奠定了基础。
 
 ## 四、技术概述：用类比讲清楚
 
-**从"一人一票"到"加权投票"**
+**经济/优化**
 
-以前质押像"一人一票"——不管你有 32 ETH 还是 3200 ETH，都只能运行一个验证者节点，权重一样。大户被迫拆成 100 个节点来管理，复杂且低效。
-
-EIP-7251 改为"加权投票"：
-- 单个验证者最大余额从 32 ETH 提升到 2048 ETH
-- 3200 ETH 大户以前需要 100 个节点，现在只需 2 个
-- 保留最低门槛 32 ETH：小额质押者仍可以参与
-- 共识层消息传播压力大幅降低
+这项技术通过优化在交易开始时预热 COINBASE 地址，使 COINBASE 在首次访问时按 'warm access'（100 ga，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-在交易开始时预热 COINBASE 地址，使 COINBASE 在首次访问时按 'warm access'（100 gas）计费而非 'cold access'（2600 gas）。
+The `COINBASE` address shall be warm at the start of transaction execution, in accordance with the actual cost of reading that account.
 
-### 设计思路
+### 设计动机（Motivation）
 
-降低验证者直接收款成本。The Merge 后 COINBASE 是验证者的 fee recipient，预热后 gas 成本从 2600 降至 100，让验证者奖励提取更便宜。
+Direct `COINBASE` payments are becoming increasingly popular because they allow conditional payments, which provide benefits such as implicit cancellation of transactions that would revert.
+But accessing `COINBASE` is overpriced; the address is initially cold under the access list framework introduced in [EIP-2929](./eip-2929.md).
+This gas cost mismatch can incentivize alternative payments besides ETH, such as [ERC-20](./eip-20.md), but ETH should be the primary means of paying for transactions on Ethereum.
 
+### 关键参数与机制
+
+At the start of transaction execution, `accessed_addresses` shall be initialized to also include the address returned by `COINBASE` (`0x41`).
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-3855** — PUSH0 操作码: 新增 PUSH0 操作码，将 0 推入堆栈，优化合约代码大小和 gas 成本...
-- **EIP-3860** — initcode 大小限制: 限制 initcode 最大为 49152 字节，每次 32 字 words 收取 2 gas...
-- **EIP-4895** — 质押提款: 启用信标链到执行层的质押提款。部分提款自动处理奖励，完全提款可退出验证者...
-- **EIP-6049** — SELFDESTRUCT 弃用警告: 正式标记 SELFDESTRUCT 为弃用，为未来删除做准备...
+- **EIP-2929** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2929.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **质押者**: 质押操作更灵活，风险更可控
-- **验证者/矿工**: 收益结构和操作模式发生变化
+### 📊 关键数据
 
-## 八、历史背景与演进
+> COINBASE预热后gas成本从2600降至100，让验证者直接收款更便宜。The Merge后COINBASE成为验证者fee recipient。
 
-此特性是Shanghai升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+### 🔗 相关协议与项目
 
-## 九、关键术语表
+**MEV-Boost**
+验证者提取MEV收益时COINBASE预热降低费用
+
+**Flashbots**
+区块构建者利用预热优化费用支付
+
+---
+
+## 八、谁会受到影响？
+
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
+
+## 九、历史背景与演进
+
+此特性是经济/优化演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
+
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

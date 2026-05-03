@@ -6,83 +6,130 @@
 
 ### 当时的痛点
 
-PoS 转型后，信标链于 2020 年 12 月启动，但质押是"单向"的——只能存入，不能取出。到 2023 年初，**约 1800 万 ETH（占流通量 15%）被锁在信标链中无法提取**。
+根据官方 EIP 文档，这项技术旨在Adds a new mechanism to allow validators to trigger withdrawals and exits from their execution layer (0x01) withdrawal credentials.
 
-质押者面临巨大的流动性风险：紧急情况下无法取回资金，小额质押者更是被套牢。这不仅抑制了质押意愿，也让 ETH 的实际流通量被人为压低。上海升级前，社区最大的呼声就是"开放提款"。
+These new executi...
+
+这是以太坊协议演进中的重要一步，解决了质押/共识的关键挑战。
 
 ### 核心矛盾
 
-**定期存款终于能取钱了**
+**质押/共识**
 
-以前以太坊质押就像存了一笔永远取不出来的定期存款——只能往里存，不能往外取。1800 万 ETH 被锁在"保险柜"里，质押者只能眼睁睁看着收益数字上涨，但摸不到本金。
-
-上海升级打开了保险柜：
-- 部分提款：定期收割利息，就像银行账户的"自动转存利息到活期"
-- 完全提款：连本带利全部取走，退出验证者行列
-- 结果出乎意料：取款开放后，质押量不减反增——因为风险没了，更多人敢存了
+这项技术通过优化新增一种机制，允许执行层（EL）的地址通过提交交易来安全触发信标链（CL）上的验证者退出和部分提款操作。执行层地址被注册，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过执行层触发验证者退出优化以太坊协议，提升网络性能、安全性或可用性。
+Validators have two keys -- an active key and a withdrawal credential. The active key takes the form of a BLS key, whereas the withdrawal credential can either be a BLS key (0x00) or an execution laye...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更对以太坊生态产生了深远影响，推动了质押/共识的技术发展和应用创新。
 
 ## 四、技术概述：用类比讲清楚
 
-**定期存款终于能取钱了**
+**质押/共识**
 
-以前以太坊质押就像存了一笔永远取不出来的定期存款——只能往里存，不能往外取。1800 万 ETH 被锁在"保险柜"里，质押者只能眼睁睁看着收益数字上涨，但摸不到本金。
+这项技术通过优化新增一种机制，允许执行层（EL）的地址通过提交交易来安全触发信标链（CL）上的验证者退出和部分提款操作。执行层地址被注册，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-上海升级打开了保险柜：
-- 部分提款：定期收割利息，就像银行账户的"自动转存利息到活期"
-- 完全提款：连本带利全部取走，退出验证者行列
-- 结果出乎意料：取款开放后，质押量不减反增——因为风险没了，更多人敢存了
+### 核心机制拆解
+
+**1. Execution layer**
+
+#### Definitions
+
+* **`FORK_BLOCK`** -- the first block in a blockchain after this EIP has been activated.
+
+#### Withdrawal request operation
+
+The new withdrawal request operation is an [EIP-7685](./eip-7685.md) request
+with type `0x01` and consists of the following fields:
+
+1. `source_address`: `By
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**2. Consensus layer**
+
+[Full specification](https://github.com/ethereum/consensus-specs/blob/7bf43d1bc4fdb91059f0e6f4f7f0f3349b144950/specs/electra/beacon-chain.md)
+
+Sketch of spec:
+
+* New operation `ExecutionLayerWithdrawalRequest`
+* Will show up in `ExecutionPayload` as an SSZ List bound by length `MAX_WITHDRAWAL_REQUES
+
+*通俗理解：临时寄存柜——比永久存档便宜100倍，18天后自动清理*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-新增一种机制，允许执行层（EL）的地址通过提交交易来安全触发信标链（CL）上的验证者退出和部分提款操作。执行层地址被注册为验证者的'withdrawal credential'，可以发起退出请求。
+Adds a new mechanism to allow validators to trigger withdrawals and exits from their execution layer (0x01) withdrawal credentials.
 
-### 设计思路
+These new execution layer exit messages are appended to the execution layer block and then processed by the consensus layer.
 
-质押者的'遥控器'。以前验证者退出需要直接操作共识层节点，对托管质押的用户很不友好。EIP-7002 让执行层地址（如智能合约或普通钱包）可以触发退出，使质押服务、托管方案和智能合约钱包能自主管理验证者生命周期。
+### 设计动机（Motivation）
 
+Validators have two keys -- an active key and a withdrawal credential. The active key takes the form of a BLS key, whereas the withdrawal credential can either be a BLS key (0x00) or an execution layer address (0x01). The active key is "hot", actively signing and performing validator duties, whereas the withdrawal credential can remain "cold", only performing limited operations in relation to withdrawing and ownership of the staked ETH. Due to this security relationship, the withdrawal credential ultimately is the key that owns the staked ETH and any rewards.
+
+As currently specified, only the active key can initiate a validator exit. This means that in any non-standard custody relationship (i.e., the active key is a separate entity from the withdrawal credentials), the ultimate owner of th
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+| Name | Value | Comment |
+| - | - | - |
+| `WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS` | `0x00000961Ef480Eb55e80D19ad83579A64c007002` | Where to call and store relevant details about exit / partial withdrawal mechanism |
+| `WITHDRAWAL_REQUEST_TYPE` | `0x01` | The [EIP-7685](./eip-7685.md) type prefix for withdrawal request |
+| `SYSTEM_ADDRESS` | `0xfffffffffffffffffffffffffffffffffffffffe` | Address used to invoke system operation on contract
+| `EXCESS_WITHDRAWAL_REQUESTS_STORAGE_SLOT` | 0 | |
+| `WITHDRAWAL_REQUEST_COUNT_STORAGE_SLOT` | 1 | |
+| `WITHDRAWAL_REQUEST_QUEUE_HEAD_STORAGE_SLOT` | 2 | Pointer to head of the withdrawal request message queue |
+| `WITHDRAWAL_REQUEST_QUEUE_TAIL_STORAGE_SLOT` | 3 | Pointer to the tail of the withdrawal request message queue|
+| `WITHDRAWAL_REQUEST_QUEUE_STORAGE_OFFSET` | 4 | The start memory slot of the in-state withdrawal request message queue|
+| `MAX_WITHDRAWAL_REQUESTS_PER_BLOCK` | 16 | Maximum number of withdrawal requests that can be dequeued into a block |
+| `TARGET_WITHDRAWAL_REQUESTS_PER_BLOCK` | 2 | |
+| `MIN_WITHDRAWAL_REQUEST_FEE` | 1 | |
+| `WITHDRAWAL_REQUEST_FEE_UPDATE_FRACTION` | 17 | |
+| `EXCESS_INHIBITOR` | `2**256-1` | Excess value used to compute the fee before the first system call |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-7702** — EOA 代码执行: 革命性变更：普通非合约账户（EOA）可以像智能合约一样执行代码。解锁交易批处理、gas 代付、替代认证、可编程支出控制、...
-- **EIP-7251** — 验证者最大余额 2048 ETH: 将单个验证者最大有效余额从 32 ETH 提升至 2048 ETH，大幅减少验证者数量，提高质押资本效率...
-- **EIP-6110** — 链上验证者存款: 将验证者存款直接提交到执行层区块...
-- **EIP-2935** — 历史区块哈希保存: 在状态树中保存历史区块哈希，方便合约访问...
-- **EIP-2537** — BLS 预编译: 新增 BLS12-381 曲线预编译合约，支持 Beacon Chain 签名验证...
+- **EIP-7685** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7685.md)
+- **EIP-1559** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md)
+- **EIP-4788** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4788.md)
 
 ## 七、谁会受到影响？
 
-- **质押者**: 质押操作更灵活，风险更可控
-- **智能合约开发者**: 获得了新的编程原语和优化空间
-- **节点运营者**: 同步和存储负担得到优化
-- **验证者/矿工**: 收益结构和操作模式发生变化
-- **钱包用户**: 账户功能更丰富，操作更便利
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Prague-Electra (Pectra)升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是质押/共识演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **staking** | 质押：把 ETH 锁起来帮网络做安全检查，作为回报你能获得利息。类似于银行定期存款。 |
+| **validator** | 验证者：运行以太坊 PoS 共识软件的节点，负责提议和验证区块，需要质押 32 ETH（或更多）。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
 | **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**质押民主化的下一步**: EIP-7251 提升了单节点质押上限，未来还可能进一步降低 32 ETH 的最低门槛，让更多小额持有者参与质押。同时，分布式验证者技术（DVT）正在探索让多人共同运行一个验证者节点。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

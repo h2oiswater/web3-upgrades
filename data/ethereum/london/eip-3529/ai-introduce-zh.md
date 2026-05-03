@@ -6,90 +6,92 @@
 
 ### 当时的痛点
 
-在London升级之前，攻击者利用定价过低的操作码（如 EXTCODESIZE、SLOAD、BALANCE）反复读取状态数据，构造极低成本的资源耗尽攻击。节点 CPU 和 IO 被拖垮，同步速度急剧下降，普通用户的交易被阻塞。
-
-这不仅是技术问题，更是经济问题——攻击者的成本远低于网络防御成本，导致 DoS 攻击可持续数周。
+这项技术解决了以太坊网络在经济/安全面临的关键挑战。其目标是提升网络性能、安全性或可用性，为以太坊的长期演进奠定基础。
 
 ### 核心矛盾
 
-**减少 gas 退款**
+**经济/安全**
 
-限制 gas 退款机制：1) 取消 SELFDESTRUCT 的 gas 退款；2) SSTORE 清除的退款从 15000 降低到 4800（与写入成本相同）；3) 退款上限从 gas 的 50% 。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化限制 gas 退款机制：1) 取消 SELFDESTRUCT 的 gas 退款；2) SSTORE 清除的退款从 150，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+Gas refunds for `SSTORE` and `SELFDESTRUCT` were originally introduced to motivate application developers to write applications that practice "good state hygiene", clearing storage slots and contracts...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 消除了已知的安全风险和攻击向量
+此变更在经济/安全产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**减少 gas 退款**
+**经济/安全**
 
-限制 gas 退款机制：1) 取消 SELFDESTRUCT 的 gas 退款；2) SSTORE 清除的退款从 15000 降低到 4800（与写入成本相同）；3) 退款上限从 gas 的 50% 。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
-
-### 核心机制拆解
-
-**1.** 限制 gas 退款机制
-
-*通俗理解：这是关于交易费用的调整。可以理解为：高速公路的收费标准变了，某些车辆过路费涨价或降价了。*
-
-**2.** 取消 SELFDESTRUCT 的 gas 退款
-
-*通俗理解：这是关于交易费用的调整。可以理解为：高速公路的收费标准变了，某些车辆过路费涨价或降价了。*
-
-**3.** SSTORE 清除的退款从 15000 降低到 4800（与写入成本相同）
-
-*通俗理解：这是对以太坊底层协议的减少 gas 退款技术改进。可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让它运转得更顺畅。*
-
-**4.** 退款上限从 gas 的 50% 降低到 20%。
-
-*通俗理解：这是关于交易费用的调整。可以理解为：高速公路的收费标准变了，某些车辆过路费涨价或降价了。*
+这项技术通过优化限制 gas 退款机制：1) 取消 SELFDESTRUCT 的 gas 退款；2) SSTORE 清除的退款从 150，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 设计动机（Motivation）
 
-限制 gas 退款机制：1) 取消 SELFDESTRUCT 的 gas 退款；2) SSTORE 清除的退款从 15000 降低到 4800（与写入成本相同）；3) 退款上限从 gas 的 50% 降低到 20%。
+Gas refunds for `SSTORE` and `SELFDESTRUCT` were originally introduced to motivate application developers to write applications that practice "good state hygiene", clearing storage slots and contracts that are no longer needed. However, the benefits of this technique have proven to be far lower than anticipated, and gas refunds have had multiple unexpected harmful consequences:
 
-### 设计思路
+* Refunds give rise to GasToken. GasToken has benefits in moving gas space from low-fee periods to high-fee periods, but it also has downsides to the network, particularly in exacerbating state size (as state slots are effectively used as a "battery" to save up gas) and inefficiently clogging blockchain gas usage
+* Refunds increase block size variance. The theoretical maximum amount of actual gas consumed in a bloc
 
-堵住 gas 套利的漏洞。以前有人故意填充存储再清除来获取 gas 退款，实现负成本交易。这次修复消除了经济攻击向量，同时保留合理的退款激励。
+> 📄 完整动机说明请查看上方"官方原文"标签页
 
+### 关键参数与机制
+
+| Constant | Value |
+| - | - |
+| `FORK_BLOCK` | TBD |
+| `MAX_REFUND_QUOTIENT` | 5 |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-1559** — 费用市场改革: 革命性变更：引入基础费（base fee）+ 小费（priority fee）模式。基础费根据网络拥堵自动调整并被销毁，...
-- **EIP-3198** — BASEFEE 操作码: 新增 BASEFEE 操作码，允许合约访问当前区块的基础费值...
-- **EIP-3541** — 拒绝 0xEF 开头合约: 拒绝以 0xEF 字节开头的新合约创建，为未来的 EOF（EVM Object Format）升级预留空间...
-- **EIP-3554** — 难度炸弹延迟: 将难度炸弹推迟至 2021 年 12 月...
+- **EIP-1559** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md)
+- **EIP-2200** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2200.md)
+- **EIP-2929** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2929.md)
+- **EIP-2930** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2930.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
 
-- **普通用户**: 交易费用更可控，使用成本降低
+### 📊 关键数据
 
-## 八、历史背景与演进
+> SELFDESTRUCT退款取消、SSTORE退款从15000降至4800，堵住了gas套利漏洞，同时保留合理的清理激励。
 
-此特性是London升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+### 🔗 相关协议与项目
 
-## 九、关键术语表
+**GasToken**
+Gas套利代币项目因EIP-3529失效，结束了gas refund套利时代
+
+---
+
+## 八、谁会受到影响？
+
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
+
+## 九、历史背景与演进
+
+此特性是经济/安全演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
+
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

@@ -6,73 +6,128 @@
 
 ### 当时的痛点
 
-在Constantinople升级之前，特定 EVM 操作码的 gas 定价与实际计算成本严重脱节。某些操作（如状态读取、指数运算）定价过低，攻击者可以构造极低成本的恶意交易，反复执行这些操作来耗尽节点资源。
+根据官方 EIP 文档，这项技术旨在Native bitwise shifting instructions are introduced, which are more efficient processing wise on the host and are cheaper to use by a contract....
 
-这是经济激励与安全防护之间的失衡——合法用户支付的费用不能反映真实资源消耗，而攻击者却能以极低成本瘫痪网络。
+这是以太坊协议演进中的重要一步，解决了协议基础的关键挑战。
 
 ### 核心矛盾
 
-**SHL/SHR 移位操作码**
+**协议基础**
 
-新增 SHL (0x1b) 和 SHR (0x1c) 移位操作码，提供原生的左移和右移位运算，gas 成本固定为 3。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 SHL (0x1b) 和 SHR (0x1c) 移位操作码，提供原生的左移和右移位运算，gas 成本固定为 3。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+EVM is lacking bitwise shifting operators, but supports other logical and arithmetic operators. Shift operations can be implemented via arithmetic operators, but that has a higher cost and requires mo...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更为协议层面的渐进式优化：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更为协议层面的渐进式优化，为长期发展奠定了基础。
 
 ## 四、技术概述：用类比讲清楚
 
-**SHL/SHR 移位操作码**
+**协议基础**
 
-新增 SHL (0x1b) 和 SHR (0x1c) 移位操作码，提供原生的左移和右移位运算，gas 成本固定为 3。。
+这项技术通过优化新增 SHL (0x1b) 和 SHR (0x1c) 移位操作码，提供原生的左移和右移位运算，gas 成本固定为 3。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. `0x1b`: `SHL` (shift left)**
+
+The `SHL` instruction (shift left) pops 2 values from the stack, first `arg1` and then `arg2`, and pushes on the stack `arg2` shifted to the left by `arg1` number of bits. The result is equal to
+
+```
+(arg2 * 2^arg1) mod 2^256
+```
+
+Notes:
+
+- The value (`arg2`) is interpreted as an unsigned number.
+- 
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**2. `0x1c`: `SHR` (logical shift right)**
+
+The `SHR` instruction (logical shift right) pops 2 values from the stack, first `arg1` and then `arg2`, and pushes on the stack `arg2` shifted to the right by `arg1` number of bits with zero fill. The result is equal to
+
+```
+floor(arg2 / 2^arg1)
+```
+
+Notes:
+
+- The value (`arg2`) is interpreted as an
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**3. `0x1d`: `SAR` (arithmetic shift right)**
+
+The `SAR` instruction (arithmetic shift right) pops 2 values from the stack, first `arg1` and then `arg2`, and pushes on the stack `arg2` shifted to the right by `arg1` number of bits with sign extension. The result is equal to
+
+```
+floor(arg2 / 2^arg1)
+```
+
+Notes:
+
+- The value (`arg2`) is interpret
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-新增 SHL (0x1b) 和 SHR (0x1c) 移位操作码，提供原生的左移和右移位运算，gas 成本固定为 3。
+Native bitwise shifting instructions are introduced, which are more efficient processing wise on the host and are cheaper to use by a contract.
 
-### 设计思路
+### 设计动机（Motivation）
 
-补齐 EVM 位运算短板。以前移位需要用 MUL/DIV 模拟，gas 成本高且复杂。这两个操作码让位运算像原生 CPU 指令一样高效，对加密算法和位掩码操作意义重大。
+EVM is lacking bitwise shifting operators, but supports other logical and arithmetic operators. Shift operations can be implemented via arithmetic operators, but that has a higher cost and requires more processing time from the host. Implementing `SHL` and `SHR` using arithmetic cost each 35 gas, while the proposed instructions take 3 gas.
 
+### 关键参数与机制
+
+The following instructions are introduced:
+
+### `0x1b`: `SHL` (shift left)
+
+The `SHL` instruction (shift left) pops 2 values from the stack, first `arg1` and then `arg2`, and pushes on the stack `arg2` shifted to the left by `arg1` number of bits. The result is equal to
+
+```
+(arg2 * 2^arg1) mod 2^256
+```
+
+Notes:
+
+- The value (`arg2`) is interpreted as an unsigned number.
+- The shift amount (`arg1`) is interpreted as an unsigned number.
+- If the shift amount (`arg1`) is greater or equal 256 the r
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-1014** — CREATE2: 允许在合约部署前确定其地址，是状态通道、Counterfactual 和 Layer 2 方案的关键...
-- **EIP-1052** — EXTCODEHASH: 新增 EXTCODEHASH 操作码，返回合约代码的 keccak256 哈希，提升合约验证效率...
-- **EIP-1234** — 难度炸弹延迟+减产: 再次推迟难度炸弹 12 个月，将出块奖励从 3 ETH 降至 2 ETH...
-- **EIP-1283** — SSTORE gas 计量调整: 调整 SSTORE 的 gas 计量方式（后在 Petersburg 中撤销）...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Constantinople升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

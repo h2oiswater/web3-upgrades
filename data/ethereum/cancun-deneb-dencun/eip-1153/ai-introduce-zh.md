@@ -6,75 +6,107 @@
 
 ### 当时的痛点
 
-随着 DeFi、NFT、SocialFi 等应用的爆发，以太坊主链 TPS 成为瓶颈。Layer 2 方案（Rollup）能把计算放到链下，但**数据存储成本仍是硬伤**——Rollup 必须把交易数据发布到 L1 作为"证据"，而 L1 的 calldata 存储费用高达 ~16-20 gwei/字节。
+根据官方 EIP 文档，这项技术旨在This proposal introduces transient storage opcodes, which manipulate state that behaves identically to storage, except that transient storage is disca...
 
-结果是：L2 虽然计算便宜了，但**数据发布成本占了总费用的 90% 以上**。用户在 L2 做一次 Swap 仍需支付 $0.5-$2，距离"大规模采用"差一个数量级。
+这是以太坊协议演进中的重要一步，解决了智能合约的关键挑战。
 
 ### 核心矛盾
 
-**Transient Storage**
+**智能合约**
 
-新增 Transient Storage 操作码 TLOAD (0x5c) 和 TSTORE (0x5d)。Transient Storage 类似于存储但在交易结束时清除，不消耗 gas 退款机制。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 Transient Storage 操作码 TLOAD (0x5c) 和 TSTORE (0x5d)。Transi，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过Transient Storage优化以太坊协议，提升网络性能、安全性或可用性。
+Running a transaction in Ethereum can generate multiple nested frames of execution, each created by `CALL` (or similar) instructions. Contracts can be re-entered during the same transaction, in which ...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 提升了协议执行效率和资源利用率
+此变更在智能合约产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**Transient Storage**
+**智能合约**
 
-新增 Transient Storage 操作码 TLOAD (0x5c) 和 TSTORE (0x5d)。Transient Storage 类似于存储但在交易结束时清除，不消耗 gas 退款机制。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 Transient Storage 操作码 TLOAD (0x5c) 和 TSTORE (0x5d)。Transi，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-新增 Transient Storage 操作码 TLOAD (0x5c) 和 TSTORE (0x5d)。Transient Storage 类似于存储但在交易结束时清除，不消耗 gas 退款机制。
+This proposal introduces transient storage opcodes, which manipulate state that behaves identically to storage, except that transient storage is discarded after every transaction, and `TSTORE` is not subject to the gas stipend check as defined in [EIP-2200](./eip-2200.md). In other words, the values of transient storage are never deserialized from storage or serialized to storage. Thus transient storage is cheaper since it never requires disk access. Transient storage is accessible to smart contracts via 2 new opcodes, `TLOAD` and `TSTORE`, where “T” stands for "transient:"
 
-### 设计思路
+```
+TLOAD  (0x5c)
+TSTORE (0x5d)
+```
 
-解决重入锁的 gas 效率问题。以前重入保护需要 SSTORE（20000 gas 写入，退还 4800），现在用 TSTORE 仅需 100 gas。对 DeFi 合约（如 Uniswap v4）意义重大，大幅降低了复杂交互的成本。
+### 设计动机（Motivation）
 
+Running a transaction in Ethereum can generate multiple nested frames of execution, each created by `CALL` (or similar) instructions. Contracts can be re-entered during the same transaction, in which case there are more than one frame belonging to one contract. Currently, these frames can communicate in two ways: via inputs/outputs passed via `CALL` instructions, and via storage updates. If there is an intermediate frame belonging to another untrusted contract, communication via inputs/outputs is not secure. Notable example is a reentrancy lock which cannot rely on the intermediate frame to pass through the state of the lock. Communication via storage (`SSTORE`/`SLOAD`) is costly. Transient storage is a dedicated and gas efficient solution to the problem of inter frame communication.
+
+Stor
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+Two new opcodes are added to EVM, `TLOAD` (`0x5c`) and `TSTORE` (`0x5d`). (Note that previous drafts of this EIP specified the values `0xb3` and `0xb4` for `TLOAD` and `TSTORE` respectively to avoid conflict with other EIPs. The conflict has since been removed.)
+
+They use the same arguments on stack as `SLOAD` (`0x54`) and `SSTORE` (`0x55`).
+
+`TLOAD` pops one 32-byte word from the top of the stack, treats this value as the address, fetches 32-byte word from the transient storage at that address,
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-4844** — Proto-Danksharding / Blob 交易: 引入携带 Blob 的交易类型。Blob 是短期存储的大容量数据（每个 128KB，每区块最多 6 个），专供 Roll...
-- **EIP-4788** — 信标区块根: 将信标链区块根暴露给 EVM，允许合约无需信任地访问共识层状态...
-- **EIP-5656** — MCOPY 操作码: 新增内存复制操作码，比现有方案更高效的内存拷贝...
-- **EIP-6780** — 限制 SELFDESTRUCT: 限制 SELFDESTRUCT 仅在合约创建同交易中可用，简化状态管理...
-- **EIP-7516** — BLOBBASEFEE 操作码: 新增 BLOBBASEFEE 操作码，允许合约读取 blob 的基础费用...
+- **EIP-2200** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2200.md)
+- **EIP-3529** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-3529.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+### 📊 关键数据
 
-## 八、历史背景与演进
+> Transient Storage让重入保护从SSTORE的20000 gas降至TSTORE的100 gas，DeFi合约交互成本降低95%。
 
-此特性是Cancun-Deneb (Dencun)升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+### 🔗 相关协议与项目
 
-## 九、关键术语表
+**Uniswap v4**
+利用Transient Storage实现高效的重入锁和Hooks机制
+
+**CowSwap**
+批量拍卖DEX，Transient Storage优化其结算逻辑
+
+---
+
+## 八、谁会受到影响？
+
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
+
+## 九、历史背景与演进
+
+此特性是智能合约演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
+
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
 | **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
+| **hard fork** | 硬分叉：协议规则的不兼容变更，所有节点必须升级才能继续参与网络。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

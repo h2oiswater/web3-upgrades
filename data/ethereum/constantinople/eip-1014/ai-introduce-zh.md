@@ -6,73 +6,141 @@
 
 ### 当时的痛点
 
-随着以太坊应用生态的蓬勃发展，EVM 的原始设计逐渐暴露出限制——缺少关键操作码（如移位、内存复制）、存储机制效率低下、合约间交互能力受限。开发者被迫用复杂且昂贵的变通方案实现基本功能。
-
-这些限制不仅增加了 gas 成本，也制约了智能合约的创新空间。补齐 EVM 的能力短板，是协议长期竞争力的关键。
+这项技术解决了以太坊网络在智能合约/L2面临的关键挑战。其目标是提升网络性能、安全性或可用性，为以太坊的长期演进奠定基础。
 
 ### 核心矛盾
 
-**CREATE2**
+**智能合约/L2**
 
-新增 CREATE2 操作码（0xf5），允许根据 salt、发送者地址和 initcode 哈希确定性地计算合约地址。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 CREATE2 操作码（0xf5），允许根据 salt、发送者地址和 initcode 哈希确定性地计算合约地址。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-扩展 EVM 能力，新增关键操作码或预编译合约，支持更复杂的智能合约模式。
+Allows interactions to (actually or counterfactually in channels) be made with addresses that do not exist yet on-chain but can be relied on to only possibly eventually contain code that has been crea...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更对以太坊生态产生了深远影响，推动了智能合约/L2的技术发展和应用创新。
 
 ## 四、技术概述：用类比讲清楚
 
-**CREATE2**
+**智能合约/L2**
 
-新增 CREATE2 操作码（0xf5），允许根据 salt、发送者地址和 initcode 哈希确定性地计算合约地址。。
+这项技术通过优化新增 CREATE2 操作码（0xf5），允许根据 salt、发送者地址和 initcode 哈希确定性地计算合约地址。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. Motivation**
+
+Allows interactions to (actually or counterfactually in channels) be made with addresses that do not exist yet on-chain but can be relied on to only possibly eventually contain code that has been created by a particular piece of init code. Important for state-channel use cases that involve counterfa
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**2. Rationale**
+
+#### Address formula
+
+* Ensures that addresses created with this scheme cannot collide with addresses created using the traditional `keccak256(rlp([sender, nonce]))` formula, as `0xff` can only be a starting byte for RLP for data many petabytes long.
+* Ensures that the hash preimage has a fixed size
+
+*通俗理解：数字指纹——任何数据都有唯一指纹，改了数据指纹就变*
+
+**3. Clarifications**
+
+The `init_code` is the code that, when executed, produces the runtime bytecode that will be placed into the state, and which typically is used by high level languages to implement a 'constructor'.
+
+This EIP makes collisions possible. The behaviour at collisions is specified by [EIP-684](https://gith
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**4. Examples**
+
+Example 0
+* address `0x0000000000000000000000000000000000000000`
+* salt `0x0000000000000000000000000000000000000000000000000000000000000000`
+* init_code `0x00`
+* gas (assuming no mem expansion): `32006`
+* result: `0x4D1A2e2bB4F88F0250f26Ffff098B0b30B26BF38`
+
+Example 1
+* address `0xdeadbeef0000000000
+
+*通俗理解：高速公路收费站——不同车辆收费标准不同*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 设计动机（Motivation）
 
-新增 CREATE2 操作码（0xf5），允许根据 salt、发送者地址和 initcode 哈希确定性地计算合约地址。
+Allows interactions to (actually or counterfactually in channels) be made with addresses that do not exist yet on-chain but can be relied on to only possibly eventually contain code that has been created by a particular piece of init code. Important for state-channel use cases that involve counterfactual interactions with contracts.
 
-### 设计思路
+### Rationale
 
-状态通道和 Layer 2 的基石。允许'Counterfactual'模式——在链下确定合约地址、交互，只在必要时上链。催生了 Gnosis Safe、State Channels 等方案。
+#### Address formula
 
+* Ensures that addresses created with this scheme cannot collide with addresses created using the traditional `keccak256(rlp([sender, nonce]))` formula, as `0xff` can only be a starting byte for RLP for data many petabytes long.
+* Ensures that the hash preimage has a fixed size,
+
+#### Gas cost
+
+Since address calculation depends on hashing the `init_code`, it would leave clients open to DoS attacks if executions could repeat
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+Adds a new opcode (`CREATE2`) at `0xf5`, which takes 4 stack arguments: endowment, memory_start, memory_length, salt. Behaves identically to `CREATE` (`0xf0`), except using `keccak256( 0xff ++ address ++ salt ++ keccak256(init_code))[12:]` instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
+
+The `CREATE2` has the same `gas` schema as `CREATE`, but also an extra `hashcost` of `GSHA3WORD * ceil(len(init_code) / 32)`, to account for the hashing that must 
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-145** — SHL/SHR 移位操作码: 新增左移和右移操作码，使位运算更便宜高效...
-- **EIP-1052** — EXTCODEHASH: 新增 EXTCODEHASH 操作码，返回合约代码的 keccak256 哈希，提升合约验证效率...
-- **EIP-1234** — 难度炸弹延迟+减产: 再次推迟难度炸弹 12 个月，将出块奖励从 3 ETH 降至 2 ETH...
-- **EIP-1283** — SSTORE gas 计量调整: 调整 SSTORE 的 gas 计量方式（后在 Petersburg 中撤销）...
+- **EIP-684** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-684.md)
+- **EIP-161** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-161.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
 
-- **智能合约开发者**: 获得了新的编程原语和优化空间
-- **节点运营者**: 同步和存储负担得到优化
+### 📊 关键数据
 
-## 八、历史背景与演进
+> CREATE2催生了"Counterfactual"理念——链下确定地址、交互，只在必要时上链。这是现代Account Abstraction的基础设施。
+
+### 🔗 相关协议与项目
+
+**Gnosis Safe**
+多签钱包利用CREATE2确定性地计算多签合约地址
+
+**Counterfactual**
+状态通道框架，基于CREATE2实现链下交互
+
+**WalletConnect**
+钱包连接协议，利用CREATE2优化合约部署流程
+
+---
+
+## 八、谁会受到影响？
+
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
+
+## 九、历史背景与演进
 
 CREATE2 催生了"Counterfactual"理念——在链下预先确定合约地址并进行交互，只在必要时上链。这是状态通道、Gnosis Safe、以及现代 Account Abstraction 的基础设施。
 
-## 九、关键术语表
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
-| **CREATE2** | 本次升级引入的核心技术特性，允许在合约部署前确定其地址，是状态通道、Counterfactual 和 Layer 2 方案的关键。 |
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

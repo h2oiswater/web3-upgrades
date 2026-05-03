@@ -6,74 +6,127 @@
 
 ### 当时的痛点
 
-随着 DeFi、NFT、SocialFi 等应用的爆发，以太坊主链 TPS 成为瓶颈。Layer 2 方案（Rollup）能把计算放到链下，但**数据存储成本仍是硬伤**——Rollup 必须把交易数据发布到 L1 作为"证据"，而 L1 的 calldata 存储费用高达 ~16-20 gwei/字节。
+根据官方 EIP 文档，这项技术旨在Provide an efficient EVM instruction for copying memory areas....
 
-结果是：L2 虽然计算便宜了，但**数据发布成本占了总费用的 90% 以上**。用户在 L2 做一次 Swap 仍需支付 $0.5-$2，距离"大规模采用"差一个数量级。
+这是以太坊协议演进中的重要一步，解决了协议基础的关键挑战。
 
 ### 核心矛盾
 
-**MCOPY 操作码**
+**协议基础**
 
-新增 MCOPY 操作码（0x5e），提供高效的内存复制功能，gas 成本为 3 + 3 * (字字数)。比现有方案（使用 MLOAD/MSTORE 循环）更省 gas 和更快速。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 MCOPY 操作码（0x5e），提供高效的内存复制功能，gas 成本为 3 + 3 * (字字数)。比现有方案（使，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+Memory copying is a basic operation, yet implementing it on the EVM comes with overhead.
+
+This was recognised and alleviated early on with the introduction of the "identity" precompile, which accompli...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更为协议层面的渐进式优化：
-- 提升了协议执行效率和资源利用率
+此变更为协议层面的渐进式优化，为长期发展奠定了基础。
 
 ## 四、技术概述：用类比讲清楚
 
-**MCOPY 操作码**
+**协议基础**
 
-新增 MCOPY 操作码（0x5e），提供高效的内存复制功能，gas 成本为 3 + 3 * (字字数)。比现有方案（使用 MLOAD/MSTORE 循环）更省 gas 和更快速。。
+这项技术通过优化新增 MCOPY 操作码（0x5e），提供高效的内存复制功能，gas 成本为 3 + 3 * (字字数)。比现有方案（使，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. Input stack**
+
+| Stack | Value |
+|-------|-------|
+| top - 0 | `dst` |
+| top - 1 | `src` |
+| top - 2 | `length` |
+
+This ordering matches the other copying instructions, i.e. `CALLDATACOPY`, `RETURNDATACOPY`.
+
+*通俗理解：正式档案室存档——永久保存但费用贵*
+
+**2. Gas costs**
+
+Per yellow paper terminology, it should be considered part of the `W_copy` group of opcodes, and follow the gas calculation for `W_copy` in the yellow paper. While the calculation in the yellow paper should be considered the final word, for reference, as of time of this writing, that currently means
+
+*通俗理解：高速公路收费站——不同车辆收费标准不同*
+
+**3. Output stack**
+
+This instruction returns no stack items.
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**4. Semantics**
+
+It copies `length` bytes from the offset pointed at `src` to the offset pointed at `dst` in memory.
+Copying takes place as if an intermediate buffer was used, allowing the destination and source to overlap.
+
+If `length > 0` and (`src + length` or `dst + length`) is beyond the current memory length, 
+
+*通俗理解：草稿纸——临时使用，用完就扔*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-新增 MCOPY 操作码（0x5e），提供高效的内存复制功能，gas 成本为 3 + 3 * (字字数)。比现有方案（使用 MLOAD/MSTORE 循环）更省 gas 和更快速。
+Provide an efficient EVM instruction for copying memory areas.
 
-### 设计思路
+### 设计动机（Motivation）
 
-内存操作的性能提升。大型数据复制（如 ABI 编码、结构体拷贝）以前需要逐字操作，MCOPY 让内存块整体复制成为可能，提升合约执行效率。
+Memory copying is a basic operation, yet implementing it on the EVM comes with overhead.
 
+This was recognised and alleviated early on with the introduction of the "identity" precompile, which accomplishes
+memory copying by the use of `CALL`'s input and output memory offsets. Its cost is `15 + 3 * (length / 32)` gas, plus
+the call overhead. The identity precompile was rendered ineffective by the raise of the cost of `CALL` to 700, but subsequently
+the reduction by [EIP-2929](./eip-2929.md) made it slightly more economical.
+
+Copying exact words can be accomplished with `<offset> MLOAD <offset> MSTORE` or `<offset> DUP1 MLOAD DUP2 MSTORE`,
+at a cost of at least 12 gas per word. This is fairly efficient if the offsets are known upfront and the copying can be unrolled.
+In case copying is implem
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+| Stack | Value |
+|-------|-------|
+| top - 0 | `dst` |
+| top - 1 | `src` |
+| top - 2 | `length` |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-4844** — Proto-Danksharding / Blob 交易: 引入携带 Blob 的交易类型。Blob 是短期存储的大容量数据（每个 128KB，每区块最多 6 个），专供 Roll...
-- **EIP-1153** — Transient Storage: 新增 TLOAD/TSTORE 操作码，提供在交易内有效但交易结束后清除的存储，解决重入锁等场景的 gas 效率问题...
-- **EIP-4788** — 信标区块根: 将信标链区块根暴露给 EVM，允许合约无需信任地访问共识层状态...
-- **EIP-6780** — 限制 SELFDESTRUCT: 限制 SELFDESTRUCT 仅在合约创建同交易中可用，简化状态管理...
-- **EIP-7516** — BLOBBASEFEE 操作码: 新增 BLOBBASEFEE 操作码，允许合约读取 blob 的基础费用...
+- **EIP-2929** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2929.md)
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Cancun-Deneb (Dencun)升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **precompile** | 预编译合约：EVM 中内置的高效算法实现，用原生代码而非 EVM 字节码执行，gas 成本更低。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
+| **hard fork** | 硬分叉：协议规则的不兼容变更，所有节点必须升级才能继续参与网络。 |
 
 ## 十、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

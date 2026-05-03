@@ -6,85 +6,81 @@
 
 ### 当时的痛点
 
-随着 DeFi、NFT、SocialFi 等应用的爆发，以太坊主链 TPS 成为瓶颈。Layer 2 方案（Rollup）能把计算放到链下，但**数据存储成本仍是硬伤**——Rollup 必须把交易数据发布到 L1 作为"证据"，而 L1 的 calldata 存储费用高达 ~16-20 gwei/字节。
+根据官方 EIP 文档，这项技术旨在Add a `BLOBBASEFEE (0x4a)` instruction that returns the value of the blob base-fee of the current block it is executing in. It is the identical to [EI...
 
-结果是：L2 虽然计算便宜了，但**数据发布成本占了总费用的 90% 以上**。用户在 L2 做一次 Swap 仍需支付 $0.5-$2，距离"大规模采用"差一个数量级。
+这是以太坊协议演进中的重要一步，解决了协议基础的关键挑战。
 
 ### 核心矛盾
 
-**快递站的"临时寄存柜"**
+**协议基础**
 
-想象以太坊主链是一个大型快递分拣中心。以前，L2 包裹到达后，中心必须把包裹内容永久存档到档案室（calldata），每个字都按标准收费。
-
-Blob 交易就像引入了"临时寄存柜"：
-- 包裹不用拆开永久存档：L2 把包裹放进临时柜子（blob），18 天后自动清理
-- 柜子有封条（KZG 承诺）：中心不用看包裹里面是什么，只需要验证封条完好
-- 柜子有独立计价：临时柜子的租金比普通存档便宜 10-100 倍
-- 柜子最多放 6 个包裹：每个柜子 128KB，一次交易最多带 6 个柜子
+这项技术通过优化新增 BLOBBASEFEE 操作码（0x4a），返回当前区块的 blob 基础费用（blob base fee per，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+The intended use case would be for contracts to get the value of the blob base-fee. This feature enables blob-data users to programmatically account for the blob gas price, eg:
+
+- Allow rollup contrac...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更为协议层面的渐进式优化：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更为协议层面的渐进式优化，为长期发展奠定了基础。
 
 ## 四、技术概述：用类比讲清楚
 
-**快递站的"临时寄存柜"**
+**协议基础**
 
-想象以太坊主链是一个大型快递分拣中心。以前，L2 包裹到达后，中心必须把包裹内容永久存档到档案室（calldata），每个字都按标准收费。
-
-Blob 交易就像引入了"临时寄存柜"：
-- 包裹不用拆开永久存档：L2 把包裹放进临时柜子（blob），18 天后自动清理
-- 柜子有封条（KZG 承诺）：中心不用看包裹里面是什么，只需要验证封条完好
-- 柜子有独立计价：临时柜子的租金比普通存档便宜 10-100 倍
-- 柜子最多放 6 个包裹：每个柜子 128KB，一次交易最多带 6 个柜子
+这项技术通过优化新增 BLOBBASEFEE 操作码（0x4a），返回当前区块的 blob 基础费用（blob base fee per，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-新增 BLOBBASEFEE 操作码（0x4a），返回当前区块的 blob 基础费用（blob base fee per gas），gas 成本为 2。
+Add a `BLOBBASEFEE (0x4a)` instruction that returns the value of the blob base-fee of the current block it is executing in. It is the identical to [EIP-3198](./eip-3198.md) (`BASEFEE` opcode) except that it returns the blob base-fee as per [EIP-4844](./eip-4844.md).
 
-### 设计思路
+### 设计动机（Motivation）
 
-让合约感知 L2 成本。Rollup 合约可以读取 blob 费用动态调整其数据发布策略，在费用低时多发布、高时缓存，实现智能成本管理。
+The intended use case would be for contracts to get the value of the blob base-fee. This feature enables blob-data users to programmatically account for the blob gas price, eg:
 
+- Allow rollup contracts to trustlessly account for blob data usage costs.
+- Blob gas futures can be implemented based on it which allows for blob users to smooth out data blob costs.
+
+### 关键参数与机制
+
+| Op   | Input | Output | Cost |
+|------|-------|--------|------|
+| 0x4a | 0     | 1      | 2    |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-4844** — Proto-Danksharding / Blob 交易: 引入携带 Blob 的交易类型。Blob 是短期存储的大容量数据（每个 128KB，每区块最多 6 个），专供 Roll...
-- **EIP-1153** — Transient Storage: 新增 TLOAD/TSTORE 操作码，提供在交易内有效但交易结束后清除的存储，解决重入锁等场景的 gas 效率问题...
-- **EIP-4788** — 信标区块根: 将信标链区块根暴露给 EVM，允许合约无需信任地访问共识层状态...
-- **EIP-5656** — MCOPY 操作码: 新增内存复制操作码，比现有方案更高效的内存拷贝...
-- **EIP-6780** — 限制 SELFDESTRUCT: 限制 SELFDESTRUCT 仅在合约创建同交易中可用，简化状态管理...
+- **EIP-3198** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-3198.md)
+- **EIP-4844** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md)
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
-- **Layer 2 开发者**: 数据发布成本大幅降低，扩容方案更经济
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Cancun-Deneb (Dencun)升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
 | **rollup** | L2 扩容方案：在链下处理交易，只把压缩后的数据提交到主链，主链验证数据可用性即可。 |
 | **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**Proto-Danksharding → Full Danksharding**: EIP-4844 是 Danksharding 的 MVP 版本，未来还需要实现数据可用性采样（DAS），让轻节点也能验证数据可用性，进一步降低对全节点的依赖。**PeerDAS** 是下一个里程碑。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

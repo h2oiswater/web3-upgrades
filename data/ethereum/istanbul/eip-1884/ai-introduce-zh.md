@@ -6,73 +6,94 @@
 
 ### 当时的痛点
 
-随着 DeFi、NFT、SocialFi 等应用的爆发，以太坊主链 TPS 成为瓶颈。Layer 2 方案（Rollup）能把计算放到链下，但**数据存储成本仍是硬伤**——Rollup 必须把交易数据发布到 L1 作为"证据"，而 L1 的 calldata 存储费用高达 ~16-20 gwei/字节。
+根据官方 EIP 文档，这项技术旨在The growth of the Ethereum state has caused certain opcodes to be more resource-intensive at this point than 
+they were previously. This EIP proposes ...
 
-结果是：L2 虽然计算便宜了，但**数据发布成本占了总费用的 90% 以上**。用户在 L2 做一次 Swap 仍需支付 $0.5-$2，距离"大规模采用"差一个数量级。
+这是以太坊协议演进中的重要一步，解决了经济/安全的关键挑战。
 
 ### 核心矛盾
 
-**状态访问操作码提价**
+**经济/安全**
 
-重新定价 trie 大小相关的操作码：SLOAD 从 200 提高到 800，BALANCE 从 400 提高到 700，EXTCODEHASH 从 400 提高到 700，EXTCODESIZE 保。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化重新定价 trie 大小相关的操作码：SLOAD 从 200 提高到 800，BALANCE 从 400 提高到 700，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过状态访问操作码提价优化以太坊协议，提升网络性能、安全性或可用性。
+An imbalance between the price of an operation and the resource consumption (CPU time, memory etc)
+has several drawbacks:
+
+- It could be used for attacks, by filling blocks with underpriced operations...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更在经济/安全产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**状态访问操作码提价**
+**经济/安全**
 
-重新定价 trie 大小相关的操作码：SLOAD 从 200 提高到 800，BALANCE 从 400 提高到 700，EXTCODEHASH 从 400 提高到 700，EXTCODESIZE 保。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化重新定价 trie 大小相关的操作码：SLOAD 从 200 提高到 800，BALANCE 从 400 提高到 700，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-重新定价 trie 大小相关的操作码：SLOAD 从 200 提高到 800，BALANCE 从 400 提高到 700，EXTCODEHASH 从 400 提高到 700，EXTCODESIZE 保持 700，EXTCODECOPY 基础保持 700。
+The growth of the Ethereum state has caused certain opcodes to be more resource-intensive at this point than 
+they were previously. This EIP proposes to raise the `gasCost` for those opcodes.
 
-### 设计思路
+### 设计动机（Motivation）
 
-状态膨胀的代价。随着以太坊状态树从 1 亿增长到数十亿节点，读取状态的实际成本上升。这次提价匹配了真实的存储和计算开销，防止滥用廉价状态访问。
+An imbalance between the price of an operation and the resource consumption (CPU time, memory etc)
+has several drawbacks:
 
+- It could be used for attacks, by filling blocks with underpriced operations which causes excessive block processing time.
+- Underpriced opcodes cause a skewed block gas limit, where sometimes blocks finish quickly but other blocks with similar gas use finish slowly.
+
+If operations are well-balanced, we can maximise the block gaslimit and have a more stable processing time.
+
+### 关键参数与机制
+
+At block `N`, 
+
+- The `SLOAD` (`0x54`) operation changes from `200` to `800` gas,
+- The `BALANCE` (`0x31`) operation changes from `400` to `700` gas,
+- The `EXTCODEHASH` (`0x3F`) operation changes from `400` to `700` gas,
+- A new opcode, `SELFBALANCE` is introduced at `0x47`. 
+  - `SELFBALANCE` pops `0` arguments off the stack, 
+  - `SELFBALANCE` pushes the `balance` of the current address to the stack,
+  - `SELFBALANCE` is priced as `GasFastStep`, at `5` gas.
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-152** — Blake2 压缩函数预编译: 新增 Blake2 哈希压缩函数预编译合约，实现与 Zcash 的互操作性...
-- **EIP-1108** — 降低 alt_bn128 gas 成本: 大幅降低 alt_bn128 预编译合约的 gas 成本，使 zk-SNARKs 验证更经济...
-- **EIP-1344** — CHAINID 操作码: 新增 CHAINID 操作码，允许合约在运行时获取当前链 ID...
-- **EIP-2028** — 降低 Calldata gas 成本: 将 calldata 的 gas 成本从 68 降至 16，大幅降低 Rollup 等数据可用性方案的成本...
-- **EIP-2200** — SSTORE gas 净计量: 改进 SSTORE 的净计量方式，综合考虑原始值、当前值和新值...
+- **EIP-150** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-150.md)
+- **EIP-1052** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1052.md)
 
 ## 七、谁会受到影响？
 
-- **节点运营者**: 同步和存储负担得到优化
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Istanbul升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是经济/安全演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
 | **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

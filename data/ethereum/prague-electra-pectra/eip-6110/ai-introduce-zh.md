@@ -6,87 +6,100 @@
 
 ### 当时的痛点
 
-以太坊质押生态在 The Merge 后快速增长，但协议设计遗留了诸多不便——
+根据官方 EIP 文档，这项技术旨在Appends validator deposits to the Execution Layer block structure. This shifts responsibility of deposit inclusion and validation to the Execution Lay...
 
-- **验证者管理复杂**：运行 100 个验证者节点需要管理 100 套密钥和 100 个进程
-- **退出机制不完善**：验证者退出需要直接操作共识层，托管用户几乎无法自主操作
-- **资本效率低下**：3200 ETH 大户被迫拆成 100 个 32 ETH 的节点
-
-这些问题制约了质押民主化和资本效率的提升。
+这是以太坊协议演进中的重要一步，解决了质押/共识的关键挑战。
 
 ### 核心矛盾
 
-**从"一人一票"到"加权投票"**
+**质押/共识**
 
-以前质押像"一人一票"——不管你有 32 ETH 还是 3200 ETH，都只能运行一个验证者节点，权重一样。大户被迫拆成 100 个节点来管理，复杂且低效。
-
-EIP-7251 改为"加权投票"：
-- 单个验证者最大余额从 32 ETH 提升到 2048 ETH
-- 3200 ETH 大户以前需要 100 个节点，现在只需 2 个
-- 保留最低门槛 32 ETH：小额质押者仍可以参与
-- 共识层消息传播压力大幅降低
+这项技术通过优化共识层变更：将验证者存款直接提交到执行层区块中，而非通过 deposit 合约事件来传递。存款数据现在作为执行层区块的一，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过链上验证者存款优化以太坊协议，提升网络性能、安全性或可用性。
+Validator deposits are a core component of the proof-of-stake consensus mechanism. This EIP allows for an in-protocol mechanism of deposit processing on the Consensus Layer and eliminates the proposer...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更在质押/共识产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**从"一人一票"到"加权投票"**
+**质押/共识**
 
-以前质押像"一人一票"——不管你有 32 ETH 还是 3200 ETH，都只能运行一个验证者节点，权重一样。大户被迫拆成 100 个节点来管理，复杂且低效。
+这项技术通过优化共识层变更：将验证者存款直接提交到执行层区块中，而非通过 deposit 合约事件来传递。存款数据现在作为执行层区块的一，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-EIP-7251 改为"加权投票"：
-- 单个验证者最大余额从 32 ETH 提升到 2048 ETH
-- 3200 ETH 大户以前需要 100 个节点，现在只需 2 个
-- 保留最低门槛 32 ETH：小额质押者仍可以参与
-- 共识层消息传播压力大幅降低
+### 核心机制拆解
+
+**1. Consensus layer**
+
+Consensus layer changes can be summarized into the following list:
+
+1. `ExecutionRequests` is extended with a new `deposit_requests` field to accommodate deposit requests list.
+2. `BeaconState` is appended with `deposit_requests_start_index` used to switch from the former deposit mechanism to the ne
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-共识层变更：将验证者存款直接提交到执行层区块中，而非通过 deposit 合约事件来传递。存款数据现在作为执行层区块的一部分直接可用。
+Appends validator deposits to the Execution Layer block structure. This shifts responsibility of deposit inclusion and validation to the Execution Layer and removes the need for deposit (or `eth1data`) voting from the Consensus Layer.
 
-### 设计思路
+Validator deposits list supplied in a block is obtained by parsing deposit contract log events emitted by each deposit transaction included in a given block.
 
-简化存款验证流程。以前共识层需要监听执行层的事件日志来获取新存款，现在存款数据直接在区块中可用，减少共识层对执行层事件的依赖，提升可靠性。
+### 设计动机（Motivation）
 
+Validator deposits are a core component of the proof-of-stake consensus mechanism. This EIP allows for an in-protocol mechanism of deposit processing on the Consensus Layer and eliminates the proposer voting mechanism utilized currently. This proposed mechanism relaxes safety assumptions and reduces complexity of client software design, contributing to the security of the deposits flow. It also improves validator UX.
+
+Advantages of in-protocol deposit processing consist of, but are not limited to, the following:
+
+* Significant increase of deposits security by supplanting proposer voting. With the proposed in-protocol mechanism, an honest online node can't be convinced to process fake deposits even when more than 2/3 portion of stake is adversarial.
+* Decrease of delay between submitting de
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+| Name | Value | Comment |
+| - | - | - |
+|`DEPOSIT_REQUEST_TYPE` | `b'0'` | The [EIP-7685](./eip-7685.md) request type byte for deposit operation |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-7702** — EOA 代码执行: 革命性变更：普通非合约账户（EOA）可以像智能合约一样执行代码。解锁交易批处理、gas 代付、替代认证、可编程支出控制、...
-- **EIP-7251** — 验证者最大余额 2048 ETH: 将单个验证者最大有效余额从 32 ETH 提升至 2048 ETH，大幅减少验证者数量，提高质押资本效率...
-- **EIP-7002** — 执行层触发验证者退出: 允许执行层地址安全触发验证者退出和部分提款，增强质押者控制权...
-- **EIP-2935** — 历史区块哈希保存: 在状态树中保存历史区块哈希，方便合约访问...
-- **EIP-2537** — BLS 预编译: 新增 BLS12-381 曲线预编译合约，支持 Beacon Chain 签名验证...
+- **EIP-4881** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4881.md)
+- **EIP-7685** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7685.md)
 
 ## 七、谁会受到影响？
 
-- **质押者**: 质押操作更灵活，风险更可控
-- **智能合约开发者**: 获得了新的编程原语和优化空间
-- **验证者/矿工**: 收益结构和操作模式发生变化
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Prague-Electra (Pectra)升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是质押/共识演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
-| **链上验证者存款** | 本次升级引入的核心技术特性，将验证者存款直接提交到执行层区块。 |
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **validator** | 验证者：运行以太坊 PoS 共识软件的节点，负责提议和验证区块，需要质押 32 ETH（或更多）。 |
+| **epoch** | 时隙的集合，每 32 个 slot（约 6.4 分钟）为一个 epoch。是共识层计时的基本单位。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

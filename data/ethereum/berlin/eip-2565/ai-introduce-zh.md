@@ -6,73 +6,83 @@
 
 ### 当时的痛点
 
-在Berlin升级之前，特定 EVM 操作码的 gas 定价与实际计算成本严重脱节。某些操作（如状态读取、指数运算）定价过低，攻击者可以构造极低成本的恶意交易，反复执行这些操作来耗尽节点资源。
+根据官方 EIP 文档，这项技术旨在To accurately reflect the real world operational cost of the `ModExp` precompile, this EIP specifies an algorithm for calculating the gas cost. This a...
 
-这是经济激励与安全防护之间的失衡——合法用户支付的费用不能反映真实资源消耗，而攻击者却能以极低成本瘫痪网络。
+这是以太坊协议演进中的重要一步，解决了密码学的关键挑战。
 
 ### 核心矛盾
 
-**ModExp gas 成本优化**
+**密码学**
 
-修改 ModExp 预编译合约（地址 0x05）的 gas 成本计算方式。新公式基于 input 的位长度进行估算，大幅降低中等大小输入的计算成本。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化修改 ModExp 预编译合约（地址 0x05）的 gas 成本计算方式。新公式基于 input 的位长度进行估算，大幅，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+Modular exponentiation is a foundational arithmetic operation for many cryptographic functions including signatures, VDFs, SNARKs, accumulators, and more. Unfortunately, the ModExp precompile is curre...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更为协议层面的渐进式优化：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更为协议层面的渐进式优化，为长期发展奠定了基础。
 
 ## 四、技术概述：用类比讲清楚
 
-**ModExp gas 成本优化**
+**密码学**
 
-修改 ModExp 预编译合约（地址 0x05）的 gas 成本计算方式。新公式基于 input 的位长度进行估算，大幅降低中等大小输入的计算成本。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化修改 ModExp 预编译合约（地址 0x05）的 gas 成本计算方式。新公式基于 input 的位长度进行估算，大幅，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-修改 ModExp 预编译合约（地址 0x05）的 gas 成本计算方式。新公式基于 input 的位长度进行估算，大幅降低中等大小输入的计算成本。
+To accurately reflect the real world operational cost of the `ModExp` precompile, this EIP specifies an algorithm for calculating the gas cost. This algorithm approximates the multiplication complexity cost and multiplies that by an approximation of the iterations required to execute the exponentiation.
 
-### 设计思路
+### 设计动机（Motivation）
 
-RSA 签名验证更便宜。ModExp（模幂运算）是 RSA 的核心运算，这次重新定价使基于 RSA 的 zk-SNARK 验证器和传统签名验证更经济。
+Modular exponentiation is a foundational arithmetic operation for many cryptographic functions including signatures, VDFs, SNARKs, accumulators, and more. Unfortunately, the ModExp precompile is currently over-priced, making these operations inefficient and expensive. By reducing the cost of this precompile, these cryptographic functions become more practical, enabling improved security, stronger randomness (VDFs), and more.
 
+### 关键参数与机制
+
+As of `FORK_BLOCK_NUMBER`, the gas cost of calling the precompile at address `0x0000000000000000000000000000000000000005` will be calculated as follows:
+```
+def calculate_multiplication_complexity(base_length, modulus_length):
+    max_length = max(base_length, modulus_length)
+    words = math.ceil(max_length / 8)
+    return words**2
+
+def calculate_iteration_count(exponent_length, exponent):
+    iteration_count = 0
+    if exponent_length <= 32 and exponent == 0: iteration_count = 0
+    elif expon
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-2718** — 类型化交易信封: 引入类型化交易格式，支持未来的交易类型扩展（如 EIP-1559），保持向后兼容...
-- **EIP-2929** — 状态访问操作码 gas 增加: 增加首次状态访问操作码的 gas 成本，缓解状态访问相关的 DoS 攻击风险...
-- **EIP-2930** — 可选访问列表交易: 引入包含访问列表的交易类型，降低特定场景下的 gas 成本...
+- **EIP-198** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-198.md)
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Berlin升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是密码学演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **precompile** | 预编译合约：EVM 中内置的高效算法实现，用原生代码而非 EVM 字节码执行，gas 成本更低。 |
 | **zk** | 零知识证明：证明"我知道某个秘密"，但不需要透露秘密本身。用于隐私和扩容。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

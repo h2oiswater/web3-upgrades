@@ -6,88 +6,129 @@
 
 ### 当时的痛点
 
-以太坊质押生态在 The Merge 后快速增长，但协议设计遗留了诸多不便——
+根据官方 EIP 文档，这项技术旨在Add functionality to efficiently perform operations over the BLS12-381 curve, including those for BLS signature verification.
 
-- **验证者管理复杂**：运行 100 个验证者节点需要管理 100 套密钥和 100 个进程
-- **退出机制不完善**：验证者退出需要直接操作共识层，托管用户几乎无法自主操作
-- **资本效率低下**：3200 ETH 大户被迫拆成 100 个 32 ETH 的节点
+Along with the curve ar...
 
-这些问题制约了质押民主化和资本效率的提升。
+这是以太坊协议演进中的重要一步，解决了密码学/共识的关键挑战。
 
 ### 核心矛盾
 
-**从"一人一票"到"加权投票"**
+**密码学/共识**
 
-以前质押像"一人一票"——不管你有 32 ETH 还是 3200 ETH，都只能运行一个验证者节点，权重一样。大户被迫拆成 100 个节点来管理，复杂且低效。
-
-EIP-7251 改为"加权投票"：
-- 单个验证者最大余额从 32 ETH 提升到 2048 ETH
-- 3200 ETH 大户以前需要 100 个节点，现在只需 2 个
-- 保留最低门槛 32 ETH：小额质押者仍可以参与
-- 共识层消息传播压力大幅降低
+这项技术通过优化新增 BLS12-381 曲线预编译合约。BLS12-381 是信标链使用的椭圆曲线。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-扩展 EVM 能力，新增关键操作码或预编译合约，支持更复杂的智能合约模式。
+The motivation of this precompile is to add a cryptographic primitive that allows to get 120+ bits of security for operations over pairing friendly curve compared to the existing BN254 precompile that...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更在密码学/共识产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**从"一人一票"到"加权投票"**
+**密码学/共识**
 
-以前质押像"一人一票"——不管你有 32 ETH 还是 3200 ETH，都只能运行一个验证者节点，权重一样。大户被迫拆成 100 个节点来管理，复杂且低效。
+这项技术通过优化新增 BLS12-381 曲线预编译合约。BLS12-381 是信标链使用的椭圆曲线。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-EIP-7251 改为"加权投票"：
-- 单个验证者最大余额从 32 ETH 提升到 2048 ETH
-- 3200 ETH 大户以前需要 100 个节点，现在只需 2 个
-- 保留最低门槛 32 ETH：小额质押者仍可以参与
-- 共识层消息传播压力大幅降低
+### 核心机制拆解
+
+**1. Curve parameters**
+
+The BLS12 curve is fully defined by the following set of parameters (coefficient `A=0` for all BLS12 curves):
+
+```
+Base field modulus = p = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+Fp - finite field of size p
+Curve Fp equation: Y^2 = X^3+B (m
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**2. Fields and Groups**
+
+Field Fp is defined as the finite field of size `p` with elements represented as integers between 0 and p-1 (both inclusive).
+
+Field Fp2 is defined as `Fp[X]/(X^2-nr2)` with elements  `el = c0 + c1 * v`, where `v` is the formal square root of `nr2` represented as integer pairs `(c0,c1)`.
+
+Group G1 i
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**3. Fine points and encoding of base elements**
+
+#### Field elements encoding:
+
+In order to produce inputs to an operation, one encodes elements of the base field and the extension field.
+
+A base field element (Fp) is encoded as `64` bytes by performing the BigEndian encoding of the corresponding (unsigned) integer. Due to the size of `p`, the top
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
+
+**4. ABI for operations**
+
+#### ABI for G1 addition
+
+G1 addition call expects `256` bytes as an input that is interpreted as byte concatenation of two G1 points (`128` bytes each). Output is an encoding of addition operation result - single G1 point (`128` bytes).
+
+Error cases:
+
+- Invalid coordinate encoding
+- An input is nei
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-新增 BLS12-381 曲线预编译合约。BLS12-381 是信标链使用的椭圆曲线。
+Add functionality to efficiently perform operations over the BLS12-381 curve, including those for BLS signature verification.
 
-### 设计思路
+Along with the curve arithmetic, multi-scalar-multiplication operations are included to efficiently aggregate public keys or individual signer's signatures during BLS signature verification.
 
-让 EVM 可以直接验证信标链的 BLS 签名。为执行层和共识层的深度集成铺路，例如验证聚合签名、检查验证者状态等。
+### 设计动机（Motivation）
 
+The motivation of this precompile is to add a cryptographic primitive that allows to get 120+ bits of security for operations over pairing friendly curve compared to the existing BN254 precompile that only provides 80 bits of security.
+
+### 关键参数与机制
+
+| Name                | Value | Comment            |
+|---------------------|-------|--------------------|
+| BLS12_G1ADD         | 0x0b  | precompile address |
+| BLS12_G1MSM         | 0x0c  | precompile address |
+| BLS12_G2ADD         | 0x0d  | precompile address |
+| BLS12_G2MSM         | 0x0e  | precompile address |
+| BLS12_PAIRING_CHECK | 0x0f  | precompile address |
+| BLS12_MAP_FP_TO_G1  | 0x10  | precompile address |
+| BLS12_MAP_FP2_TO_G2 | 0x11  | precompile address |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-7702** — EOA 代码执行: 革命性变更：普通非合约账户（EOA）可以像智能合约一样执行代码。解锁交易批处理、gas 代付、替代认证、可编程支出控制、...
-- **EIP-7251** — 验证者最大余额 2048 ETH: 将单个验证者最大有效余额从 32 ETH 提升至 2048 ETH，大幅减少验证者数量，提高质押资本效率...
-- **EIP-7002** — 执行层触发验证者退出: 允许执行层地址安全触发验证者退出和部分提款，增强质押者控制权...
-- **EIP-6110** — 链上验证者存款: 将验证者存款直接提交到执行层区块...
-- **EIP-2935** — 历史区块哈希保存: 在状态树中保存历史区块哈希，方便合约访问...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **质押者**: 质押操作更灵活，风险更可控
-- **智能合约开发者**: 获得了新的编程原语和优化空间
-- **节点运营者**: 同步和存储负担得到优化
-- **验证者/矿工**: 收益结构和操作模式发生变化
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Prague-Electra (Pectra)升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是密码学/共识演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
-| **BLS 预编译** | 本次升级引入的核心技术特性，新增 BLS12-381 曲线预编译合约，支持 Beacon Chain 签名验证。 |
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **precompile** | 预编译合约：EVM 中内置的高效算法实现，用原生代码而非 EVM 字节码执行，gas 成本更低。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

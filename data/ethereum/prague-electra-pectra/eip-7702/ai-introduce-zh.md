@@ -6,80 +6,167 @@
 
 ### 当时的痛点
 
-以太坊质押生态在 The Merge 后快速增长，但协议设计遗留了诸多不便——
+以太坊有两种账户：
+- **EOA（外部账户）**：普通钱包地址，只有私钥/公钥，功能极其有限——不能批量交易、不能代付 gas、不能社交恢复
+- **合约账户**：功能丰富，但需要额外部署，用户体验割裂
 
-- **验证者管理复杂**：运行 100 个验证者节点需要管理 100 套密钥和 100 个进程
-- **退出机制不完善**：验证者退出需要直接操作共识层，托管用户几乎无法自主操作
-- **资本效率低下**：3200 ETH 大户被迫拆成 100 个 32 ETH 的节点
-
-这些问题制约了质押民主化和资本效率的提升。
+90% 的以太坊用户使用 EOA，却享受不到智能合约钱包的便利。完整的 ERC-4337 账户抽象遥遥无期，急需一个"过渡方案"让 EOA 也能获得合约能力。
 
 ### 核心矛盾
 
-**EOA 代码执行**
+**普通银行卡升级成智能银行卡**
 
-引入一种新的交易类型，允许 EOA（外部拥有账户）临时授权一个合约代码来代表它执行操作。交易包含一个 authorization_list，每个条目指定 (chain_id, address, non。
+以前以太坊账户分两种：
+- 普通银行卡（EOA）：只能刷卡转账，功能单一
+- 智能银行卡（合约账户）：功能丰富，但要重新办卡
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+EIP-7702 让普通银行卡也能获得智能功能——不用换新卡，直接给旧卡开通智能服务：
+- 批量转账：一次签多笔交易
+- 代付gas：朋友帮你付手续费
+- 子权限：给助理卡设置消费限额
+- 社交恢复：丢了私钥可以让朋友帮忙恢复
 
 ## 二、升级目标：解决什么问题？
 
-通过EOA 代码执行优化以太坊协议，提升网络性能、安全性或可用性。
+让普通 EOA 账户获得智能合约能力，无需部署新合约或转移资金。解锁批量交易、gas 代付、权限降级、社交恢复等现代钱包功能。
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 改善了最终用户的交互体验
+**Pectra 升级（2025 年 3 月）**：
+- 让 10 亿+ EOA 地址获得智能合约能力
+- 无需迁移资金到新地址，直接"升级"现有账户
+- 催生了新一代"智能 EOA"钱包体验
+- 为 ERC-4337 账户抽象的完全部署铺路
 
 ## 四、技术概述：用类比讲清楚
 
-**EOA 代码执行**
+**普通银行卡升级成智能银行卡**
 
-引入一种新的交易类型，允许 EOA（外部拥有账户）临时授权一个合约代码来代表它执行操作。交易包含一个 authorization_list，每个条目指定 (chain_id, address, non。
+以前以太坊账户分两种：
+- 普通银行卡（EOA）：只能刷卡转账，功能单一
+- 智能银行卡（合约账户）：功能丰富，但要重新办卡
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+EIP-7702 让普通银行卡也能获得智能功能——不用换新卡，直接给旧卡开通智能服务：
+- 批量转账：一次签多笔交易
+- 代付gas：朋友帮你付手续费
+- 子权限：给助理卡设置消费限额
+- 社交恢复：丢了私钥可以让朋友帮忙恢复
+
+### 核心机制拆解
+
+**1. Set code transaction**
+
+A new [EIP-2718](./eip-2718.md) transaction known as the "set code transaction"
+is introduced, where the `TransactionType` is `SET_CODE_TX_TYPE` and the
+`TransactionPayload` is the RLP serialization of the following:
+
+```
+rlp([chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit,
+de
+
+*通俗理解：高速公路收费站——不同车辆收费标准不同*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-引入一种新的交易类型，允许 EOA（外部拥有账户）临时授权一个合约代码来代表它执行操作。交易包含一个 authorization_list，每个条目指定 (chain_id, address, nonce, y_parity, r, s) 签名，授权该地址的代码可以代表签名者执行。
+Add a new [EIP-2718](./eip-2718.md) transaction type that allows Externally
+Owned Accounts (EOAs) to set the code in their account. This is done by
+attaching a list of authorization tuples -- individually formatted as `[chain_id,
+address, nonce, y_parity, r, s]` -- to the transaction. For each tuple, a
+delegation indicator `(0xef0100 || address)` is written to the authorizing
+account's code. All code executing operations must load and execute the code
+pointed to by the delegation.
 
-### 设计思路
+### 设计动机（Motivation）
 
-账户抽象化的'特洛伊木马'方案。不用等待完整的 ERC-4337，EIP-7702 让普通 MetaMask 地址也能执行批量交易、gas 代付、社交恢复等智能合约钱包功能。对用户体验是革命性的——以后可以用 EOA 做 multisig、 session key、订阅支付等。这是 Pectra 最受关注的功能。
+Despite great advances in the smart contract wallet ecosystem, EOAs have held
+back broad adoption of UX improvements across applications. This EIP therefore
+focuses on adding short-term functionality improvements to EOAs which will allow
+UX improvements to permeate through the entire application stack. Three
+particular features this EIP is designed around are:
 
+* **Batching**: allowing multiple operations from the same user in one atomic
+transaction. One common example is an [ERC-20](./eip-20.md) approval followed by
+spending that approval. This is a common workflow in DEXes that requires two
+transactions today. Advanced use cases of batching occasionally involve
+dependencies: the output of the first operation is part of the input to the
+second operation.
+* **Sponsorship**: account X pays 
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+|     Parameter            | Value   |
+| ------------------------ | ------- |
+| `SET_CODE_TX_TYPE`       | `0x04`  |
+| `MAGIC`                  | `0x05`  |
+| `PER_AUTH_BASE_COST`     | `12500` |
+| `PER_EMPTY_ACCOUNT_COST` | `25000` |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-7251** — 验证者最大余额 2048 ETH: 将单个验证者最大有效余额从 32 ETH 提升至 2048 ETH，大幅减少验证者数量，提高质押资本效率...
-- **EIP-7002** — 执行层触发验证者退出: 允许执行层地址安全触发验证者退出和部分提款，增强质押者控制权...
-- **EIP-6110** — 链上验证者存款: 将验证者存款直接提交到执行层区块...
-- **EIP-2935** — 历史区块哈希保存: 在状态树中保存历史区块哈希，方便合约访问...
-- **EIP-2537** — BLS 预编译: 新增 BLS12-381 曲线预编译合约，支持 Beacon Chain 签名验证...
+- **EIP-2718** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2718.md)
+- **EIP-4844** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md)
+- **EIP-2** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md)
+- **EIP-2929** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2929.md)
+- **EIP-3541** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-3541.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
-- **钱包用户**: 账户功能更丰富，操作更便利
+### 📊 关键数据
 
-## 八、历史背景与演进
+> Pectra升级（2025年3月）：让10亿+EOA地址获得智能合约能力，无需迁移资金到新地址。
+
+### 🔗 相关协议与项目
+
+**ERC-4337**
+账户抽象标准，EIP-7702是EOA通往账户抽象的桥梁
+
+**Safe (Gnosis Safe)**
+最广泛使用的多签钱包，EIP-7702使EOA用户也能获得类似体验
+
+**Biconomy**
+Gas代付基础设施，利用EIP-7702的sponsorship功能
+
+**Pimlico**
+账户抽象基础设施提供商，支持7702交易类型
+
+---
+
+## 八、谁会受到影响？
+
+- **普通用户**: 现有 MetaMask 等钱包直接获得智能合约功能
+- **智能合约钱包**: Safe、Argent 等可以与 EOA 无缝协作
+- **开发者**: 无需强迫用户迁移到新地址，降低 adoption 门槛
+- **基础设施**: Biconomy、Pimlico 等 gas 代付服务商获得新工具
+
+## 九、历史背景与演进
 
 EIP-7702 是账户抽象化的"捷径方案"。完整的 ERC-4337 账户抽象仍在开发中，但 EIP-7702 让 EOA 能立即获得智能合约钱包功能，被誉为"用一年实现十年愿景"的巧妙设计。
 
-## 九、关键术语表
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **precompile** | 预编译合约：EVM 中内置的高效算法实现，用原生代码而非 EVM 字节码执行，gas 成本更低。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
 | **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**ERC-4337 账户抽象**: EIP-7702 是 EOA 的"临时升级"，而完整的 ERC-4337 账户抽象正在开发中，未来可能完全取代 EOA 模式，让所有账户都成为智能合约账户。
+**ERC-4337 完全账户抽象**
+
+EIP-7702 是 EOA 的"临时升级"，而完整的 ERC-4337 账户抽象正在开发中，未来可能完全取代 EOA 模式，让所有账户都成为智能合约账户。7702 为这一过渡提供了无缝的桥梁。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

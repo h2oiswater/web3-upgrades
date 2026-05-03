@@ -6,73 +6,75 @@
 
 ### 当时的痛点
 
-随着 DeFi、NFT、SocialFi 等应用的爆发，以太坊主链 TPS 成为瓶颈。Layer 2 方案（Rollup）能把计算放到链下，但**数据存储成本仍是硬伤**——Rollup 必须把交易数据发布到 L1 作为"证据"，而 L1 的 calldata 存储费用高达 ~16-20 gwei/字节。
+根据官方 EIP 文档，这项技术旨在Please see summary....
 
-结果是：L2 虽然计算便宜了，但**数据发布成本占了总费用的 90% 以上**。用户在 L2 做一次 Swap 仍需支付 $0.5-$2，距离"大规模采用"差一个数量级。
+这是以太坊协议演进中的重要一步，解决了智能合约的关键挑战。
 
 ### 核心矛盾
 
-**RETURNDATASIZE/COPY**
+**智能合约**
 
-新增 RETURNDATASIZE (0x3d) 和 RETURNDATACOPY (0x3e) 操作码，允许合约获取并复制上一次 CALL/DELEGATECALL 的返回数据大小和内容到内存。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 RETURNDATASIZE (0x3d) 和 RETURNDATACOPY (0x3e) 操作码，允许合约获取并，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-扩展 EVM 能力，新增关键操作码或预编译合约，支持更复杂的智能合约模式。
+In some situations, it is vital for a function to be able to return data whose length cannot be anticipated before the call. In principle, this can be solved without alterations to the EVM, for exampl...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更在智能合约产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**RETURNDATASIZE/COPY**
+**智能合约**
 
-新增 RETURNDATASIZE (0x3d) 和 RETURNDATACOPY (0x3e) 操作码，允许合约获取并复制上一次 CALL/DELEGATECALL 的返回数据大小和内容到内存。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 RETURNDATASIZE (0x3d) 和 RETURNDATACOPY (0x3e) 操作码，允许合约获取并，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-新增 RETURNDATASIZE (0x3d) 和 RETURNDATACOPY (0x3e) 操作码，允许合约获取并复制上一次 CALL/DELEGATECALL 的返回数据大小和内容到内存。
+Please see summary.
 
-### 设计思路
+### 设计动机（Motivation）
 
-解决合约间交互的'黑盒'问题。以前 CALL 返回的数据大小固定且难以动态处理，这两个操作码让合约可以灵活处理任意大小的返回数据，是现代 DeFi 组合性的基础设施。
+In some situations, it is vital for a function to be able to return data whose length cannot be anticipated before the call. In principle, this can be solved without alterations to the EVM, for example by splitting the call into two calls where the first is used to compute only the size. All of these mechanisms, though, are very expensive in at least some situations. A very useful example of such a worst-case situation is a generic forwarding contract; a contract that takes call data, potentially makes some checks and then forwards it as is to another contract. The return data should of course be transferred in a similar way to the original caller. Since the contract is generic and does not know about the contract it calls, there is no way to determine the size of the output without adapti
 
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+If `block.number >= BYZANTIUM_FORK_BLKNUM`, add two new opcodes and amend the semantics of any opcode that creates a new call frame (like `CALL`, `CREATE`, `DELEGATECALL`, ...) called call-like opcodes in the following. It is assumed that the EVM (to be more specific: an EVM call frame) has a new internal buffer of variable size, called the return data buffer. This buffer is created empty for each new call frame. Upon executing any call-like opcode, the buffer is cleared (its size is set to zero
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-100** — 难度调整算法变更: 修改难度调整公式，使 uncle 区块纳入计算，提高出块时间稳定性...
-- **EIP-140** — REVERT 操作码: 新增 REVERT 操作码，允许合约优雅地回滚状态改变并返回错误信息，不消耗剩余 gas...
-- **EIP-196** — bn256 加法预编译: 椭圆曲线 bn256 上的点加法预编译合约，支持 zk-SNARKs 验证...
-- **EIP-197** — bn256 标量乘法预编译: 椭圆曲线 bn256 上的标量乘法预编译合约，是 zk-SNARKs 的核心运算...
-- **EIP-198** — 大整数模幂预编译: 大整数模幂运算预编译合约，支持 RSA 签名验证...
+- **EIP-140** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-140.md)
 
 ## 七、谁会受到影响？
 
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Byzantium升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是智能合约演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
-| **RETURNDATASIZE/COPY** | 本次升级引入的核心技术特性，新增操作码支持动态大小返回数据，提升合约间交互能力。 |
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

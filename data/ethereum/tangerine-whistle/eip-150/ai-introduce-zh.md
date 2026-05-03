@@ -6,54 +6,61 @@
 
 ### 当时的痛点
 
-在Tangerine Whistle升级之前，攻击者利用定价过低的操作码（如 EXTCODESIZE、SLOAD、BALANCE）反复读取状态数据，构造极低成本的资源耗尽攻击。节点 CPU 和 IO 被拖垮，同步速度急剧下降，普通用户的交易被阻塞。
-
-这不仅是技术问题，更是经济问题——攻击者的成本远低于网络防御成本，导致 DoS 攻击可持续数周。
+这项技术解决了以太坊网络在安全/DoS面临的关键挑战。其目标是提升网络性能、安全性或可用性，为以太坊的长期演进奠定基础。
 
 ### 核心矛盾
 
-**IO 密集型操作码提价**
+**安全/DoS**
 
-提高 IO 密集型操作码的 gas 成本：EXTCODESIZE 从 20 到 700，BALANCE 从 20 到 400，SLOAD 从 50 到 200，EXTCODECOPY 基础从 20 到。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化提高 IO 密集型操作码的 gas 成本：EXTCODESIZE 从 20 到 700，BALANCE 从 20 到 4，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+通过优化安全/DoS，提升以太坊网络的性能、安全性或可用性，为后续技术演进奠定基础。
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 消除了已知的安全风险和攻击向量
+此变更对以太坊生态产生了深远影响，推动了安全/DoS的技术发展和应用创新。
 
 ## 四、技术概述：用类比讲清楚
 
-**IO 密集型操作码提价**
+**安全/DoS**
 
-提高 IO 密集型操作码的 gas 成本：EXTCODESIZE 从 20 到 700，BALANCE 从 20 到 400，SLOAD 从 50 到 200，EXTCODECOPY 基础从 20 到。
+这项技术通过优化提高 IO 密集型操作码的 gas 成本：EXTCODESIZE 从 20 到 700，BALANCE 从 20 到 4，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. Rationale**
+
+Recent denial-of-service attacks have shown that opcodes that read the state tree are under-priced relative to other opcodes. There are software changes that have been made, are being made and can be made in order to mitigate the situation; however, the fact will remain that such opcodes will be by 
+
+*通俗理解：以太坊协议层面的优化，让这台全球计算机运转得更高效*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 关键参数与机制
 
-提高 IO 密集型操作码的 gas 成本：EXTCODESIZE 从 20 到 700，BALANCE 从 20 到 400，SLOAD 从 50 到 200，EXTCODECOPY 基础从 20 到 700。
-
-### 设计思路
-
-DoS 攻击的紧急止血。攻击者利用这些廉价操作码大量读取状态数据，导致节点同步极慢。提价后此类攻击不再经济可行。
-
+If `block.number >= FORK_BLKNUM`, then:
+- Increase the gas cost of EXTCODESIZE to 700 (from 20).
+- Increase the base gas cost of EXTCODECOPY to 700 (from 20).
+- Increase the gas cost of BALANCE to 400 (from 20).
+- Increase the gas cost of SLOAD to 200 (from 50).
+- Increase the gas cost of CALL, DELEGATECALL, CALLCODE to 700 (from 40).
+- Increase the gas cost of SELFDESTRUCT to 5000 (from 0).
+- If SELFDESTRUCT hits a newly created account, it triggers an additional gas cost of 25000 (similar to C
 
 ## 六、关联 EIP
 
-本次升级中此特性为独立实现，未与其他 EIP 形成直接依赖关系。
+此 EIP 与以下协议标准有直接关联：
+
+- **EIP-90** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-90.md)
+- **EIP-114** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-114.md)
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **节点运营者**: 同步和存储负担得到优化
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
@@ -64,10 +71,14 @@ DoS 攻击的紧急止血。攻击者利用这些廉价操作码大量读取状�
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

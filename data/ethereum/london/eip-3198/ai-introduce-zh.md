@@ -6,78 +6,78 @@
 
 ### 当时的痛点
 
-在 EIP-1559 之前，以太坊采用"第一价格拍卖"模式——用户出价，矿工挑选。这导致：
+根据官方 EIP 文档，这项技术旨在Add a `BASEFEE (0x48)` that returns the value of the base fee of the current block it is executing in....
 
-- **费用波动剧烈**：网络一堵，gas price 从 20 gwei 飙升到 500+ gwei
-- **用户无法预估成本**：不知道出多少价才能成交，经常出现"出价低了被卡、出价高了浪费"
-- **矿工收益与网络拥堵脱钩**：矿工赚得盆满钵满，但网络效率没有改善
-- **ETH 无通缩机制**：所有交易费都给矿工，ETH 持续通胀
-
-社区对经济模型的争论持续数年，急需一次根本性的费用改革。
+这是以太坊协议演进中的重要一步，解决了协议基础的关键挑战。
 
 ### 核心矛盾
 
-**BASEFEE 操作码**
+**协议基础**
 
-新增 BASEFEE 操作码（0x48），返回当前区块的基础费值（base fee per gas），gas 成本为 2。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 BASEFEE 操作码（0x48），返回当前区块的基础费值（base fee per gas），gas 成本为 2，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+The intended use case would be for contracts to get the value of the base fee. This feature would enable or improve existing use cases, such as:
+- Contracts that need to set bounties for anyone to "po...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更为协议层面的渐进式优化：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更为协议层面的渐进式优化，为长期发展奠定了基础。
 
 ## 四、技术概述：用类比讲清楚
 
-**BASEFEE 操作码**
+**协议基础**
 
-新增 BASEFEE 操作码（0x48），返回当前区块的基础费值（base fee per gas），gas 成本为 2。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 BASEFEE 操作码（0x48），返回当前区块的基础费值（base fee per gas），gas 成本为 2，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-新增 BASEFEE 操作码（0x48），返回当前区块的基础费值（base fee per gas），gas 成本为 2。
+Add a `BASEFEE (0x48)` that returns the value of the base fee of the current block it is executing in.
 
-### 设计思路
+### 设计动机（Motivation）
 
-让合约读懂网络拥堵程度。合约可以通过 BASEFEE 判断当前网络热度，动态调整 gas 策略。例如预言机合约可以拒绝在极度拥堵时执行，节省用户成本。
+The intended use case would be for contracts to get the value of the base fee. This feature would enable or improve existing use cases, such as:
+- Contracts that need to set bounties for anyone to "poke" them with a transaction could set the bounty to be `BASEFEE + x`, or `BASEFEE * (1 + x)`. This makes the mechanism more reliable, because they will always pay "enough" regardless of market conditions.
+- Gas futures can be implemented based on it. This would be more precise than gastokens.
+- Improve the security for state channels, plasma, optirolls and other fraud proof driven solutions. Having the `BASEFEE` as an input allows you to lengthen the challenge period automatically if you see that the `BASEFEE` is high.
 
+### 关键参数与机制
+
+Add a `BASEFEE` opcode at `(0x48)`, with gas cost `G_base`.
+
+|  Op  	| Input 	| Output 	| Cost 	|
+|:----:	|:-----:	|:------:	|:----:	|
+| 0x48 	|   0   	|    1   	|   2  	|
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-1559** — 费用市场改革: 革命性变更：引入基础费（base fee）+ 小费（priority fee）模式。基础费根据网络拥堵自动调整并被销毁，...
-- **EIP-3529** — 减少 gas 退款: 限制 SELFDESTRUCT 和 SSTORE 的 gas 退款，防止利用退款机制进行 gas 套利...
-- **EIP-3541** — 拒绝 0xEF 开头合约: 拒绝以 0xEF 字节开头的新合约创建，为未来的 EOF（EVM Object Format）升级预留空间...
-- **EIP-3554** — 难度炸弹延迟: 将难度炸弹推迟至 2021 年 12 月...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是London升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

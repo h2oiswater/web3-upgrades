@@ -6,73 +6,102 @@
 
 ### 当时的痛点
 
-PoS 转型后，信标链于 2020 年 12 月启动，但质押是"单向"的——只能存入，不能取出。到 2023 年初，**约 1800 万 ETH（占流通量 15%）被锁在信标链中无法提取**。
+根据官方 EIP 文档，这项技术旨在We extend [EIP-170](./eip-170.md) by introducing a maximum size limit for `initcode` (`MAX_INITCODE_SIZE = 2 * MAX_CODE_SIZE = 49152`).
 
-质押者面临巨大的流动性风险：紧急情况下无法取回资金，小额质押者更是被套牢。这不仅抑制了质押意愿，也让 ETH 的实际流通量被人为压低。上海升级前，社区最大的呼声就是"开放提款"。
+Furthermore, ...
+
+这是以太坊协议演进中的重要一步，解决了协议基础的关键挑战。
 
 ### 核心矛盾
 
-**initcode 大小限制**
+**协议基础**
 
-限制合约 initcode 最大为 49152 字节（2 * 0x6000），并对每 32 字节的 initcode words 收取额外 2 gas。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化限制合约 initcode 最大为 49152 字节（2 * 0x6000），并对每 32 字节的 initcode w，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过initcode 大小限制优化以太坊协议，提升网络性能、安全性或可用性。
+During contract creation the client has to perform jumpdest-analysis on the `initcode` prior to execution. The work performed scales linearly with the size of the `initcode`. This work currently is no...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更为协议层面的渐进式优化：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更为协议层面的渐进式优化，为长期发展奠定了基础。
 
 ## 四、技术概述：用类比讲清楚
 
-**initcode 大小限制**
+**协议基础**
 
-限制合约 initcode 最大为 49152 字节（2 * 0x6000），并对每 32 字节的 initcode words 收取额外 2 gas。。
+这项技术通过优化限制合约 initcode 最大为 49152 字节（2 * 0x6000），并对每 32 字节的 initcode w，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. Rules**
+
+1. If length of transaction data (`initcode`) in a create transaction exceeds `MAX_INITCODE_SIZE`, transaction is invalid. (*Note that this is similar to transactions considered invalid for not meeting the intrinsic gas cost requirement.*)
+2. For a create transaction, extend the transaction data cos
+
+*通俗理解：高速公路收费站——不同车辆收费标准不同*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-限制合约 initcode 最大为 49152 字节（2 * 0x6000），并对每 32 字节的 initcode words 收取额外 2 gas。
+We extend [EIP-170](./eip-170.md) by introducing a maximum size limit for `initcode` (`MAX_INITCODE_SIZE = 2 * MAX_CODE_SIZE = 49152`).
 
-### 设计思路
+Furthermore, we introduce a charge of `2` gas for every 32-byte chunk of `initcode` to represent the cost of jumpdest-analysis.
 
-为 EOF 和 Verkle 树做准备。限制 initcode 大小可以简化未来的 EVM 对象格式升级，同时防止超大 initcode 带来的验证负担。
+Lastly, the size limit results in the nice-to-have property that EVM code size, code offset (`PC`), and jump offset fits a 16-bit value.
 
+### 设计动机（Motivation）
+
+During contract creation the client has to perform jumpdest-analysis on the `initcode` prior to execution. The work performed scales linearly with the size of the `initcode`. This work currently is not metered, nor is there a protocol enforced upper bound for the size.
+
+There are three costs charged today:
+
+1. Cost for calldata aka `initcode`: 4 gas for a byte with the value of zero, and 16 gas otherwise.
+2. Cost for the resulting deployed code: 200 gas per byte.
+3. Cost of address calculation (hashing of code) in case of `CREATE2` only: 6 gas per word.
+
+Only the first cost applies to `initcode`, but only in the case of contract creation transactions. For the case of `CREATE`/`CREATE2` there is no such cost, and it is possible to programmatically generate variations of `initcode` in a rela
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+| Constant             | Value               |
+| -------------------- | ------------------- |
+| `INITCODE_WORD_COST` | `2`                 |
+| `MAX_INITCODE_SIZE`  | `2 * MAX_CODE_SIZE` |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-3651** — COINBASE 预热: 在交易开始时预热 COINBASE 地址，降低直接支付给矿工/验证者的交易成本...
-- **EIP-3855** — PUSH0 操作码: 新增 PUSH0 操作码，将 0 推入堆栈，优化合约代码大小和 gas 成本...
-- **EIP-4895** — 质押提款: 启用信标链到执行层的质押提款。部分提款自动处理奖励，完全提款可退出验证者...
-- **EIP-6049** — SELFDESTRUCT 弃用警告: 正式标记 SELFDESTRUCT 为弃用，为未来删除做准备...
+- **EIP-170** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-170.md)
+- **EIP-1014** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1014.md)
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Shanghai升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

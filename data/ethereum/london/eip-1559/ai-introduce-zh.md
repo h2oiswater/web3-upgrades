@@ -13,93 +13,125 @@
 - **矿工收益与网络拥堵脱钩**：矿工赚得盆满钵满，但网络效率没有改善
 - **ETH 无通缩机制**：所有交易费都给矿工，ETH 持续通胀
 
-社区对经济模型的争论持续数年，急需一次根本性的费用改革。
+社区对经济模型的争论持续数年，Vitalik 在 2018 年就提出了基础费方案。
 
 ### 核心矛盾
 
-**费用市场改革**
+**动态定价的航班票价**
 
-改革交易费用市场：1) 引入基础费（base fee），根据网络拥堵自动调整，被销毁而非支付给矿工；2) 用户支付基础费 + 可选小费（priority fee）；3) 区块大小可变（最大 2 倍目标。
+以前以太坊的交易费用像拍卖——你愿意出多少钱，矿工就优先处理谁的。这导致：网络一堵，大家疯狂加价，费用瞬间飙升。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+EIP-1559 把拍卖改成了"基础票价 + 小费"：
+- 基础票价由系统自动定价：飞机满 50% 时票价不变，超过则涨价，低于则降价
+- 小费是给机组人员的额外激励：给得多服务更好，但不是必须的
+- 基础票价收入被销毁：航空公司把这部分钱烧掉，而不是装进自己口袋
 
 ## 二、升级目标：解决什么问题？
 
-改革交易费用市场，引入可预测的基础费用+可选小费模式，同时通过销毁机制改善 ETH 经济模型。
+改革交易费用市场，引入可预测的基础费用+可选小费模式，同时通过销毁机制改善 ETH 经济模型，使 ETH 从通胀资产转变为通缩/中性资产。
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 改善了最终用户的交互体验
+**London 升级后（2021 年 8 月）**：
+- ETH 首次进入通缩状态，高峰期日销毁量超过 1 万 ETH
+- 用户交易费用可预测性大幅提升
+- gas price 波动降低 60%+
+- 矿工社区初期反对强烈，但最终接受
+- 为后续 Blob 交易的多维费用市场奠定理论基础
 
 ## 四、技术概述：用类比讲清楚
 
-**费用市场改革**
+**动态定价的航班票价**
 
-改革交易费用市场：1) 引入基础费（base fee），根据网络拥堵自动调整，被销毁而非支付给矿工；2) 用户支付基础费 + 可选小费（priority fee）；3) 区块大小可变（最大 2 倍目标。
+以前以太坊的交易费用像拍卖——你愿意出多少钱，矿工就优先处理谁的。这导致：网络一堵，大家疯狂加价，费用瞬间飙升。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
-
-### 核心机制拆解
-
-**1.** 改革交易费用市场
-
-*通俗理解：这是对以太坊底层协议的费用市场改革技术改进。可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让它运转得更顺畅。*
-
-**2.** 引入基础费（base fee），根据网络拥堵自动调整，被销毁而非支付给矿工
-
-*通俗理解：交易费用里有一部分是自动定价的——网络拥堵时自动变贵，空闲时自动变便宜。这部分钱会被销毁，而不是给矿工。*
-
-**3.** 用户支付基础费 + 可选小费（priority fee）
-
-*通俗理解：这是对以太坊底层协议的费用市场改革技术改进。可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让它运转得更顺畅。*
-
-**4.** 区块大小可变（最大 2 倍目标大小）
-
-*通俗理解：这是对以太坊底层协议的费用市场改革技术改进。可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让它运转得更顺畅。*
-
-**5.** 基础费根据区块填充率调整。
-
-*通俗理解：这是对以太坊底层协议的费用市场改革技术改进。可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让它运转得更顺畅。*
+EIP-1559 把拍卖改成了"基础票价 + 小费"：
+- 基础票价由系统自动定价：飞机满 50% 时票价不变，超过则涨价，低于则降价
+- 小费是给机组人员的额外激励：给得多服务更好，但不是必须的
+- 基础票价收入被销毁：航空公司把这部分钱烧掉，而不是装进自己口袋
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-改革交易费用市场：1) 引入基础费（base fee），根据网络拥堵自动调整，被销毁而非支付给矿工；2) 用户支付基础费 + 可选小费（priority fee）；3) 区块大小可变（最大 2 倍目标大小）；4) 基础费根据区块填充率调整。
+We introduce a new [EIP-2718](./eip-2718.md) transaction type, with the format `0x02 || rlp([chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, destination, amount, data, access_list, signature_y_parity, signature_r, signature_s])`.
 
-### 设计思路
+There is a base fee per gas in protocol, which can move up or down each block according to a formula which is a function of gas used in parent block and gas target (block gas limit divided by elasticity multiplier) of parent block.
+The algorithm results in the base fee per gas increasing when blocks are above the gas target, and decreasing when blocks are below the gas target.
+The base fee per gas is burned.
+Transactions specify the maximum fee per gas they are willing to give to miners to incentivize them to include their transaction (aka: priority fee).
+Transactions also specify the maximum fee per gas they are willing to pay total (aka: max fee), which covers both the priority fee and the block's network fee per gas (aka: base fee).
+Senders will always pay the base fee per gas of the block their transaction was included in, and they will pay the priority fee per gas set in the transaction, as long as the combined amount of the two fees doesn't exceed the transaction's maximum fee per gas.
 
-以太坊经济模型的分水岭。基础费的销毁机制使 ETH 从通胀资产转变为通缩/中性资产。区块填充率在 50% 时基础费不变，>50% 则上升，<50% 则下降，实现自动调节。可预测的费用改善了用户体验，但也引发了矿工社区争议。
+### 设计动机（Motivation）
 
+Ethereum historically priced transaction fees using a simple auction mechanism, where users send transactions with bids ("gasprices") and miners choose transactions with the highest bids, and transactions that get included pay the bid that they specify. This leads to several large sources of inefficiency:
+
+* **Mismatch between volatility of transaction fee levels and social cost of transactions**: bids to include transactions on mature public blockchains, that have enough usage so that blocks are full, tend to be extremely volatile. It's absurd to suggest that the cost incurred by the network from accepting one more transaction into a block actually is 10x more when the cost per gas is 10 nanoeth compared to when the cost per gas is 1 nanoeth; in both cases, it's a difference between 8 mil
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+|| rlp([chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, destination, amount, data, access_list]))`.
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-3198** — BASEFEE 操作码: 新增 BASEFEE 操作码，允许合约访问当前区块的基础费值...
-- **EIP-3529** — 减少 gas 退款: 限制 SELFDESTRUCT 和 SSTORE 的 gas 退款，防止利用退款机制进行 gas 套利...
-- **EIP-3541** — 拒绝 0xEF 开头合约: 拒绝以 0xEF 字节开头的新合约创建，为未来的 EOF（EVM Object Format）升级预留空间...
-- **EIP-3554** — 难度炸弹延迟: 将难度炸弹推迟至 2021 年 12 月...
+- **EIP-2718** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2718.md)
+- **EIP-2930** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2930.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **验证者/矿工**: 收益结构和操作模式发生变化
+### 📊 关键数据
 
-## 八、历史背景与演进
+> London升级后（2021年8月）：ETH首次进入通缩状态，高峰期日销毁量超过1万ETH。用户交易费用可预测性提升，gas price波动降低60%+。
 
-EIP-1559 由 Vitalik Buterin 于 2018 年提出，经历了近 3 年的社区辩论后才在 London 升级中落地。矿工社区曾强烈反对（因为这切断了他们的基础费收入），但最终社区共识支持了销毁机制。
+### 🔗 相关协议与项目
 
-## 九、关键术语表
+**MetaMask**
+主流钱包率先支持EIP-1559交易类型，为用户提供"基础费+小费"的清晰界面
+
+**Etherscan**
+区块链浏览器新增Base Fee和Priority Fee追踪，让用户透明查看费用构成
+
+**Flashbots**
+MEV保护工具利用EIP-1559机制，为用户提供更公平的交易打包服务
+
+**Ultrasound.money**
+专门追踪ETH销毁数据的网站，实时展示EIP-1559带来的通缩效果
+
+---
+
+## 八、谁会受到影响？
+
+- **普通用户**: 交易费用更可预测，不再"出价高了浪费、出价低了被卡"
+- **矿工/验证者**: 收入结构从"全拿交易费"变为"只拿小费"，初期强烈反对
+- **ETH 持有者**: 基础费销毁带来通缩效应，长期利好币价
+- **DeFi 协议**: 可预测的费用降低清算风险和用户体验摩擦
+
+## 九、历史背景与演进
+
+EIP-1559 由 Vitalik Buterin 于 2018 年提出，经历了近 3 年的社区辩论后才在 London 升级中落地。矿工社区曾强烈反对（因为这切断了他们的基础费收入），但最终社区共识支持了销毁机制。这是以太坊经济模型的分水岭。
+
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
-| **费用市场改革** | 本次升级引入的核心技术特性，革命性变更：引入基础费（base fee）+ 小费（priority fee）模式。基础费根据网络拥。 |
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+**多维费用市场**
+
+EIP-1559 只覆盖执行 gas，未来可能为 blob、存储等独立资源建立各自的费用市场（多维 EIP-1559），使资源配置更精准。Blob 交易已经实现了 blob gas 的独立定价。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

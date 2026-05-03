@@ -20,16 +20,19 @@ Blob 交易就像引入了"临时寄存柜"：
 - 包裹不用拆开永久存档：L2 把包裹放进临时柜子（blob），18 天后自动清理
 - 柜子有封条（KZG 承诺）：中心不用看包裹里面是什么，只需要验证封条完好
 - 柜子有独立计价：临时柜子的租金比普通存档便宜 10-100 倍
-- 柜子最多放 6 个包裹：每个柜子 128KB，一次交易最多带 6 个柜子
 
 ## 二、升级目标：解决什么问题？
 
-为 Layer 2 提供廉价的数据可用性空间，将 L2 交易成本降低一个数量级（90%+）。
+为 Layer 2 提供廉价的数据可用性空间，将 L2 交易成本降低一个数量级（90%+），同时保持主链的安全性和去中心化程度。
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 显著降低了相关操作的使用成本
+**Dencun 升级后（2024 年 3 月）**：
+- Arbitrum 平均交易费：从 $0.5 → **$0.02**（降低96%）
+- Base 平均交易费：从 $0.3 → **$0.01**（降低97%）
+- Optimism 平均交易费：从 $0.4 → **$0.015**（降低96%）
+- zkSync Era 数据成本降低 10-100 倍
+- **L2 日活用户数翻倍增长**，SocialFi、游戏等高频应用开始爆发
 
 ## 四、技术概述：用类比讲清楚
 
@@ -41,78 +44,164 @@ Blob 交易就像引入了"临时寄存柜"：
 - 包裹不用拆开永久存档：L2 把包裹放进临时柜子（blob），18 天后自动清理
 - 柜子有封条（KZG 承诺）：中心不用看包裹里面是什么，只需要验证封条完好
 - 柜子有独立计价：临时柜子的租金比普通存档便宜 10-100 倍
-- 柜子最多放 6 个包裹：每个柜子 128KB，一次交易最多带 6 个柜子
 
 ### 核心机制拆解
 
-**1.** 引入 Blob 携带交易（Blob Transaction）
+**1. Type aliases**
 
-*通俗理解：一种临时的数据存储方式，专门给 Rollup 用的。便宜但会定期删除（18天后）。就像快递站的临时寄存柜，比永久存档便宜100倍。*
+| Type | Base type | Additional checks |
+| - | - | - |
+| `Blob` | `ByteVector[BYTES_PER_FIELD_ELEMENT * FIELD_ELEMENTS_PER_BLOB]` | |
+| `VersionedHash` | `Bytes32` | |
+| `KZGCommitment` | `Bytes48` | Perform IETF BLS signature "KeyValidate" check but do allow the identity point |
+| `KZGProof` | `Byt
 
-**2.** 新交易类型包含最多 6 个 blob（每个 128KB）
+*通俗理解：临时寄存柜——比永久存档便宜100倍，18天后自动清理*
 
-*通俗理解：一种临时的数据存储方式，专门给 Rollup 用的。便宜但会定期删除（18天后）。就像快递站的临时寄存柜，比永久存档便宜100倍。*
+**2. Cryptographic Helpers**
 
-**3.** Blob 数据使用 KZG 多项式承诺
+Throughout this proposal we use cryptographic methods and classes defined in the corresponding [consensus 4844 specs](https://github.com/ethereum/consensus-specs/blob/86fb82b221474cc89387fa6436806507b3849d88/specs/deneb).
 
-*通俗理解：一种临时的数据存储方式，专门给 Rollup 用的。便宜但会定期删除（18天后）。就像快递站的临时寄存柜，比永久存档便宜100倍。*
+Specifically, we use the following methods from [`polynomial-commitments.md`]
 
-**4.** Blob 在共识层短期保存（约 4096 个 epoch ~ 18 天）后删除
+*通俗理解：临时寄存柜——比永久存档便宜100倍，18天后自动清理*
 
-*通俗理解：一种临时的数据存储方式，专门给 Rollup 用的。便宜但会定期删除（18天后）。就像快递站的临时寄存柜，比永久存档便宜100倍。*
+**3. Helpers**
 
-**5.** 独立的 blob gas 市场和基础费
+```python
+def kzg_to_versioned_hash(commitment: KZGCommitment) -> VersionedHash:
+    return VERSIONED_HASH_VERSION_KZG + sha256(commitment)[1:]
+```
 
-*通俗理解：这是关于交易费用的调整。可以理解为：高速公路的收费标准变了，某些车辆过路费涨价或降价了。*
+Approximates `factor * e ** (numerator / denominator)` using Taylor expansion:
 
-**6.** EVM 可通过 POINTEVALUATION 预编译验证 KZG 证明。
+```python
+def fake_exponential(factor: int, numerator: int, denominator
 
-*通俗理解：一种数学证明技术。就像快递箱上的防伪封条——不用打开箱子，就能确认里面的东西没被调换过。*
+*通俗理解：数字指纹——任何数据都有唯一指纹，改了数据指纹就变*
+
+**4. Blob transaction**
+
+We introduce a new type of [EIP-2718](./eip-2718.md) transaction, "blob transaction", where the `TransactionType` is `BLOB_TX_TYPE` and the `TransactionPayload` is the RLP serialization of the following `TransactionPayloadBody`:
+
+```
+[chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_l
+
+*通俗理解：临时寄存柜——比永久存档便宜100倍，18天后自动清理*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-引入 Blob 携带交易（Blob Transaction）：1) 新交易类型包含最多 6 个 blob（每个 128KB）；2) Blob 数据使用 KZG 多项式承诺；3) Blob 在共识层短期保存（约 4096 个 epoch ~ 18 天）后删除；4) 独立的 blob gas 市场和基础费；5) EVM 可通过 POINTEVALUATION 预编译验证 KZG 证明。
+Introduce a new transaction format for "blob-carrying transactions" which contain a large amount of data that cannot be
+accessed by EVM execution, but whose commitment can be accessed.
+The format is intended to be fully compatible with the format that will be used in full sharding.
 
-### 设计思路
+### 设计动机（Motivation）
 
-以太坊扩容路线图的关键里程碑。Blob 为 Rollup 提供了廉价的数据可用性——每个 blob 约 128KB 数据仅需约 1-10 gwei/字节，比 calldata 便宜 100 倍。KZG 承诺允许 EVM 在不读取完整 blob 的情况下验证数据正确性。这不是完整的 Danksharding，而是'原型'版本，已经让 L2 费用降低 90%+。
+Rollups are in the short and medium term, and possibly in the long term, the only trustless scaling solution for Ethereum.
+Transaction fees on L1 have been very high for months and there is greater urgency in doing anything required to help facilitate an ecosystem-wide move to rollups.
+Rollups are significantly reducing fees for many Ethereum users: Optimism and Arbitrum frequently provide fees that are ~3-8x lower than the Ethereum base layer itself,
+and ZK rollups, which have better data compression and can avoid including signatures, have fees ~40-100x lower than the base layer.
 
+However, even these fees are too expensive for many users. The long-term solution to the long-term inadequacy of rollups
+by themselves has always been data sharding, which would add ~16 MB per block of dedicate
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+| Constant | Value |
+| - | - |
+| `BLOB_TX_TYPE` | `Bytes1(0x03)` |
+| `BYTES_PER_FIELD_ELEMENT` | `32` |
+| `FIELD_ELEMENTS_PER_BLOB` | `4096` |
+| `BLS_MODULUS` | `52435875175126190479447740508185965837690552500527637822603658699938581184513` |
+| `VERSIONED_HASH_VERSION_KZG` | `Bytes1(0x01)` |
+| `POINT_EVALUATION_PRECOMPILE_ADDRESS` | `Bytes20(0x0A)` |
+| `POINT_EVALUATION_PRECOMPILE_GAS` | `50000` |
+| `MAX_BLOB_GAS_PER_BLOCK` | `786432` |
+| `TARGET_BLOB_GAS_PER_BLOCK` | `393216` |
+| `MIN_BASE_FEE_PER_BLOB_GAS` | `1` |
+| `BLOB_BASE_FEE_UPDATE_FRACTION` | `3338477` |
+| `GAS_PER_BLOB` | `2**17` |
+| `HASH_OPCODE_BYTE` | `Bytes1(0x49)` |
+| `HASH_OPCODE_GAS` | `3` |
+| [`MIN_EPOCHS_FOR_BLOB_SIDECARS_REQUESTS`](https://github.com/ethereum/consensus-specs/blob/4de1d156c78b555421b72d6067c73b614ab55584/configs/mainnet.yaml#L148) | `4096` |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-1153** — Transient Storage: 新增 TLOAD/TSTORE 操作码，提供在交易内有效但交易结束后清除的存储，解决重入锁等场景的 gas 效率问题...
-- **EIP-4788** — 信标区块根: 将信标链区块根暴露给 EVM，允许合约无需信任地访问共识层状态...
-- **EIP-5656** — MCOPY 操作码: 新增内存复制操作码，比现有方案更高效的内存拷贝...
-- **EIP-6780** — 限制 SELFDESTRUCT: 限制 SELFDESTRUCT 仅在合约创建同交易中可用，简化状态管理...
-- **EIP-7516** — BLOBBASEFEE 操作码: 新增 BLOBBASEFEE 操作码，允许合约读取 blob 的基础费用...
+- **EIP-2718** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2718.md)
+- **EIP-1559** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
-- **Layer 2 开发者**: 数据发布成本大幅降低，扩容方案更经济
+### 📊 关键数据
 
-## 八、历史背景与演进
+> Dencun升级后（2024年3月）：Arbitrum平均交易费从$0.5→$0.02，Base从$0.3→$0.01，Optimism从$0.4→$0.015。L2日活用户数翻倍增长。
+
+### 🔗 相关协议与项目
+
+**Arbitrum**
+领先的Optimistic Rollup，Blob交易使其数据成本降低90%+，用户交易费从$0.5降至$0.02
+
+**Optimism**
+OP Stack生态核心，Blob支持使其成为最具成本效益的L2之一
+
+**Base**
+Coinbase推出的L2，基于OP Stack，Blob交易使其保持极低费用
+
+**zkSync Era**
+ZK Rollup代表，Blob+KZG承诺优化了其有效性证明的数据可用性
+
+**StarkNet**
+STARK-based L2，Blob交易降低其on-chain数据成本
+
+**Scroll**
+兼容EVM的ZK Rollup，利用Blob实现更低的数据可用性成本
+
+---
+
+## 八、谁会受到影响？
+
+- **普通用户**: L2 交易费用从 $0.5 降至 $0.02，高频应用（社交、游戏）变得可行
+- **Layer 2 开发者**: 数据发布成本降低 90%+，扩容方案更经济
+- **Rollup 项目方**: Arbitrum、Optimism、Base 等直接受益，日活增长
+- **以太坊主网**: Blob 18 天后删除，节点存储负担可控
+
+## 九、历史背景与演进
 
 EIP-4844 是"The Surge"扩容路线图的核心。Proto-Danksharding 概念由 Dankrad Feist 提出，它在完整 Danksharding 实现前就已经让 L2 费用降低了 90%+，被称为"最小可行扩容"。
 
-## 九、关键术语表
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
 | **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **precompile** | 预编译合约：EVM 中内置的高效算法实现，用原生代码而非 EVM 字节码执行，gas 成本更低。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **zk** | 零知识证明：证明"我知道某个秘密"，但不需要透露秘密本身。用于隐私和扩容。 |
 | **rollup** | L2 扩容方案：在链下处理交易，只把压缩后的数据提交到主链，主链验证数据可用性即可。 |
 | **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **validator** | 验证者：运行以太坊 PoS 共识软件的节点，负责提议和验证区块，需要质押 32 ETH（或更多）。 |
 | **epoch** | 时隙的集合，每 32 个 slot（约 6.4 分钟）为一个 epoch。是共识层计时的基本单位。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**Proto-Danksharding → Full Danksharding**: EIP-4844 是 Danksharding 的 MVP 版本，未来还需要实现数据可用性采样（DAS），让轻节点也能验证数据可用性，进一步降低对全节点的依赖。**PeerDAS** 是下一个里程碑。
+**Proto-Danksharding → Full Danksharding**
+
+EIP-4844 是 Danksharding 的 MVP 版本，未来还需要：
+- **PeerDAS**（Peer Data Availability Sampling）：让轻节点也能验证数据可用性
+- **完整分片**：将 blob 数量从每区块 6 个提升到 64+ 个
+- **去中心化程度提升**：轻节点参与验证，降低对全节点的依赖
+
+这是以太坊扩容路线图的核心里程碑。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

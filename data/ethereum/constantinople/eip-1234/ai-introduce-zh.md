@@ -6,80 +6,77 @@
 
 ### 当时的痛点
 
-PoW 难度炸弹的设计初衷是推动以太坊向 PoS 转型，但如果合并准备时间超出预期，难度炸弹会导致出块时间急剧增加——从 13 秒延长到 30 秒、60 秒甚至更长。
+根据官方 EIP 文档，这项技术旨在Starting with `CNSTNTNPL_FORK_BLKNUM` the client will calculate the difficulty based on a fake block number suggesting the client that the difficulty ...
 
-这直接影响网络可用性：交易确认变慢、DeFi 清算延迟、用户体验恶化。因此每次接近难度炸弹生效时，都需要临时推迟，为 The Merge 争取时间。
+这是以太坊协议演进中的重要一步，解决了经济模型的关键挑战。
 
 ### 核心矛盾
 
-**定时炸弹倒逼转型**
+**经济模型**
 
-PoW 挖矿就像一场比赛，难度炸弹是主办方在赛道上埋的陷阱——每隔一段时间，陷阱就多一层，跑得越来越吃力。
-
-设计初衷：
-- 故意让 PoW 挖矿越来越难（出块时间越来越长）
-- 逼矿工和社区必须转向 PoS（新赛场）
-- 每次陷阱快生效时，就临时拆掉导火索延期
-- 最终目的：确保以太坊不会永远停留在 PoW 时代
+这项技术通过优化将难度炸弹推迟约 12 个月，并将出块奖励从 3 ETH 降至 2 ETH。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-推迟难度炸弹，为下一次重大升级（如 The Merge）争取充足的准备时间。
+The Casper development and switch to proof-of-stake is delayed, the Ethash proof-of-work should be feasible for miners and allow sealing new blocks every 15 seconds on average for another 12 months. W...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更对以太坊生态产生了深远影响，推动了经济模型的技术发展和应用创新。
 
 ## 四、技术概述：用类比讲清楚
 
-**定时炸弹倒逼转型**
+**经济模型**
 
-PoW 挖矿就像一场比赛，难度炸弹是主办方在赛道上埋的陷阱——每隔一段时间，陷阱就多一层，跑得越来越吃力。
-
-设计初衷：
-- 故意让 PoW 挖矿越来越难（出块时间越来越长）
-- 逼矿工和社区必须转向 PoS（新赛场）
-- 每次陷阱快生效时，就临时拆掉导火索延期
-- 最终目的：确保以太坊不会永远停留在 PoW 时代
+这项技术通过优化将难度炸弹推迟约 12 个月，并将出块奖励从 3 ETH 降至 2 ETH。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-将难度炸弹推迟约 12 个月，并将出块奖励从 3 ETH 降至 2 ETH。
+Starting with `CNSTNTNPL_FORK_BLKNUM` the client will calculate the difficulty based on a fake block number suggesting the client that the difficulty bomb is adjusting around 5 million blocks later than previously specified with the Homestead fork. Furthermore, block rewards will be adjusted to a base of 2 ETH, uncle and nephew rewards will be adjusted accordingly.
 
-### 设计思路
+### 设计动机（Motivation）
 
-ETH 第三次减产，也是 PoW 时代的最后一次减产。2 ETH/区块的奖励持续到 The Merge。推迟难度炸弹为 PoS 开发争取了关键时间。
+The Casper development and switch to proof-of-stake is delayed, the Ethash proof-of-work should be feasible for miners and allow sealing new blocks every 15 seconds on average for another 12 months. With the delay of the ice age, there is a desire to not suddenly also increase miner rewards. The difficulty bomb has been known about for a long time and now it's going to stop from happening. In order to maintain stability of the system, a block reward reduction that offsets the ice age delay would leave the system in the same general state as before. Reducing the reward also decreases the likelihood of a miner driven chain split as Ethereum approaches proof-of-stake.
 
+### 关键参数与机制
+
+#### Relax Difficulty with Fake Block Number
+For the purposes of `calc_difficulty`, simply replace the use of `block.number`, as used in the exponential ice age component, with the formula:
+
+    fake_block_number = max(0, block.number - 5_000_000) if block.number >= CNSTNTNPL_FORK_BLKNUM else block.number
+
+#### Adjust Block, Uncle, and Nephew rewards
+To ensure a constant Ether issuance, adjust the block reward to `new_block_reward`, where
+
+    new_block_reward = 2_000_000_000_000_000_000 if bloc
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-145** — SHL/SHR 移位操作码: 新增左移和右移操作码，使位运算更便宜高效...
-- **EIP-1014** — CREATE2: 允许在合约部署前确定其地址，是状态通道、Counterfactual 和 Layer 2 方案的关键...
-- **EIP-1052** — EXTCODEHASH: 新增 EXTCODEHASH 操作码，返回合约代码的 keccak256 哈希，提升合约验证效率...
-- **EIP-1283** — SSTORE gas 计量调整: 调整 SSTORE 的 gas 计量方式（后在 Petersburg 中撤销）...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **验证者/矿工**: 收益结构和操作模式发生变化
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Constantinople升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是经济模型演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
-| **难度炸弹延迟+减产** | 本次升级引入的核心技术特性，再次推迟难度炸弹 12 个月，将出块奖励从 3 ETH 降至 2 ETH。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**PoW 已成历史**: The Merge 后，难度炸弹永久失效。PoS 的共识机制不再需要这种"倒逼转型"的工具，以太坊进入了新的时代。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

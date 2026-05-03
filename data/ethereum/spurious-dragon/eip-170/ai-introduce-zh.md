@@ -6,71 +6,78 @@
 
 ### 当时的痛点
 
-在Spurious Dragon升级之前，攻击者利用定价过低的操作码（如 EXTCODESIZE、SLOAD、BALANCE）反复读取状态数据，构造极低成本的资源耗尽攻击。节点 CPU 和 IO 被拖垮，同步速度急剧下降，普通用户的交易被阻塞。
-
-这不仅是技术问题，更是经济问题——攻击者的成本远低于网络防御成本，导致 DoS 攻击可持续数周。
+这项技术解决了以太坊网络在协议基础面临的关键挑战。其目标是提升网络性能、安全性或可用性，为以太坊的长期演进奠定基础。
 
 ### 核心矛盾
 
-**合约大小限制**
+**协议基础**
 
-限制合约代码最大为 24576 字节（0x6000）。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化限制合约代码最大为 24576 字节（0x6000）。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过合约大小限制优化以太坊协议，提升网络性能、安全性或可用性。
+通过优化协议基础，提升以太坊网络的性能、安全性或可用性，为后续技术演进奠定基础。
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更在协议基础产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**合约大小限制**
+**协议基础**
 
-限制合约代码最大为 24576 字节（0x6000）。。
+这项技术通过优化限制合约代码最大为 24576 字节（0x6000）。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+### 核心机制拆解
+
+**1. Rationale**
+
+Currently, there remains one slight quadratic vulnerability in Ethereum: when a contract is called, even though the call takes a constant amount of gas, the call can trigger O(n) cost in terms of reading the code from disk, preprocessing the code for VM execution, and also adding O(n) data to the Me
+
+*通俗理解：高速公路收费站——不同车辆收费标准不同*
+
+**2. References**
+
+1. EIP-170 issue and discussion: https://github.com/ethereum/EIPs/issues/170
+2. pyethereum implementation: https://github.com/ethereum/pyethereum/blob/5217294871283d8dc4fb3ca9d8a78c7d416490e8/ethereum/messages.py#L397
+
+*通俗理解：临时寄存柜——比永久存档便宜100倍，18天后自动清理*
 
 ## 五、技术实现详解
 
-### 技术规格
+### 关键参数与机制
 
-限制合约代码最大为 24576 字节（0x6000）。
+If `block.number >= FORK_BLKNUM`, then if contract creation initialization returns data with length of **more than** `MAX_CODE_SIZE` bytes, contract creation fails with an out of gas error.
 
-### 设计思路
+### Rationale
 
-防止超大合约带来的验证和存储问题。这个限制至今仍在，是合约架构师需要绕过的约束（催生了代理模式等设计）。
-
+Currently, there remains one slight quadratic vulnerability in Ethereum: when a contract is called, even though the call takes a constant amount of gas, the call can trigger O(n) cost in terms of reading the code from disk, preprocessing the code for VM execution, and also adding O(n) data to 
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-155** — 链式 ID 重放保护: 在签名中加入链 ID，防止交易在不同以太坊分叉链上被重放执行。这是 ETH 与 ETC 分离的关键技术...
-- **EIP-160** — EXP 操作码定价调整: 调整 EXP 操作码的 gas 成本计算方式...
-- **EIP-161** — 状态去膨胀: 清理空账户，减少区块链状态大小，降低节点同步负担...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Spurious Dragon升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
-| **合约大小限制** | 本次升级引入的核心技术特性，限制合约代码最大为 24576 字节（0x6000），防止超大合约带来的问题。 |
+| **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

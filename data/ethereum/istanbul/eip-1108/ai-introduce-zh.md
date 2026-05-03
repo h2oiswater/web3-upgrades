@@ -6,78 +6,124 @@
 
 ### 当时的痛点
 
-随着 DeFi、NFT、SocialFi 等应用的爆发，以太坊主链 TPS 成为瓶颈。Layer 2 方案（Rollup）能把计算放到链下，但**数据存储成本仍是硬伤**——Rollup 必须把交易数据发布到 L1 作为"证据"，而 L1 的 calldata 存储费用高达 ~16-20 gwei/字节。
+根据官方 EIP 文档，这项技术旨在Changes in 2018 to the underlying library used by the official Go reference
+implementation led to significant performance gains for the `ECADD`, `ECMU...
 
-结果是：L2 虽然计算便宜了，但**数据发布成本占了总费用的 90% 以上**。用户在 L2 做一次 Swap 仍需支付 $0.5-$2，距离"大规模采用"差一个数量级。
+这是以太坊协议演进中的重要一步，解决了扩容/L2的关键挑战。
 
 ### 核心矛盾
 
-**降低 alt_bn128 gas 成本**
+**扩容/L2**
 
-将 alt_bn128 预编译合约（EIP-196/197）的 gas 成本大幅降低：点加法从 500 降至 150，标量乘法从 40000 降至 6000，配对检查从 100000 + 80000*。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化将 alt_bn128 预编译合约（EIP-196/197）的 gas 成本大幅降低：点加法从 500 降至 150，标，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+Recently, the underlying library used by the [official Go reference
+implementation](https://github.com/ethereum/go-ethereum) to implement the
+`ECADD` (at address `0x06`), `ECMUL` (at address `0x07`), ...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更对以太坊生态产生了深远影响：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更对以太坊生态产生了深远影响，推动了扩容/L2的技术发展和应用创新。
 
 ## 四、技术概述：用类比讲清楚
 
-**降低 alt_bn128 gas 成本**
+**扩容/L2**
 
-将 alt_bn128 预编译合约（EIP-196/197）的 gas 成本大幅降低：点加法从 500 降至 150，标量乘法从 40000 降至 6000，配对检查从 100000 + 80000*。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化将 alt_bn128 预编译合约（EIP-196/197）的 gas 成本大幅降低：点加法从 500 降至 150，标，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-将 alt_bn128 预编译合约（EIP-196/197）的 gas 成本大幅降低：点加法从 500 降至 150，标量乘法从 40000 降至 6000，配对检查从 100000 + 80000*k 降至 45000 + 34000*k。
+Changes in 2018 to the underlying library used by the official Go reference
+implementation led to significant performance gains for the `ECADD`, `ECMUL`,
+and pairing check precompiled contracts on the `alt_bn128` elliptic curve.
 
-### 设计思路
+In the Parity client, field operations used by the precompile algorithms were optimized in 2018, 
+and recent changes to the pairing algorithm used by the `bn` crate have brought considerable speedups.
 
-使 zk-SNARKs 验证成本降低约 80%。在此之前，验证一个 zk 证明可能花费数十美元；之后降至几美元，使 zk-Rollup 经济可行。
+Faster operations on Ethereum clients should be reflected in reduced gas costs.
 
+### 设计动机（Motivation）
+
+Recently, the underlying library used by the [official Go reference
+implementation](https://github.com/ethereum/go-ethereum) to implement the
+`ECADD` (at address `0x06`), `ECMUL` (at address `0x07`), and pairing check (at
+address `0x08`) precompiled contracts was shifted to [Cloudflare's bn256
+library](https://github.com/cloudflare/bn256). Based on the [initial PR that
+introduced this change](https://github.com/ethereum/go-ethereum/pull/16203),
+and corroborated in [a later
+note](https://github.com/ethereum/go-ethereum/pull/16301#issuecomment-372687543),
+the computational cost of `ECADD`, `ECMUL`, and pairing checks (excepting the
+constant) has dropped roughly an order of magnitude across the board.
+
+Also, optimizations in the bn library [in 2018](https://github.com/paritytech/bn/pull/9) an
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+| Contract      | Address   | Current Gas Cost               | Updated Gas Cost    |
+| ------------- | --------- | -----------------------------  | ------------------- |
+| `ECADD`       | `0x06`    | 500<sup>[1]</sup>              | 150                 |
+| `ECMUL`       | `0x07`    | 40 000<sup>[1]</sup>           | 6 000               |
+| Pairing check | `0x08`    | 80 000 * k + 100 000<sup>[2]</sup>| 34 000 * k + 45 000    |
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-152** — Blake2 压缩函数预编译: 新增 Blake2 哈希压缩函数预编译合约，实现与 Zcash 的互操作性...
-- **EIP-1344** — CHAINID 操作码: 新增 CHAINID 操作码，允许合约在运行时获取当前链 ID...
-- **EIP-1884** — 状态访问操作码提价: 重新定价 trie 大小相关的操作码，匹配增长的链状态成本...
-- **EIP-2028** — 降低 Calldata gas 成本: 将 calldata 的 gas 成本从 68 降至 16，大幅降低 Rollup 等数据可用性方案的成本...
-- **EIP-2200** — SSTORE gas 净计量: 改进 SSTORE 的净计量方式，综合考虑原始值、当前值和新值...
+- **EIP-196** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-196.md)
+- **EIP-197** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-197.md)
+- **EIP-1829** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1829.md)
 
-## 七、谁会受到影响？
+## 七、🌟 生态影响与相关项目
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
-- **Layer 2 开发者**: 数据发布成本大幅降低，扩容方案更经济
+### 📊 关键数据
 
-## 八、历史背景与演进
+> alt_bn128预编译gas成本降低约80%：点加法500→150，标量乘法40000→6000。zk证明验证从"数十美元"降至"几美元"。
+
+### 🔗 相关协议与项目
+
+**zkSync 2.0**
+Era版本利用降低的gas成本实现更便宜的ZK证明验证
+
+**Loopring**
+DEX-focused ZK Rollup，成本降低80%后用户体验大幅提升
+
+**StarkWare**
+虽然使用STARKs而非SNARKs，但gas成本降低整体利好L2生态
+
+---
+
+## 八、谁会受到影响？
+
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
+
+## 九、历史背景与演进
 
 zk-SNARKs 验证成本曾高达数十美元，这让 zk-Rollup 只能用于高价值场景。EIP-1108 将验证成本降低约 80%，直接催生了 zkSync、Loopring 等 zk-Rollup 项目。
 
-## 九、关键术语表
+## 十、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **precompile** | 预编译合约：EVM 中内置的高效算法实现，用原生代码而非 EVM 字节码执行，gas 成本更低。 |
+| **hash** | 哈希函数：把任意数据压缩成固定长度的"指纹"。用于验证数据完整性。 |
 | **zk** | 零知识证明：证明"我知道某个秘密"，但不需要透露秘密本身。用于隐私和扩容。 |
 | **rollup** | L2 扩容方案：在链下处理交易，只把压缩后的数据提交到主链，主链验证数据可用性即可。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
 | **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
-## 十、思考与延伸
+## 十一、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

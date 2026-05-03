@@ -6,73 +6,69 @@
 
 ### 当时的痛点
 
-PoS 转型后，信标链于 2020 年 12 月启动，但质押是"单向"的——只能存入，不能取出。到 2023 年初，**约 1800 万 ETH（占流通量 15%）被锁在信标链中无法提取**。
+根据官方 EIP 文档，这项技术旨在This EIP deprecates the `SELFDESTRUCT` opcode and warns against its use. A breaking change to this functionality is likely to come in the future....
 
-质押者面临巨大的流动性风险：紧急情况下无法取回资金，小额质押者更是被套牢。这不仅抑制了质押意愿，也让 ETH 的实际流通量被人为压低。上海升级前，社区最大的呼声就是"开放提款"。
+这是以太坊协议演进中的重要一步，解决了协议基础的关键挑战。
 
 ### 核心矛盾
 
-**SELFDESTRUCT 弃用警告**
+**协议基础**
 
-正式弃用 SELFDESTRUCT 操作码。SELFDESTRUCT 仍保留在协议中，但文档标记为已弃用，未来的升级可能会限制或删除它。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化正式弃用 SELFDESTRUCT 操作码。SELFDESTRUCT 仍保留在协议中，但文档标记为已弃用，未来的升级可能，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过SELFDESTRUCT 弃用警告优化以太坊协议，提升网络性能、安全性或可用性。
+Discussions about how to change `SELFDESTRUCT` are ongoing. But there is a strong consensus that *something* will change.
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更在协议基础产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**SELFDESTRUCT 弃用警告**
+**协议基础**
 
-正式弃用 SELFDESTRUCT 操作码。SELFDESTRUCT 仍保留在协议中，但文档标记为已弃用，未来的升级可能会限制或删除它。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化正式弃用 SELFDESTRUCT 操作码。SELFDESTRUCT 仍保留在协议中，但文档标记为已弃用，未来的升级可能，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-正式弃用 SELFDESTRUCT 操作码。SELFDESTRUCT 仍保留在协议中，但文档标记为已弃用，未来的升级可能会限制或删除它。
+This EIP deprecates the `SELFDESTRUCT` opcode and warns against its use. A breaking change to this functionality is likely to come in the future.
 
-### 设计思路
+### 设计动机（Motivation）
 
-为未来 statelessness（无状态性）扫清障碍。SELFDESTRUCT 允许合约删除自己并强制将 ETH 发送到任意地址，这在 Verkle 树和无状态客户端设计中造成困难。弃用宣告标志着它的终结倒计时。
+Discussions about how to change `SELFDESTRUCT` are ongoing. But there is a strong consensus that *something* will change.
 
+### 关键参数与机制
+
+Documentation of the `SELFDESTRUCT` opcode is updated to warn against its use and to note that a breaking change may be forthcoming.
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-3651** — COINBASE 预热: 在交易开始时预热 COINBASE 地址，降低直接支付给矿工/验证者的交易成本...
-- **EIP-3855** — PUSH0 操作码: 新增 PUSH0 操作码，将 0 推入堆栈，优化合约代码大小和 gas 成本...
-- **EIP-3860** — initcode 大小限制: 限制 initcode 最大为 49152 字节，每次 32 字 words 收取 2 gas...
-- **EIP-4895** — 质押提款: 启用信标链到执行层的质押提款。部分提款自动处理奖励，完全提款可退出验证者...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **智能合约开发者**: 获得了新的编程原语和优化空间
-- **节点运营者**: 同步和存储负担得到优化
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Shanghai升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
-| **SELFDESTRUCT 弃用警告** | 本次升级引入的核心技术特性，正式标记 SELFDESTRUCT 为弃用，为未来删除做准备。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**持续演进**: 以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

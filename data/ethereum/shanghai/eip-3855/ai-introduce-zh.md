@@ -6,73 +6,77 @@
 
 ### 当时的痛点
 
-PoS 转型后，信标链于 2020 年 12 月启动，但质押是"单向"的——只能存入，不能取出。到 2023 年初，**约 1800 万 ETH（占流通量 15%）被锁在信标链中无法提取**。
+根据官方 EIP 文档，这项技术旨在Introduce the `PUSH0` (`0x5f`) instruction, which pushes the constant value 0 onto the stack....
 
-质押者面临巨大的流动性风险：紧急情况下无法取回资金，小额质押者更是被套牢。这不仅抑制了质押意愿，也让 ETH 的实际流通量被人为压低。上海升级前，社区最大的呼声就是"开放提款"。
+这是以太坊协议演进中的重要一步，解决了协议基础的关键挑战。
 
 ### 核心矛盾
 
-**PUSH0 操作码**
+**协议基础**
 
-新增 PUSH0 操作码（0x5f），将 0 推入 EVM 堆栈，gas 成本为 2。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 PUSH0 操作码（0x5f），将 0 推入 EVM 堆栈，gas 成本为 2。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-降低特定操作的成本，使攻击不再经济可行，同时保持网络安全性。
+Many instructions expect offsets as inputs, which in a number of cases are zero. A good example is the return data parameters of `CALLs`, which are set to zeroes in case the contract prefers using `RE...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更为协议层面的渐进式优化：
-- 如期实现了协议设计目标，为后续升级奠定了基础
+此变更为协议层面的渐进式优化，为长期发展奠定了基础。
 
 ## 四、技术概述：用类比讲清楚
 
-**PUSH0 操作码**
+**协议基础**
 
-新增 PUSH0 操作码（0x5f），将 0 推入 EVM 堆栈，gas 成本为 2。。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化新增 PUSH0 操作码（0x5f），将 0 推入 EVM 堆栈，gas 成本为 2。，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-新增 PUSH0 操作码（0x5f），将 0 推入 EVM 堆栈，gas 成本为 2。
+Introduce the `PUSH0` (`0x5f`) instruction, which pushes the constant value 0 onto the stack.
 
-### 设计思路
+### 设计动机（Motivation）
 
-一个字节优化带来的大节省。以前将 0 推入堆栈需要 PUSH1 0x00（2 字节），现在 PUSH0 只需 1 字节。看似微小，但大型合约可减少数百字节部署成本。
+Many instructions expect offsets as inputs, which in a number of cases are zero. A good example is the return data parameters of `CALLs`, which are set to zeroes in case the contract prefers using `RETURNDATA*`. This is only one example, but there are many other reasons why a contract would need to push a zero value. They can achieve that today by `PUSH1 0`, which costs 3 gas at runtime, and is encoded as two bytes which means `2 * 200` gas deployment cost.
 
+Because of the overall cost many try to use various other instructions to achieve the same effect. Common examples include `PC`, `MSIZE`, `CALLDATASIZE`, `RETURNDATASIZE`, `CODESIZE`, `CALLVALUE`, and `SELFBALANCE`. Some of these cost only 2 gas and are a single byte long, but their value can depend on the context.
+
+We have conducted a
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+The instruction `PUSH0` is introduced at `0x5f`. It has no immediate data, pops no items from the stack, and places a single item with the value 0 onto the stack. The cost of this instruction is 2 gas (aka `base`).
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
-
-- **EIP-3651** — COINBASE 预热: 在交易开始时预热 COINBASE 地址，降低直接支付给矿工/验证者的交易成本...
-- **EIP-3860** — initcode 大小限制: 限制 initcode 最大为 49152 字节，每次 32 字 words 收取 2 gas...
-- **EIP-4895** — 质押提款: 启用信标链到执行层的质押提款。部分提款自动处理奖励，完全提款可退出验证者...
-- **EIP-6049** — SELFDESTRUCT 弃用警告: 正式标记 SELFDESTRUCT 为弃用，为未来删除做准备...
+此 EIP 为相对独立的协议改进，主要与以太坊核心协议交互。详细依赖关系请查看官方 EIP 文档的"Backward Compatibility"和"Security Considerations"章节。
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
-- **智能合约开发者**: 获得了新的编程原语和优化空间
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Shanghai升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是协议基础演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **calldata** | 以太坊交易中携带的输入数据，永久存储在链上，费用较高。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*

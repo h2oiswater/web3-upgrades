@@ -6,96 +6,118 @@
 
 ### 当时的痛点
 
-随着 DeFi、NFT、SocialFi 等应用的爆发，以太坊主链 TPS 成为瓶颈。Layer 2 方案（Rollup）能把计算放到链下，但**数据存储成本仍是硬伤**——Rollup 必须把交易数据发布到 L1 作为"证据"，而 L1 的 calldata 存储费用高达 ~16-20 gwei/字节。
+根据官方 EIP 文档，这项技术旨在This EIP provides a structured definition of net gas metering changes
+for `SSTORE` opcode, enabling new usages for contract storage, and
+reducing exce...
 
-结果是：L2 虽然计算便宜了，但**数据发布成本占了总费用的 90% 以上**。用户在 L2 做一次 Swap 仍需支付 $0.5-$2，距离"大规模采用"差一个数量级。
+这是以太坊协议演进中的重要一步，解决了经济/安全的关键挑战。
 
 ### 核心矛盾
 
-**SSTORE gas 净计量**
+**经济/安全**
 
-改进 SSTORE 的净计量（Net Gas Metering），综合原始值、当前值和新值三态：原始=当前=新值时收取 SLOAD_GAS(800)；原始!=当前=新值时收取 SLOAD_GAS(80。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
+这项技术通过优化改进 SSTORE 的净计量（Net Gas Metering），综合原始值、当前值和新值三态：原始=当前=新值时收取 ，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 二、升级目标：解决什么问题？
 
-通过SSTORE gas 净计量优化以太坊协议，提升网络性能、安全性或可用性。
+This EIP proposes a way for gas metering on `SSTORE`, using information
+that is more universally available to most implementations, and
+require as little change in implementation structures as possibl...
 
 ## 三、升级效果：现在怎么样了？
 
-此变更在特定领域产生了显著效果：
-- 消除了已知的安全风险和攻击向量
+此变更在经济/安全产生了显著效果，提升了协议效率和安全性。
 
 ## 四、技术概述：用类比讲清楚
 
-**SSTORE gas 净计量**
+**经济/安全**
 
-改进 SSTORE 的净计量（Net Gas Metering），综合原始值、当前值和新值三态：原始=当前=新值时收取 SLOAD_GAS(800)；原始!=当前=新值时收取 SLOAD_GAS(80。
-
-可以把以太坊想象成一台全球共享的计算机，这个升级就是在优化这台计算机的某个零部件，让整体运转得更顺畅、更安全、更高效。
-
-### 核心机制拆解
-
-**1.** 改进 SSTORE 的净计量（Net Gas Metering），综合原始值、当前值和新值三态：原始=当前=新值时收取 SLOAD_GAS(
-
-*通俗理解：这是关于交易费用的调整。可以理解为：高速公路的收费标准变了，某些车辆过路费涨价或降价了。*
-
-**2.** 原始!=当前=新值时收取 SLOAD_GAS(
-
-*通俗理解：这是关于交易费用的调整。可以理解为：高速公路的收费标准变了，某些车辆过路费涨价或降价了。*
-
-**3.** 原始=当前!=新值时收取 SSTORE_SET_GAS(
-
-*通俗理解：这是关于交易费用的调整。可以理解为：高速公路的收费标准变了，某些车辆过路费涨价或降价了。*
-
-**4.** 或 SSTORE_RESET_GAS(
-
-*通俗理解：这是关于交易费用的调整。可以理解为：高速公路的收费标准变了，某些车辆过路费涨价或降价了。*
-
-**5.** 原始!=当前!=新值时收取 SLOAD_GAS(
-
-*通俗理解：这是关于交易费用的调整。可以理解为：高速公路的收费标准变了，某些车辆过路费涨价或降价了。*
+这项技术通过优化改进 SSTORE 的净计量（Net Gas Metering），综合原始值、当前值和新值三态：原始=当前=新值时收取 ，提升了以太坊网络的性能、安全性或可用性。可以理解为给这台全球共享的计算机升级了一个核心零部件。
 
 ## 五、技术实现详解
 
-### 技术规格
+### 技术摘要（Abstract）
 
-改进 SSTORE 的净计量（Net Gas Metering），综合原始值、当前值和新值三态：原始=当前=新值时收取 SLOAD_GAS(800)；原始!=当前=新值时收取 SLOAD_GAS(800)；原始=当前!=新值时收取 SSTORE_SET_GAS(20000) 或 SSTORE_RESET_GAS(2900)；原始!=当前!=新值时收取 SLOAD_GAS(800)。
+This EIP provides a structured definition of net gas metering changes
+for `SSTORE` opcode, enabling new usages for contract storage, and
+reducing excessive gas costs where it doesn’t match how most
+implementation works.
 
-### 设计思路
+This is a combination of [EIP-1283] and [EIP-1706].
 
-EIP-1283 的安全重制版。通过更精细的三态 gas 计量，在降低存储更新成本的同时修复了重入漏洞。是 Constantinople 被禁功能的'正确打开方式'。
+### 设计动机（Motivation）
 
+This EIP proposes a way for gas metering on `SSTORE`, using information
+that is more universally available to most implementations, and
+require as little change in implementation structures as possible.
+
+* Storage slot’s original value.
+* Storage slot’s current value.
+* Refund counter.
+
+Usages that benefits from this EIP’s gas reduction scheme includes:
+
+* Subsequent storage write operations within the same call frame. This
+  includes reentry locks, same-contract multi-send, etc.
+* Exchange storage information between sub call frame and parent call
+  frame, where this information does not need to be persistent outside
+  of a transaction. This includes sub-frame error codes and message
+  passing, etc.
+
+The original definition of EIP-1283 created a danger of a new kind of
+reentrancy attacks 
+
+> 📄 完整动机说明请查看上方"官方原文"标签页
+
+### 关键参数与机制
+
+Define variables `SLOAD_GAS`, `SSTORE_SET_GAS`, `SSTORE_RESET_GAS` and
+`SSTORE_CLEARS_SCHEDULE`. The old and new values for those variables
+are:
+
+* `SLOAD_GAS`: changed from `200` to `800`.
+* `SSTORE_SET_GAS`: `20000`, not changed.
+* `SSTORE_RESET_GAS`: `5000`, not changed.
+* `SSTORE_CLEARS_SCHEDULE`: `15000`, not changed.
+
+Change the definition of EIP-1283 using those variables. The new
+specification, combining EIP-1283 and EIP-1706, will look like
+below. The terms *original value*, *current va
 
 ## 六、关联 EIP
 
-本次升级中与该特性相关的其他 EIP：
+此 EIP 与以下协议标准有直接关联：
 
-- **EIP-152** — Blake2 压缩函数预编译: 新增 Blake2 哈希压缩函数预编译合约，实现与 Zcash 的互操作性...
-- **EIP-1108** — 降低 alt_bn128 gas 成本: 大幅降低 alt_bn128 预编译合约的 gas 成本，使 zk-SNARKs 验证更经济...
-- **EIP-1344** — CHAINID 操作码: 新增 CHAINID 操作码，允许合约在运行时获取当前链 ID...
-- **EIP-1884** — 状态访问操作码提价: 重新定价 trie 大小相关的操作码，匹配增长的链状态成本...
-- **EIP-2028** — 降低 Calldata gas 成本: 将 calldata 的 gas 成本从 68 降至 16，大幅降低 Rollup 等数据可用性方案的成本...
+- **EIP-1283** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1283.md)
+- **EIP-1706** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1706.md)
+- **EIP-1087** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1087.md)
+- **EIP-1153** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md)
+- **EIP-658** — 详见 [官方文档](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-658.md)
 
 ## 七、谁会受到影响？
 
-- **普通用户**: 交易费用更可控，使用成本降低
+- **核心开发者**: 协议层面的优化，为长期发展铺平道路
+- **全节点运营者**: 需要升级客户端以支持新规则
+- **智能合约开发者**: 可能需要适配新机制或利用新功能
 
 ## 八、历史背景与演进
 
-此特性是Istanbul升级的重要组成部分，经过社区充分讨论和测试后实施。它是以太坊协议逐步完善过程中的关键一步，为后续的技术演进奠定了基础。
+此特性是经济/安全演进的重要组成部分，经过社区充分讨论和测试后实施。它为以太坊的长期发展和生态繁荣奠定了基础。
 
 ## 九、关键术语表
 
 | 术语 | 通俗解释 |
 |------|----------|
 | **gas** | 交易执行的计价单位，类比为"燃料"。操作越复杂，消耗的 gas 越多。 |
+| **opcode** | EVM 的基础操作指令，如加法、存储、调用等。每个 opcode 都有对应的 gas 成本。 |
+| **storage** | 智能合约的永久存储空间，读写成本很高（因为数据要永久保存）。 |
+| **blob** | 临时数据容器：每个 128KB，18 天后自动删除，专门给 Rollup 存数据用，比 calldata 便宜 100 倍。 |
+| **slot** | 时隙，约 12 秒。每个 slot 有一个验证者负责提议区块。 |
 | **eip** | 以太坊改进提案（Ethereum Improvement Proposal）：以太坊社区提出协议变更的标准流程。 |
 
 ## 十、思考与延伸
 
-**多维费用市场**: 以太坊正在探索多维 EIP-1559，即为不同类型的资源（存储、计算、数据）设置独立的费用市场，使资源定价更精准。
+以太坊协议仍在持续迭代中。此特性为未来更广泛的升级奠定了基础，社区的讨论和实验将继续推动网络优化。详细路线图可参考以太坊官方文档。
 
 ---
 *本深度解读基于以太坊官方 EIP 文档、社区讨论及公开资料整理。技术细节以官方文档为准。*
