@@ -1,0 +1,14 @@
+{
+  "id": "bip-347",
+  "name": "OP_CAT",
+  "nameZh": "字符串连接",
+  "chainId": "bitcoin",
+  "upgradeId": "op-cat",
+  "sortOrder": 1,
+  "type": "bip",
+  "number": 347,
+  "impact": "high",
+  "category": "脚本系统",
+  "summary": "Re-enables the OP_CAT opcode for string concatenation on the stack. Combined with existing opcodes, this enables powerful new scripting capabilities including BitVM, state channels, and advanced covenants.",
+  "summaryZh": "重新启用 OP_CAT 操作码进行栈上字符串连接。与现有操作码结合，支持强大的新脚本功能，包括 BitVM、状态通道和高级契约。"
+}

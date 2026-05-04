@@ -1,0 +1,14 @@
+{
+  "id": "bip-144",
+  "name": "SegWit Peer Services",
+  "nameZh": "隔离见证对等网络服务",
+  "chainId": "bitcoin",
+  "upgradeId": "bip141-segwit",
+  "sortOrder": 3,
+  "type": "bip",
+  "number": 144,
+  "impact": "medium",
+  "category": "P2P网络",
+  "summary": "Defines new P2P protocol messages and serialization format for SegWit transactions, including witness inventory types and new message commands.",
+  "summaryZh": "定义了隔离见证交易的 P2P 协议消息和序列化格式，包括见证库存类型和新消息命令。"
+}

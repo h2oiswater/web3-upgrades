@@ -1,0 +1,14 @@
+{
+  "id": "bip-342",
+  "name": "Validation of Taproot Scripts",
+  "nameZh": "Taproot 脚本验证",
+  "chainId": "bitcoin",
+  "upgradeId": "bip340-taproot",
+  "sortOrder": 3,
+  "type": "bip",
+  "number": 342,
+  "impact": "high",
+  "category": "脚本系统",
+  "summary": "Defines Tapscript, an updated script version used in Taproot leaves, with changes to opcodes to support Schnorr signatures and merkle branch verification.",
+  "summaryZh": "定义了 Tapscript，一种在 Taproot 叶子中使用的更新版脚本，对操作码进行了更改以支持 Schnorr 签名和默克尔分支验证。"
+}

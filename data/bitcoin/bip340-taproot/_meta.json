@@ -1,0 +1,14 @@
+{
+  "id": "bip340-taproot",
+  "name": "Taproot",
+  "nameZh": "主根升级",
+  "date": "2021-11-14",
+  "blockNumber": "709,632",
+  "type": ["execution", "major"],
+  "icon": "🌲",
+  "summary": "Taproot (BIP-340/341/342) introduced Schnorr signatures, Taproot (merkleized alternative script trees), and Tapscript. Makes multi-sig and complex scripts indistinguishable from single-sig on-chain, improving privacy and efficiency. Activated via Speedy Trial.",
+  "summaryZh": "主根升级（BIP-340/341/342）引入了 Schnorr 签名、Taproot（默克尔化替代脚本树）和 Tapscript。使多重签名和复杂脚本在链上与单签名无法区分，提升了隐私性和效率。通过 Speedy Trial 激活。",
+  "sortOrder": 9,
+  "chainId": "bitcoin",
+  "status": "completed"
+}

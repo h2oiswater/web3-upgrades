@@ -1,0 +1,14 @@
+{
+  "id": "bip-341",
+  "name": "Taproot",
+  "nameZh": "主根",
+  "chainId": "bitcoin",
+  "upgradeId": "bip340-taproot",
+  "sortOrder": 2,
+  "type": "bip",
+  "number": 341,
+  "impact": "high",
+  "category": "脚本系统",
+  "summary": "Introduced Taproot, a merkleized alternative script tree that makes complex spending conditions indistinguishable from single-sig on-chain. Combined with Schnorr, this provides both privacy and efficiency improvements.",
+  "summaryZh": "引入了 Taproot，一种默克尔化替代脚本树，使复杂的花费条件在链上与单签名无法区分。与 Schnorr 结合，提供了隐私和效率的双重提升。"
+}

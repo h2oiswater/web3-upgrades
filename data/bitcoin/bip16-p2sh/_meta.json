@@ -1,0 +1,13 @@
+{
+  "id": "bip16-p2sh",
+  "name": "P2SH",
+  "nameZh": "支付到脚本哈希",
+  "date": "2012-04-01",
+  "type": ["execution", "major"],
+  "icon": "📜",
+  "summary": "Pay-to-Script-Hash (P2SH, BIP-16) introduced a new transaction type that allows the sender to pay to a hash of a script, rather than a public key. This enables multi-sig and complex spending conditions without burdening the sender with script details.",
+  "summaryZh": "支付到脚本哈希（P2SH，BIP-16）引入了一种新交易类型，允许发送方将资金支付给脚本哈希而非公钥。这使得多重签名和复杂花费条件成为可能，且无需发送方了解脚本细节。",
+  "sortOrder": 2,
+  "chainId": "bitcoin",
+  "status": "completed"
+}

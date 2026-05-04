@@ -1,0 +1,14 @@
+{
+  "id": "bip-65",
+  "name": "OP_CHECKLOCKTIMEVERIFY",
+  "nameZh": "检查锁定时间验证",
+  "chainId": "bitcoin",
+  "upgradeId": "bip65-cltv",
+  "sortOrder": 1,
+  "type": "bip",
+  "number": 65,
+  "impact": "high",
+  "category": "脚本系统",
+  "summary": "Introduced a new opcode that allows transaction outputs to be locked until a specific time or block height. Enables time-locked transactions, payment channels, and atomic swaps.",
+  "summaryZh": "引入了一个新的操作码，允许交易输出锁定到特定时间或区块高度。实现了时间锁交易、支付通道和原子交换。"
+}

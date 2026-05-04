@@ -1,0 +1,13 @@
+{
+  "id": "bip65-cltv",
+  "name": "CLTV",
+  "nameZh": "检查锁定时间验证",
+  "date": "2015-12-14",
+  "type": ["execution"],
+  "icon": "⏰",
+  "summary": "BIP-65 introduced OP_CHECKLOCKTIMEVERIFY (CLTV), a new opcode that allows transaction outputs to be locked until a specific time or block height, enabling time-locked transactions, payment channels, and atomic swaps.",
+  "summaryZh": "BIP-65 引入了 OP_CHECKLOCKTIMEVERIFY（CLTV）操作码，允许交易输出锁定到特定时间或区块高度，实现了时间锁交易、支付通道和原子交换。",
+  "sortOrder": 5,
+  "chainId": "bitcoin",
+  "status": "completed"
+}

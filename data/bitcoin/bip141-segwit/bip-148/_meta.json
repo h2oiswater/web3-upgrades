@@ -1,0 +1,14 @@
+{
+  "id": "bip-148",
+  "name": "Mandatory activation of segwit deployment",
+  "nameZh": "强制激活隔离见证",
+  "chainId": "bitcoin",
+  "upgradeId": "bip141-segwit",
+  "sortOrder": 5,
+  "type": "bip",
+  "number": 148,
+  "impact": "high",
+  "category": "治理机制",
+  "summary": "A User-Activated Soft Fork (UASF) that forced SegWit activation by rejecting non-signaling blocks after a specific date. This was the community's response to miners refusing to signal for SegWit, demonstrating the power of users in Bitcoin governance.",
+  "summaryZh": "用户激活软分叉（UASF），通过在特定日期后拒绝不发送信号的区块来强制激活隔离见证。这是社区对矿工拒绝发送 SegWit 信号的回应，展示了用户在比特币治理中的力量。"
+}

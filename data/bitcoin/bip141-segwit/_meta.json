@@ -1,0 +1,14 @@
+{
+  "id": "bip141-segwit",
+  "name": "SegWit",
+  "nameZh": "隔离见证",
+  "date": "2017-08-24",
+  "blockNumber": "481,824",
+  "type": ["execution", "major"],
+  "icon": "📦",
+  "summary": "Segregated Witness (BIP-141/143/144/145) separated transaction signatures (witness data) from the transaction data, fixing transaction malleability and effectively increasing block capacity to ~4MB. Activated via miner signaling (BIP9) and UASF (BIP148) after the block size wars.",
+  "summaryZh": "隔离见证（BIP-141/143/144/145）将交易签名（见证数据）与交易数据分离，修复了交易可延展性问题，并将区块容量有效提升至约4MB。在区块大小战争后，通过矿工信号（BIP9）和用户激活软分叉（BIP148）激活。",
+  "sortOrder": 8,
+  "chainId": "bitcoin",
+  "status": "completed"
+}

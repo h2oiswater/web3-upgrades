@@ -1,0 +1,14 @@
+{
+  "id": "bip-340",
+  "name": "Schnorr Signatures for secp256k1",
+  "nameZh": "secp256k1 的 Schnorr 签名",
+  "chainId": "bitcoin",
+  "upgradeId": "bip340-taproot",
+  "sortOrder": 1,
+  "type": "bip",
+  "number": 340,
+  "impact": "high",
+  "category": "密码学",
+  "summary": "Replaced ECDSA with Schnorr signatures, enabling key and signature aggregation (multiple signatures can be combined into one). Also supports batch verification for faster signature checking.",
+  "summaryZh": "用 Schnorr 签名替代 ECDSA，支持密钥和签名聚合（多个签名可合并为一个）。同时支持批量验证以加快签名检查速度。"
+}

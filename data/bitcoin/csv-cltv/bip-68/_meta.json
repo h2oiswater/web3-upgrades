@@ -1,0 +1,14 @@
+{
+  "id": "bip-68",
+  "name": "Relative Lock-Time via Sequence Numbers",
+  "nameZh": "通过序列号实现相对时间锁定",
+  "chainId": "bitcoin",
+  "upgradeId": "csv-cltv",
+  "sortOrder": 1,
+  "type": "bip",
+  "number": 68,
+  "impact": "high",
+  "category": "脚本系统",
+  "summary": "Enables relative lock-time using transaction sequence numbers, allowing inputs to specify a relative time constraint before they can be spent. This is the foundation for bi-directional payment channels.",
+  "summaryZh": "使用交易序列号实现相对时间锁定，允许输入在花费前指定相对时间约束。这是双向支付通道的基础。"
+}

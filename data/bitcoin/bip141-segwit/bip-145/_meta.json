@@ -1,0 +1,14 @@
+{
+  "id": "bip-145",
+  "name": "getblocktemplate Updates for SegWit",
+  "nameZh": "隔离见证的getblocktemplate更新",
+  "chainId": "bitcoin",
+  "upgradeId": "bip141-segwit",
+  "sortOrder": 4,
+  "type": "bip",
+  "number": 145,
+  "impact": "medium",
+  "category": "挖矿",
+  "summary": "Updates the getblocktemplate JSON-RPC method to include SegWit rules, allowing mining pool software to construct valid SegWit blocks.",
+  "summaryZh": "更新 getblocktemplate JSON-RPC 方法以包含隔离见证规则，允许矿池软件构造有效的隔离见证区块。"
+}

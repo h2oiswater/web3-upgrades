@@ -1,0 +1,13 @@
+{
+  "id": "csv-cltv",
+  "name": "CSV + Sequence Locks",
+  "nameZh": "CSV与序列号锁定",
+  "date": "2016-07-04",
+  "type": ["execution", "major"],
+  "icon": "🔗",
+  "summary": "BIP-68/112/113 collectively introduced CheckSequenceVerify (CSV) and relative lock-time, enabling bi-directional payment channels (Lightning Network precursor) and complex multi-step contracts with time-based conditions.",
+  "summaryZh": "BIP-68/112/113 共同引入了 CheckSequenceVerify（CSV）和相对时间锁定，实现了双向支付通道（闪电网络的前身）和基于时间的复杂多步合约。",
+  "sortOrder": 7,
+  "chainId": "bitcoin",
+  "status": "completed"
+}

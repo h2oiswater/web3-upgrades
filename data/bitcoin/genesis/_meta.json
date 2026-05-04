@@ -1,0 +1,14 @@
+{
+  "id": "genesis",
+  "name": "Genesis Block",
+  "nameZh": "创世区块",
+  "date": "2009-01-03",
+  "blockNumber": "0",
+  "type": ["major"],
+  "icon": "🟠",
+  "summary": "The first block of the Bitcoin blockchain, mined by Satoshi Nakamoto with the message \"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks\". Established the 50 BTC block reward and 10-minute block target.",
+  "summaryZh": "比特币区块链的第一个区块，由中本聪挖出，区块中记录了《泰晤士报》头版标题。确立了50 BTC的区块奖励和10分钟出块目标。",
+  "sortOrder": 1,
+  "chainId": "bitcoin",
+  "status": "completed"
+}

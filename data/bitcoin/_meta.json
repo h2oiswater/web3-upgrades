@@ -1,0 +1,11 @@
+{
+  "id": "bitcoin",
+  "name": "Bitcoin",
+  "nameZh": "比特币",
+  "icon": "₿",
+  "description": "A purely peer-to-peer version of electronic cash",
+  "descriptionZh": "纯粹的点对点电子现金",
+  "website": "https://bitcoin.org",
+  "active": true,
+  "sortOrder": 2
+}

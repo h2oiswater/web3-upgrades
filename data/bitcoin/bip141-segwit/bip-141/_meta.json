@@ -1,0 +1,14 @@
+{
+  "id": "bip-141",
+  "name": "Segregated Witness",
+  "nameZh": "隔离见证",
+  "chainId": "bitcoin",
+  "upgradeId": "bip141-segwit",
+  "sortOrder": 1,
+  "type": "bip",
+  "number": 141,
+  "impact": "high",
+  "category": "扩容",
+  "summary": "The main SegWit BIP. Separates witness data (signatures) from transaction data, fixing transaction malleability and effectively increasing block capacity. Activated at block 481,824.",
+  "summaryZh": "隔离见证主 BIP。将见证数据（签名）与交易数据分离，修复交易可延展性问题，并有效增加区块容量。在区块 481,824 激活。"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "bip66-strict-der",
+  "name": "Strict DER Signatures",
+  "nameZh": "严格DER签名",
+  "date": "2015-07-04",
+  "type": ["security"],
+  "icon": "✍️",
+  "summary": "BIP-66 enforced strict DER encoding for ECDSA signatures, eliminating a platform-dependent vulnerability where OpenSSL handled signatures differently on Linux vs Windows, which could be exploited to create targeted chain splits.",
+  "summaryZh": "BIP-66 强制要求 ECDSA 签名使用严格的 DER 编码，消除了一个平台相关漏洞：OpenSSL 在 Linux 和 Windows 上处理签名的方式不同，可能被利用制造针对性的链分裂。",
+  "sortOrder": 6,
+  "chainId": "bitcoin",
+  "status": "completed"
+}

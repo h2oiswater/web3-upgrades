@@ -1,0 +1,13 @@
+{
+  "id": "bip34-block-v2",
+  "name": "Block v2 + Coinbase Height",
+  "nameZh": "区块版本2与Coinbase高度",
+  "date": "2012-09-17",
+  "type": ["consensus"],
+  "icon": "🔢",
+  "summary": "BIP-34 requires the block height to be included in the coinbase transaction, preventing duplicate coinbase transactions across different blocks. This also introduced block version 2.",
+  "summaryZh": "BIP-34 要求在 coinbase 交易中包含区块高度，防止不同区块之间出现重复的 coinbase 交易。同时引入了区块版本2。",
+  "sortOrder": 3,
+  "chainId": "bitcoin",
+  "status": "completed"
+}
