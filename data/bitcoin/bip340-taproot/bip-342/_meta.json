@@ -10,5 +10,10 @@
   "impact": "high",
   "category": "脚本系统",
   "summary": "Defines Tapscript, an updated script version used in Taproot leaves, with changes to opcodes to support Schnorr signatures and merkle branch verification.",
-  "summaryZh": "定义了 Tapscript，一种在 Taproot 叶子中使用的更新版脚本，对操作码进行了更改以支持 Schnorr 签名和默克尔分支验证。"
+  "summaryZh": "定义了 Tapscript，一种在 Taproot 叶子中使用的更新版脚本，对操作码进行了更改以支持 Schnorr 签名和默克尔分支验证。",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

@@ -11,5 +11,9 @@
   "category": "密码学",
   "hasContent": true,
   "summary": "Proposes a new output type P2MR that operates like P2TR (Taproot) but removes the quantum-vulnerable key-path spend. Preserves tapscript functionality for Lightning, BitVM, and multi-sig. A critical first step for Bitcoin quantum resistance.",
-  "summaryZh": "提议一种新输出类型 P2MR，功能与 P2TR（Taproot）类似，但移除了量子脆弱的密钥路径花费。保留 Tapscript 功能以支持闪电网络、BitVM 和多重签名。是比特币抗量化的关键第一步。"
+  "summaryZh": "提议一种新输出类型 P2MR，功能与 P2TR（Taproot）类似，但移除了量子脆弱的密钥路径花费。保留 Tapscript 功能以支持闪电网络、BitVM 和多重签名。是比特币抗量化的关键第一步。",
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

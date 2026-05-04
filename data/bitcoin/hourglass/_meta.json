@@ -3,11 +3,18 @@
   "name": "Hourglass",
   "nameZh": "沙漏限制",
   "date": "TBD",
-  "type": ["security"],
+  "type": [
+    "security"
+  ],
   "icon": "⏳",
   "summary": "A soft fork proposal that rate-limits spends from quantum-vulnerable P2PK outputs. Limits P2PK spends to one per block and caps net release to 1 BTC per block, mitigating quantum-driven supply shocks if vulnerable coins are suddenly moved.",
   "summaryZh": "一种软分叉提议，限制量子脆弱的 P2PK 输出的花费速率。将 P2PK 花费限制为每区块一次，净释放上限为每区块 1 BTC，以减轻脆弱币被突然转移时的量子驱动供应冲击。",
   "sortOrder": 13,
   "chainId": "bitcoin",
-  "status": "in_progress"
+  "status": "in_progress",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

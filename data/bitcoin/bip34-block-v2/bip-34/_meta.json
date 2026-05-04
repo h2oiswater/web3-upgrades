@@ -10,5 +10,10 @@
   "impact": "medium",
   "category": "共识规则",
   "summary": "Requires the block height to be included in the coinbase transaction's input script, preventing duplicate coinbase transactions across different blocks. Also introduced block version 2.",
-  "summaryZh": "要求在 coinbase 交易的输入脚本中包含区块高度，防止不同区块之间出现重复的 coinbase 交易。同时引入了区块版本2。"
+  "summaryZh": "要求在 coinbase 交易的输入脚本中包含区块高度，防止不同区块之间出现重复的 coinbase 交易。同时引入了区块版本2。",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

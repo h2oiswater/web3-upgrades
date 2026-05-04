@@ -10,5 +10,10 @@
   "impact": "high",
   "category": "密码学",
   "summary": "Replaced ECDSA with Schnorr signatures, enabling key and signature aggregation (multiple signatures can be combined into one). Also supports batch verification for faster signature checking.",
-  "summaryZh": "用 Schnorr 签名替代 ECDSA，支持密钥和签名聚合（多个签名可合并为一个）。同时支持批量验证以加快签名检查速度。"
+  "summaryZh": "用 Schnorr 签名替代 ECDSA，支持密钥和签名聚合（多个签名可合并为一个）。同时支持批量验证以加快签名检查速度。",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

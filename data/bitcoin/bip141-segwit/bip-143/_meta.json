@@ -10,5 +10,10 @@
   "impact": "high",
   "category": "签名验证",
   "summary": "Defines a new transaction digest algorithm for SegWit version 0 witness programs, reducing signature hashing operations from O(n²) to O(n) and preventing quadratic hashing DoS attacks.",
-  "summaryZh": "为隔离见证版本0见证程序定义了新的交易摘要算法，将签名哈希操作从 O(n²) 降低到 O(n)，防止二次哈希 DoS 攻击。"
+  "summaryZh": "为隔离见证版本0见证程序定义了新的交易摘要算法，将签名哈希操作从 O(n²) 降低到 O(n)，防止二次哈希 DoS 攻击。",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

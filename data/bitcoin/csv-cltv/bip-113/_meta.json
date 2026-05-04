@@ -10,5 +10,10 @@
   "impact": "medium",
   "category": "共识规则",
   "summary": "Changed the time lock logic to use the median of the past 11 block timestamps instead of the current block timestamp. This makes time-based locks more reliable and less susceptible to miner manipulation.",
-  "summaryZh": "将时间锁定逻辑改为使用前11个区块时间戳的中位数，而非当前区块时间戳。这使基于时间的锁定更可靠，不易受矿工操纵。"
+  "summaryZh": "将时间锁定逻辑改为使用前11个区块时间戳的中位数，而非当前区块时间戳。这使基于时间的锁定更可靠，不易受矿工操纵。",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

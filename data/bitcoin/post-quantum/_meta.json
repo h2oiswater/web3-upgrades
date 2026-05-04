@@ -3,11 +3,19 @@
   "name": "Post-Quantum Migration",
   "nameZh": "抗量子迁移",
   "date": "TBD",
-  "type": ["security", "major"],
+  "type": [
+    "security",
+    "major"
+  ],
   "icon": "🛡️",
   "summary": "Bitcoin's three-phase transition to post-quantum cryptography. Introduces Pay-to-Merkle-Root (P2MR, BIP-360) as a quantum-resistant output type without the vulnerable key-path spend, and BIP-361 plans a phased sunset of ECDSA/Schnorr signatures over 5 years.",
   "summaryZh": "比特币向抗量子密码学的三阶段过渡。引入 Pay-to-Merkle-Root（P2MR，BIP-360）作为移除脆弱密钥路径花费的抗量子输出类型，BIP-361 规划在5年内分阶段淘汰 ECDSA/Schnorr 签名。",
   "sortOrder": 12,
   "chainId": "bitcoin",
-  "status": "in_progress"
+  "status": "in_progress",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

@@ -3,11 +3,18 @@
   "name": "OP_CAT",
   "nameZh": "字符串连接操作码",
   "date": "TBD",
-  "type": ["execution"],
+  "type": [
+    "execution"
+  ],
   "icon": "🧵",
   "summary": "BIP-347 proposes re-enabling OP_CAT, an opcode that concatenates two strings on the stack. This was disabled early in Bitcoin due to DoS concerns, but with Tapscript's 520-byte stack limit, it is now safe to re-enable. Enables BitVM, advanced covenants, and hash-based one-time signatures for quantum resistance.",
   "summaryZh": "BIP-347 提议重新启用 OP_CAT，一个将两个字符串连接的操作码。早期因 DoS 风险被禁用，但在 Tapscript 520字节栈限制下，现在可以安全重新启用。支持 BitVM 和高级契约。",
   "sortOrder": 11,
   "chainId": "bitcoin",
-  "status": "upcoming"
+  "status": "upcoming",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

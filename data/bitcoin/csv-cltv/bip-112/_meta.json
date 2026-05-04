@@ -10,5 +10,10 @@
   "impact": "high",
   "category": "脚本系统",
   "summary": "Introduced OP_CHECKSEQUENCEVERIFY (CSV), which uses sequence numbers to enforce relative time-locks on transaction outputs. Essential for trustless off-chain protocols like the Lightning Network.",
-  "summaryZh": "引入了 OP_CHECKSEQUENCEVERIFY（CSV），使用序列号对交易输出强制执行相对时间锁定。对闪电网络等无信任链下协议至关重要。"
+  "summaryZh": "引入了 OP_CHECKSEQUENCEVERIFY（CSV），使用序列号对交易输出强制执行相对时间锁定。对闪电网络等无信任链下协议至关重要。",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

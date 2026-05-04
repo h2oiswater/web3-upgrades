@@ -3,11 +3,18 @@
   "name": "CTV (CheckTemplateVerify)",
   "nameZh": "检查模板验证",
   "date": "TBD",
-  "type": ["execution"],
+  "type": [
+    "execution"
+  ],
   "icon": "📋",
   "summary": "BIP-119 proposes OP_CHECKTEMPLATEVERIFY (CTV), enabling covenant-like behavior by constraining how an output can be spent. Enables vaults, payment pools, and non-interactive channel creation.",
   "summaryZh": "BIP-119 提议引入 OP_CHECKTEMPLATEVERIFY（CTV），通过限制输出的花费方式实现类似契约的行为。支持金库、支付池和非交互式通道创建。",
   "sortOrder": 10,
   "chainId": "bitcoin",
-  "status": "upcoming"
+  "status": "upcoming",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

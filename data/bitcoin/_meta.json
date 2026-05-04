@@ -7,5 +7,10 @@
   "descriptionZh": "纯粹的点对点电子现金",
   "website": "https://bitcoin.org",
   "active": true,
-  "sortOrder": 2
+  "sortOrder": 2,
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

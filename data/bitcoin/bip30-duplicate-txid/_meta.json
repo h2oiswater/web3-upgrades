@@ -3,11 +3,18 @@
   "name": "Duplicate TXID Fix",
   "nameZh": "重复交易ID修复",
   "date": "2012-09-17",
-  "type": ["security"],
+  "type": [
+    "security"
+  ],
   "icon": "🔒",
   "summary": "BIP-30 fixed a critical vulnerability where multiple transactions could share the same transaction ID, which could be combined with a merkle tree quirk to break consensus between nodes (CVE-2012-2459).",
   "summaryZh": "BIP-30 修复了一个关键漏洞：多个交易可能共享相同的交易ID，这可能与默克尔树的特殊结构结合，破坏节点间的共识（CVE-2012-2459）。",
   "sortOrder": 4,
   "chainId": "bitcoin",
-  "status": "completed"
+  "status": "completed",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

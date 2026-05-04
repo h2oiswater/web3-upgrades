@@ -10,5 +10,10 @@
   "impact": "high",
   "category": "脚本系统",
   "summary": "P2SH allows the sender to pay to a hash of a script, rather than a public key hash. The recipient provides the full script when spending, reducing transaction size and complexity for multi-sig and other advanced scripts.",
-  "summaryZh": "P2SH 允许发送方将资金支付到脚本哈希而非公钥哈希。接收方在花费时提供完整脚本，减少了多重签名等高级脚本的交易大小和复杂性。"
+  "summaryZh": "P2SH 允许发送方将资金支付到脚本哈希而非公钥哈希。接收方在花费时提供完整脚本，减少了多重签名等高级脚本的交易大小和复杂性。",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }

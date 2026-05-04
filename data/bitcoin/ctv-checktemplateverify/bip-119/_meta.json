@@ -10,5 +10,10 @@
   "impact": "high",
   "category": "脚本系统",
   "summary": "OP_CHECKTEMPLATEVERIFY allows an output to commit to a specific future transaction pattern. This enables covenants, vaults with time-locked recovery, payment pools, and non-interactive Lightning channel creation.",
-  "summaryZh": "OP_CHECKTEMPLATEVERIFY 允许输出提交到特定的未来交易模式。支持契约、带时间锁恢复的金库、支付池和非交互式闪电通道创建。"
+  "summaryZh": "OP_CHECKTEMPLATEVERIFY 允许输出提交到特定的未来交易模式。支持契约、带时间锁恢复的金库、支付池和非交互式闪电通道创建。",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
 }
