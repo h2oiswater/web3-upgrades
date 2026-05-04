@@ -1,0 +1,14 @@
+{
+  "id": "bip-361",
+  "name": "Post-Quantum Migration and Legacy Signature Sunset",
+  "nameZh": "抗量子迁移与遗留签名淘汰",
+  "chainId": "bitcoin",
+  "upgradeId": "post-quantum",
+  "sortOrder": 2,
+  "type": "bip",
+  "number": 361,
+  "impact": "high",
+  "category": "治理机制",
+  "summary": "A phased migration plan: Phase A (3 years) blocks new funds to vulnerable addresses; Phase B (5 years) invalidates ECDSA/Schnorr signatures entirely; Phase C explores ZK-proof recovery for frozen funds. ~6.7M BTC currently in vulnerable addresses.",
+  "summaryZh": "分阶段迁移计划：A阶段（3年）阻止向脆弱地址发送新资金；B阶段（5年）完全淘汰 ECDSA/Schnorr 签名；C阶段探索使用零知识证明恢复被冻结的资金。目前约670万 BTC 位于脆弱地址中。"
+}
