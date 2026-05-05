@@ -73,7 +73,7 @@ const roadmapSteps = [
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="zk-grid">
         {chapters.map((chapter, idx) => (
           <a 
-            href={`/zk-learning/${String(chapter.id).padStart(2, '0')}`}
+            href={`/zk-learning/${String(chapter.id).padStart(2, '0')}/`}
             class="zk-card block p-6 rounded-xl border border-[#2a2a3a] bg-[#16161e] hover:bg-[#1c1c26] transition-all hover:-translate-y-1"
             data-category={chapter.category}
             style={`animation: fadeInUp 0.5s ease forwards; animation-delay: ${idx * 0.05}s; opacity: 0;`}
