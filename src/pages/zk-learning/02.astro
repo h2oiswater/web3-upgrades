@@ -1,0 +1,315 @@
+---
+import Layout from '../../layouts/Layout.astro';
+const htmlContent = `<h1>第2章 数学基础I：模运算与有限域——从时钟算术到密码学世界</h1>
+<h2>2.1 学习目标</h2>
+<p>读完本章后，你将能够：</p>
+<ul><li><strong>用"时钟算术"的直觉理解模运算</strong>，并能手工验证 \$a \\equiv b \\pmod{n}\$ 这类同余关系；</li>
+<li><strong>说出有限域（Finite Field）的四条公理</strong>，并解释为什么元素个数必须是素数幂 \$p^n\$；</li>
+<li><strong>理解为什么ZK系统坚持使用素域 \$\\mathbb{F}_p\$</strong>，尤其是素数 \$p\$ 如何保证每个非零元素都有乘法逆元；</li>
+<li><strong>用Python实现一个素域类</strong>，支持加减乘除四则运算，运算结果始终落在有限集合内。</li>
+</ul><hr>
+<h2>2.2 模运算：循环世界中的算术</h2>
+<h3>2.2.1 类比：时钟算术</h3>
+<p>想象一个12小时制的挂钟。现在是10点，再过5小时是几点？不是15点，而是3点。因为在时钟的世界里，数字走到12之后会"绕回"到1[^216^][^220^]。</p>
+<p>你可以把时钟上的算术规则总结为：<strong>做完普通加减法后，如果结果大于等于12，就不断减去12，直到结果落在0到11之间</strong>。7加8等于15，15减去12得3，所以 \$7 + 8 \\equiv 3 \\pmod{12}\$。同样，10减去4等于6，不需要绕回，所以 \$10 - 4 \\equiv 6 \\pmod{12}\$。而2减去5等于-3，-3加上12得9，所以 \$2 - 5 \\equiv 9 \\pmod{12}\$。</p>
+<p>下面这幅图展示了模12加法在"时钟"上的循环结构：</p>
+<pre class="code-block"><code>        11 ←—— 0 ——→ 1
+       ↑              ↓
+      10              2
+       ↑              ↓
+       9 ←—— 8 ←—— 7 ← 6 ←—— 5 ←—— 4 ←—— 3
+
+示例：从 10 出发，+5 小时后的路径：
+  10 ──→ 11 ──→ 0 ──→ 1 ──→ 2 ──→ 3
+   0      1      2      3      4      5  (步数)
+</code></pre>
+<p>在这个循环结构中，没有"12"这个数字——11之后直接回到0。所有运算的结果都被强制"吸附"在0到11的区间内。ZK系统中的素域 \$\\mathbb{F}_p\$ 本质上就是一个有 \$p\$ 个刻度的"超级时钟"。</p>
+<p>这个"绕回"机制就是模运算（Modular Arithmetic）的全部直觉。密码学家给它取了一个正式的名字：模 \$n\$ 运算。时钟是模12，星期是模7，月份是模12。在ZK系统中，我们使用的模数不是12，而是一个巨大的素数——通常是256位甚至更大——但规则完全相同：所有运算结果都必须"坐进"这个固定大小的集合里，没有例外[^274^]。</p>
+<p>Vitalik Buterin在介绍zk-SNARKs时特别强调："所有加减乘除不是用常规数字，而是用有限域元素——一种自洽的算术，所有答案都在某个有限集合中。"[^274^] 这句话的底层含义正是模运算。</p>
+<h3>2.2.2 形式化定义：同余关系</h3>
+<p>让我们把时钟直觉翻译成严格的数学语言。</p>
+<blockquote><strong>定义（同余）</strong>：给定正整数 \$n\$，如果两个整数 \$a\$ 和 \$b\$ 的差 \$a - b\$ 能被 \$n\$ 整除，我们称 \$a\$ 与 \$b\$ <strong>模 \$n\$ 同余</strong>（congruent modulo \$n\$），记作：</blockquote>
+<blockquote>\$\$a \\equiv b \\pmod{n}\$\$</blockquote>
+>
+<blockquote>等价地说，\$a \\equiv b \\pmod{n}\$ 当且仅当 \$a\$ 和 \$b\$ 除以 \$n\$ 后有相同的余数。</blockquote>
+<p>例如，\$17 \\equiv 5 \\pmod{12}\$，因为 \$17 - 5 = 12\$ 能被12整除。同样，\$-3 \\equiv 9 \\pmod{12}\$，因为 \$-3 - 9 = -12\$ 也能被12整除。</p>
+<p>在模 \$n\$ 的框架下，整数被划分为 \$n\$ 个"等价类"：<br><ul><li>\$[0]\$ 包含 \$\\{\\ldots, -12, 0, 12, 24, \\ldots\\}\$</li><br><li>\$[1]\$ 包含 \$\\{\\ldots, -11, 1, 13, 25, \\ldots\\}\$</li><br><li>……</li><br><li>\$[11]\$ 包含 \$\\{\\ldots, -1, 11, 23, \\ldots\\}\$</li></ul></p>
+<p>每个等价类用一个<strong>代表元</strong>（通常是0到 \$n-1\$ 之间的最小非负整数）来标记。我们在ZK中打交道的就是这些代表元——它们是有限集合 \$\\{0, 1, 2, \\ldots, n-1\\}\$ 中的元素。</p>
+<h3>2.2.3 模运算的代数性质</h3>
+<p>模运算不是一个"阉割版"的普通算术，而是一个<strong>自洽的代数系统</strong>。它保留了普通整数运算中最核心的几条规律[^275^]：</p>
+<p><strong>封闭性（Closure）</strong>：对集合 \$\\{0, 1, \\ldots, n-1\\}\$ 中的任意两个元素做加法或乘法，结果（取模后）仍然在这个集合中。就像时钟上任意两个时刻相加，结果仍然是某个时刻——永远不会出现"13.5点"这种东西。</p>
+<p><strong>结合律（Associativity）</strong>：\$(a + b) + c \\equiv a + (b + c) \\pmod{n}\$，乘法同理。你可以放心地省略括号，就像普通算术一样。</p>
+<p><strong>交换律（Commutativity）</strong>：\$a + b \\equiv b + a \\pmod{n}\$，乘法同理。</p>
+<p><strong>分配律（Distributivity）</strong>：\$a \\times (b + c) \\equiv (a \\times b) + (a \\times c) \\pmod{n}\$。这条性质在后续多项式运算中极其重要——它保证了展开和因式分解在模运算下依然有效。</p>
+<p><strong>单位元（Identity Elements）</strong>：0是加法单位元（\$a + 0 \\equiv a\$），1是乘法单位元（\$a \\times 1 \\equiv a\$）。</p>
+<p><strong>加法逆元（Additive Inverse）</strong>：对任意 \$a\$，存在 \$-a\$ 使得 \$a + (-a) \\equiv 0 \\pmod{n}\$。在模 \$n\$ 下，\$-a\$ 其实就是 \$n - a\$（当 \$a \\neq 0\$ 时）。例如模12下，-5 的代表元是7，因为 \$5 + 7 = 12 \\equiv 0 \\pmod{12}\$。</p>
+<p>有了加法逆元，减法就天然有定义：\$a - b \\equiv a + (-b) \\pmod{n}\$。</p>
+<p><strong>乘法逆元（Multiplicative Inverse）</strong>：这是最关键的一条，也是下一节的核心话题。对任意非零 \$a\$，是否存在一个 \$a^{-1}\$ 使得 \$a \\times a^{-1} \\equiv 1 \\pmod{n}\$？<strong>答案是：只有当 \$n\$ 是素数时，所有非零元素才 guaranteed 有乘法逆元</strong>[^283^][^284^]。</p>
+<p>为什么这一点如此重要？因为<strong>除法就是乘以逆元</strong>。如果乘法逆元不存在，除法就无定义，整个代数系统就不完整。这也是为什么ZK系统的"地基"必须选用素数作为模数。</p>
+<h3>2.2.4 为什么ZK使用模运算</h3>
+<p>如果你用普通整数做密码学运算，很快就会遇到一个麻烦：数字会<strong>爆炸式增长</strong>。两个256位数相乘，结果变成512位；再乘一次，变成1024位……几轮下来，内存和计算时间都不可承受。</p>
+<p>模运算解决这个问题的思路极其优雅：<strong>每次运算后立即"绕回"</strong>，把结果强行压回固定范围。无论做多少次乘法，结果始终是一个 \$n\$ 位以内的数字。就像时钟无论转多少圈，指针始终停留在表盘上。</p>
+<p>此外，模运算还有一个密码学上的深层优势：<strong>精确性</strong>。在浮点数世界里，\$0.1 + 0.2 \\neq 0.3\$ 是 infamous 的陷阱。但在有限域中，\$a + b\$ 永远精确等于某个确定的代表元，没有任何舍入误差。这对于ZK证明系统至关重要——验证者必须能够精确复现证明者的每一步运算[^197^]。</p>
+<hr>
+<h2>2.3 有限域（Finite Field）</h2>
+<h3>2.3.1 类比：严格规则的棋盘游戏</h3>
+<p>想象一个特殊的棋盘游戏：棋盘上有 \$p\$ 个格子，编号0到 \$p-1\$。你的棋子每次移动都必须落在其中一个格子上——没有"棋盘外"的概念。游戏提供四种基本操作：前进（加）、后退（减）、跳跃倍增（乘）、和反向跳跃（除）。</p>
+<p>这个游戏的特殊规则是：<strong>无论你怎么组合这四种操作，棋子永远不会离开棋盘</strong>。而且更妙的是，<strong>对于任何一种操作，总存在一个"撤销操作"让你回到原位</strong>：加了5，可以减5撤销；乘了3，可以除以3撤销——前提是 \$p\$ 选得恰当[^275^]。</p>
+<p>这个棋盘游戏就是有限域（Finite Field，也称Galois Field，记作 \$\\mathbb{F}_p\$ 或 \$GF(p)\$）的直观形象。它是一个<strong>元素个数有限、但支持完整四则运算</strong>的代数系统。</p>
+<h3>2.3.2 定义：域的四条公理</h3>
+<blockquote><strong>定义（域，Field）</strong>：一个域是由集合 \$F\$ 和两种运算（加法 \$+\$ 和乘法 \$\\cdot\$）组成的代数结构，满足以下四条公理：</blockquote>
+>
+<blockquote>1. <strong>\$(F, +)\$ 是阿贝尔群</strong>：加法封闭、结合、交换，有零元0，每个元素有加法逆元；</blockquote>
+<blockquote>2. <strong>\$(F \\setminus \\{0\\}, \\cdot)\$ 是阿贝尔群</strong>：乘法（对非零元素）封闭、结合、交换，有单位元1，每个非零元素有乘法逆元；</blockquote>
+<blockquote>3. <strong>分配律成立</strong>：\$a \\cdot (b + c) = a \\cdot b + a \\cdot c\$；</blockquote>
+<blockquote>4. <strong>\$0 \\neq 1\$</strong>：域至少包含两个元素。</blockquote>
+<p>用 Jeremy Kun 的程序员视角来理解这个层次结构最为清晰：群（Group）是"带合法操作的集合"，环（Ring）是"支持加法和乘法的集合"，域（Field）是"支持加减乘除的完整计算器"[^275^]。有限域就是"按钮数量有限、但功能完整的计算器"。</p>
+<p>这个代数结构的层次可以用下图表示：</p>
+<pre class="code-block"><code>代数结构层次（能力递增）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  群 (Group)          环 (Ring)            域 (Field)
+  ┌─────────┐        ┌─────────┐         ┌─────────┐
+  │  +      │   ⊂    │  + , ×  │    ⊂    │ +,−,×,÷ │
+  │ 封闭    │        │ 封闭    │         │ 封闭    │
+  │ 可逆    │        │ 加可逆  │         │ 加可逆  │
+  │         │        │ 乘不一定│         │ 乘可逆  │
+  │ 例: Z_n │        │ 例: Z   │         │ 例: F_p │
+  └─────────┘        └─────────┘         └─────────┘
+         ↑                                  ↑
+         └────────── 有限域的核心 ──────────┘
+              每个非零元都有乘法逆元
+              （仅当模数为素数时成立）
+</code></pre>
+<p>图中 \$Z_n\$ 表示模 \$n\$ 整数集，\$Z\$ 表示全体整数。整数集 \$Z\$ 是环但不是域，因为像 \$3 \\div 2 = 1.5\$ 这样的结果不在整数集内。而 \$\\mathbb{F}_p\$ 通过有限性+素数模数，奇迹般地同时获得了封闭性和可逆性。</p>
+<blockquote><strong>定理（有限域的大小）</strong>：有限域的元素个数必定是某个素数 \$p\$ 的幂次，即 \$p^n\$，其中 \$n \\geq 1\$。反之，对任意素数幂 \$p^n\$，存在唯一的（同构意义下）有限域，记作 \$\\mathbb{F}_{p^n}\$ 或 \$GF(p^n)\$。</blockquote>
+<p>当 \$n = 1\$ 时，我们得到<strong>素域（Prime Field）</strong> \$\\mathbb{F}_p\$，它是所有有限域中最简单、也是ZK中最常用的一种。</p>
+<h3>2.3.3 素域 \$\\mathbb{F}_p\$：模 \$p\$ 的最简有限域</h3>
+<p>素域 \$\\mathbb{F}_p\$ 的构造极其简单：取素数 \$p\$，集合就是 \$\\{0, 1, 2, \\ldots, p-1\\}\$，运算就是模 \$p\$ 的加减乘除。它是有限域的"原子"——所有更大的有限域都可以从它出发构造出来。</p>
+<p>在ZK系统中，几乎所有算术运算都在某个素域上进行。例如：<br><ul><li>BN254曲线的标量域使用一个接近 \$2^{254}\$ 的素数 \$r\$；</li><br><li>BLS12-381曲线的标量域使用另一个巨大的素数[^201^]。</li></ul></p>
+<p>电路中的每一次加法、乘法约束，本质上都是在说："这些信号在 \$\\mathbb{F}_p\$ 中满足以下等式……"</p>
+<h3>2.3.4 素数的魔法：为什么 \$p\$ 必须是素数</h3>
+<p>这是本章最关键的问题。让我们用反例来说明为什么合数不行。</p>
+<p>考虑模4的集合 \$\\{0, 1, 2, 3\\}\$。它支持加法逆元：-1 ≡ 3，-2 ≡ 2，-3 ≡ 1。它似乎是一个不错的候选。但让我们检查乘法逆元：</p>
+<p>| \$a\$ | 寻找 \$a^{-1}\$ 使得 \$a \\times a^{-1} \\equiv 1 \\pmod{4}\$ | 结果 |<br>|:---:|:---|:---:|<br>| 1 | \$1 \\times 1 = 1\$ | ✅ 逆元是1 |<br>| 2 | \$2 \\times 1 = 2\$, \$2 \\times 2 = 0\$, \$2 \\times 3 = 2\$ | ❌ 无解 |<br>| 3 | \$3 \\times 3 = 9 \\equiv 1\$ | ✅ 逆元是3 |</p>
+<p>元素2没有乘法逆元！这意味着在模4的世界里，<strong>除以2是不可能的</strong>[^284^]。整个系统因此不满足域的第二条公理，模4的整数只能构成一个"环"（Ring），而不是域。</p>
+<p>问题的根源在于：4是合数，\$4 = 2 \\times 2\$。元素2与模数4有公因子2，这种"不互素"的关系破坏了逆元的存在性。</p>
+<blockquote><strong>定理</strong>：在模 \$n\$ 的整数中，元素 \$a\$ 存在乘法逆元当且仅当 \$\\gcd(a, n) = 1\$（即 \$a\$ 与 \$n\$ 互素）。</blockquote>
+<p>当 \$n = p\$ 是素数时，任何 \$a \\in \\{1, 2, \\ldots, p-1\\}\$ 都满足 \$\\gcd(a, p) = 1\$，因此<strong>每个非零元素都保证有乘法逆元</strong>。这就是素数作为模数的魔力——它确保了整个集合在乘除法下封闭且可逆。</p>
+<hr>
+<h2>2.4 扩展域与塔式构造</h2>
+<h3>2.4.1 从 \$\\mathbb{F}_p\$ 到 \$\\mathbb{F}_{p^n}\$</h3>
+<p>素域 \$\\mathbb{F}_p\$ 是最基础的有限域，但在某些高级ZK协议中，我们需要更大的域。扩展域 \$\\mathbb{F}_{p^n}\$ 的元素数量是 \$p^n\$，它的构造思路是：把 \$\\mathbb{F}_p\$ 上的多项式系数作为"多维坐标"，用一个不可约多项式来定义乘法规则。</p>
+<p>具体地说，\$\\mathbb{F}_{p^n}\$ 中的每个元素可以表示为 \$\\mathbb{F}_p\$ 上的一个 \$n-1\$ 次多项式：<br>\$\$a_0 + a_1 X + a_2 X^2 + \\ldots + a_{n-1} X^{n-1}\$\$<br>其中每个系数 \$a_i \\in \\mathbb{F}_p\$。加法就是对应系数相加（在 \$\\mathbb{F}_p\$ 中）。乘法则是多项式相乘后，对一个选定的 \$n\$ 次<strong>不可约多项式</strong>（irreducible polynomial）取模——类似于整数模运算中的"绕回"，但对象是多项式而非整数。</p>
+<h3>2.4.2 类比：扩展域像给基础颜色添加调色维度</h3>
+<p>如果素域 \$\\mathbb{F}_p\$ 像一套只有红、绿、蓝三个基础颜色的调色盘，那么扩展域 \$\\mathbb{F}_{p^n}\$ 就像给这套调色盘增加了亮度、饱和度等额外维度。基础规则（颜色的混合原理）没有改变，但你可以表达更丰富的"颜色"——即更多的域元素。</p>
+<p>在大多数ZK入门场景中，素域 \$\\mathbb{F}_p\$ 已经足够。扩展域主要出现在需要更高安全级别或特定协议优化（如某些STARK构造）的场景。理解它的核心要点即可：<strong>扩展域保留了底层域的所有代数性质，只是用多项式表示元素，用不可约多项式定义乘法的"绕回"规则</strong>。</p>
+<hr>
+<h2>2.5 实战：用Python实现有限域运算</h2>
+<h3>2.5.1 实现素域 \$\\mathbb{F}_p\$ 的加减乘除</h3>
+<p>让我们用Python从零实现一个素域类。这个实现参考了 Jimmy Song 在 <em>Programming Bitcoin</em> 中的教学代码风格[^188^][^244^]——清晰、自包含、每个方法都带完整注释。</p>
+<pre class="code-block"><code>"""
+素域 F_p 的Python实现
+适合ZK学习的基础版本，代码力求可读性优先于性能
+"""
+
+
+class FieldElement:
+    """
+    有限域 F_p 中的元素。
+    每个元素由两个数确定：值(num)和域的大小(prime)。
+    """
+    def __init__(self, num, prime):
+        # 确保 num 落在 [0, prime-1] 范围内
+        # 负数通过加 prime 的倍数"绕回"到正数区间
+        if num < 0:
+            num += prime * ((-num // prime) + 1)
+        self.num = num % prime
+        self.prime = prime
+
+    def __repr__(self):
+        return f"FieldElement_{self.prime}({self.num})"
+
+    def __eq__(self, other):
+        # 两个域元素相等，当且仅当它们的值和域大小都相同
+        if other is None:
+            return False
+        return self.num == other.num and self.prime == other.prime
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __add__(self, other):
+        # 加法：先做普通加法，再对 prime 取模
+        # 封闭性保证：结果始终落在 [0, prime-1]
+        if self.prime != other.prime:
+            raise TypeError("不能对两个不同域的元素做加法")
+        num = (self.num + other.num) % self.prime
+        return self.__class__(num, self.prime)
+
+    def __sub__(self, other):
+        # 减法：利用加法逆元。在 F_p 中，-a 等价于 prime - a
+        if self.prime != other.prime:
+            raise TypeError("不能对两个不同域的元素做减法")
+        num = (self.num - other.num) % self.prime
+        return self.__class__(num, self.prime)
+
+    def __mul__(self, other):
+        # 乘法：先做普通乘法，再对 prime 取模
+        if self.prime != other.prime:
+            raise TypeError("不能对两个不同域的元素做乘法")
+        num = (self.num * other.num) % self.prime
+        return self.__class__(num, self.prime)
+
+    def __pow__(self, exponent):
+        # 幂运算：使用快速幂算法，复杂度 O(log exponent)
+        # 在有限域中，指数可以对 (prime-1) 取模（费马小定理）
+        # 但为了代码清晰，这里直接做快速幂取模
+        n = exponent % (self.prime - 1)  # 费马小定理优化
+        num = pow(self.num, n, self.prime)
+        return self.__class__(num, self.prime)
+
+    def __truediv__(self, other):
+        # 除法：a / b = a * b^{-1}
+        # 乘法逆元通过费马小定理计算：b^{-1} = b^(prime-2) mod prime
+        if self.prime != other.prime:
+            raise TypeError("不能对两个不同域的元素做除法")
+        if other.num == 0:
+            raise ZeroDivisionError("有限域中不能除以零")
+        # 费马小定理：对素数 p，b^(p-1) ≡ 1 (mod p)，所以 b^(p-2) ≡ b^{-1} (mod p)
+        inverse = pow(other.num, self.prime - 2, self.prime)
+        num = (self.num * inverse) % self.prime
+        return self.__class__(num, self.prime)
+
+
+# ==================== 使用示例 ====================
+if __name__ == "__main__":
+    # 选择一个小的素数 p=19，方便手工验证
+    p = 19
+    a = FieldElement(7, p)   # F_19 中的元素 7
+    b = FieldElement(12, p)  # F_19 中的元素 12
+
+    print(f"域: F_{p}")
+    print(f"a = {a}, b = {b}")
+    print(f"a + b = {a + b}")        # 7 + 12 = 19 ≡ 0 (mod 19)
+    print(f"a - b = {a - b}")        # 7 - 12 = -5 ≡ 14 (mod 19)
+    print(f"a * b = {a * b}")        # 7 * 12 = 84 ≡ 84-4*19=84-76=8 (mod 19)
+    print(f"a / b = {a / b}")        # 12^{-1} mod 19 = 8, 7*8=56 ≡ 56-2*19=18 (mod 19)
+    print(f"a^3    = {a ** 3}")      # 7^3 = 343 ≡ 343-18*19=343-342=1 (mod 19)
+
+    # 验证乘法逆元：b * (1/b) 应该等于 1
+    one = FieldElement(1, p)
+    print(f"b * (1/b) = {b * (a / a)} == {one} ? {b * (b ** (p-2)) == one}")
+
+    # 验证分配律：a * (b + c) == a*b + a*c
+    c = FieldElement(5, p)
+    lhs = a * (b + c)
+    rhs = a * b + a * c
+    print(f"分配律验证: a*(b+c)={lhs} == a*b+a*c={rhs} ? {lhs == rhs}")
+</code></pre>
+<p>让我们解析这段代码中的几个关键设计决策：</p>
+<p><strong>为什么用 <code class="inline-code">__eq__</code> 比较两个属性？</strong> 在有限域中，\$7 \\in \\mathbb{F}_{19}\$ 和 \$7 \\in \\mathbb{F}_{23}\$ 是完全不同的数学对象。因此 <code class="inline-code">FieldElement</code> 必须同时记住"值"和"域大小"，并且拒绝不同域之间的运算。</p>
+<p><strong>为什么除法用 <code class="inline-code">pow(other.num, self.prime - 2, self.prime)</code>？</strong> 这就是著名的<strong>费马小定理</strong>（Fermat's Little Theorem）：若 \$p\$ 是素数且 \$a \\not\\equiv 0 \\pmod{p}\$，则 \$a^{p-1} \\equiv 1 \\pmod{p}\$。两边同乘 \$a^{-1}\$，得到 \$a^{p-2} \\equiv a^{-1} \\pmod{p}\$。Python内置的 <code class="inline-code">pow(base, exp, mod)</code> 已经用快速幂算法实现了 \$O(\\log p)\$ 复杂度，非常高效。</p>
+<p><strong>为什么幂运算中 <code class="inline-code">exponent % (self.prime - 1)</code> 是安全的？</strong> 这正是费马小定理的直接推论：\$a^{p-1} \\equiv 1\$，所以 \$a^k \\equiv a^{k \\bmod (p-1)}\$。这个优化把指数范围缩小了，在ZK中尤其重要，因为指数可能非常大。</p>
+<h3>2.5.2 与现有库对比</h3>
+<p>在实际ZK开发中，你不会手写有限域运算。Python的 <code class="inline-code">galois</code> 库提供了工业级实现，支持任意 \$p^n\$ 的有限域构造。以下是等价的 <code class="inline-code">galois</code> 代码，供你对照参考：</p>
+<pre class="code-block"><code>import galois
+
+# 构造素域 GF(19)
+GF19 = galois.GF(19)
+a = GF19(7)
+b = GF19(12)
+
+print(a + b)   # 0
+print(a * b)   # 8
+print(a / b)   # 18
+</code></pre>
+<p>自己实现一遍的价值在于：当你读到zk-SNARKs源码中 <code class="inline-code">FieldElement</code> 相关的代码时，你能立即理解每一个操作背后的数学含义。正如 <em>Programming Bitcoin</em> 所展示的，从零实现是建立深层理解的最好方式[^188^]。</p>
+<hr>
+<h2>2.6 本章小结</h2>
+<p>让我们回顾本章的核心脉络：</p>
+<p><strong>模运算</strong>的本质是"循环算术"——所有运算结果落在一个固定大小的集合内，超出范围的值通过"绕回"机制拉回。时钟算术（模12）是理解这一概念的最佳起点[^216^][^220^]。</p>
+<p><strong>同余关系</strong> \$a \\equiv b \\pmod{n}\$ 形式化了"绕回"的数学含义：两个数模 \$n\$ 同余，当且仅当它们除以 \$n\$ 的余数相同。模运算保留了普通算术的结合律、交换律和分配律，因此多项式展开、因式分解等操作在模环境下依然有效。</p>
+<p><strong>有限域（Finite Field）</strong> 是一个支持完整四则运算的有限集合，必须满足四条公理：加法群、乘法群（非零元）、分配律、\$0 \\neq 1\$。有限域的元素个数必为素数幂 \$p^n\$[^283^]。</p>
+<p><strong>素域 \$\\mathbb{F}_p\$</strong> 是最简单的有限域，集合为 \$\\{0, 1, \\ldots, p-1\\}\$，运算是模 \$p\$ 的加减乘除。ZK系统的所有基础算术都在某个素域上进行[^274^]。</p>
+<p><strong>素数的必要性</strong>在于乘法逆元的存在性：当且仅当模数 \$p\$ 是素数时，每个非零元素都保证有逆元，从而除法总有定义[^284^]。合数模数（如模4）会导致某些元素不可逆，破坏域结构。</p>
+<p><strong>费马小定理</strong> \$a^{p-1} \\equiv 1 \\pmod{p}\$ 为乘法逆元的计算提供了高效算法：\$a^{-1} \\equiv a^{p-2} \\pmod{p}\$，这正是我们Python实现中除法操作的核心。</p>
+<hr>
+<h2>2.7 思考题与练习题</h2>
+<h3>概念理解</h3>
+<p><strong>习题 2.1</strong>（手工验证模运算）<br>在 \$\\mathbb{F}_{13}\$ 中手工计算以下各式，展示每一步的中间结果：<br><ul><li>\$9 + 8\$；</li><br><li>\$5 - 10\$；</li><br><li>\$7 \\times 3\$；</li><br><li>\$6 \\div 4\$（提示：先找 \$4^{-1} \\pmod{13}\$）。</li></ul></p>
+<p><strong>习题 2.2</strong>（为什么合数不行）<br>在模8的集合 \$\\{0, 1, \\ldots, 7\\}\$ 中，找出所有没有乘法逆元的元素，并解释它们为什么不可逆（提示：检查哪些元素与8的最大公约数大于1）。这说明模8的整数不构成域，而只构成一个"环"。</p>
+<h3>动手实践</h3>
+<p><strong>习题 2.3</strong>（扩展Python实现）<br>在上文的 <code class="inline-code">FieldElement</code> 类基础上，添加以下功能：<br><ul><li><code class="inline-code">__neg__</code> 方法，返回加法逆元（即 \$-a \\pmod{p}\$）；</li><br><li><code class="inline-code">sqrt</code> 方法，若元素是二次剩余则返回其平方根（提示：对素数 \$p \\equiv 3 \\pmod{4}\$，有 \$\\sqrt{a} = a^{(p+1)/4}\$）。</li></ul></p>
+<p>在 \$\\mathbb{F}_{19}\$ 中测试：验证 \$(\\sqrt{7})^2 = 7\$ 是否成立。</p>
+<p><strong>习题 2.4</strong>（探索大素数域）<br>BN254曲线使用的标量域素数为：<br>\$\$r = 21888242871839275222246405745257275088548364400416034343698204186575808495617\$\$</p>
+<p>用Python验证：在此域中，计算 \$123456789^{r-1} \\mod r\$，结果应该是什么？用费马小定理解释为什么。这个练习让你亲身体验ZK系统实际使用的域规模。</p>
+<hr>`;
+---
+
+<Layout title="第02章 - 数学基础I：模运算与有限域" description="ZK学习第02章：数学基础I：模运算与有限域">
+  <main class="min-h-screen bg-[#0A0A0F]">
+    <section class="py-12 px-4 border-b border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto">
+        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+          <span>←</span> 返回 ZK 学习列表
+        </a>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)]">
+            02
+          </div>
+          <span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">
+            数学基础
+          </span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white">数学基础I：模运算与有限域</h1>
+      </div>
+    </section>
+
+    <section class="py-8 px-4">
+      <div class="max-w-4xl mx-auto">
+        <article class="prose-zk" set:html={htmlContent} />
+      </div>
+    </section>
+
+    <section class="py-8 px-4 border-t border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto flex justify-between items-center">
+        
+          <a href="/zk-learning/01" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <span>←</span>
+            <div class="text-left">
+              <div class="text-xs text-[#6a6a80]">上一章</div>
+              <div class="text-sm font-medium">导论：走进零知识证明的世界</div>
+            </div>
+          </a>
+        
+          <a href="/zk-learning/03" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <div class="text-right">
+              <div class="text-xs text-[#6a6a80]">下一章</div>
+              <div class="text-sm font-medium">数学基础II：群、环、域</div>
+            </div>
+            <span>→</span>
+          </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style is:global>
+  .prose-zk { color: #9a9ab0; line-height: 1.8; font-size: 0.95rem; }
+  .prose-zk h1 { color: #fff; font-size: 1.8rem; font-weight: 700; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h2 { color: #fff; font-size: 1.4rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h3 { color: #e0e0f0; font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .prose-zk h4 { color: #e0e0f0; font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  .prose-zk h5, .prose-zk h6 { color: #c0c0d0; font-size: 1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+  .prose-zk p { margin: 0.75rem 0; }
+  .prose-zk ul { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .prose-zk li { margin: 0.35rem 0; }
+  .prose-zk li::marker { color: #00d4aa; }
+  .prose-zk blockquote { margin: 1rem 0; padding: 0.75rem 1rem; border-left: 3px solid rgba(0, 212, 170, 0.4); background: rgba(0, 212, 170, 0.03); border-radius: 0 6px 6px 0; color: #b0b0c0; font-style: italic; }
+  .prose-zk hr { border: none; border-top: 1px solid #2a2a3a; margin: 1.5rem 0; }
+  .prose-zk .code-block { background: #0f0f16; border: 1px solid #2a2a3a; border-radius: 8px; padding: 1rem; margin: 1rem 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; color: #c0c0d0; }
+  .prose-zk .inline-code { background: rgba(0, 212, 170, 0.08); color: #00d4aa; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; border: 1px solid rgba(0, 212, 170, 0.15); }
+  .prose-zk strong { color: #e0e0f0; font-weight: 600; }
+  .prose-zk em { color: #b0b0c0; }
+</style>

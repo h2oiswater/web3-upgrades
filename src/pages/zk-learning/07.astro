@@ -1,0 +1,448 @@
+---
+import Layout from '../../layouts/Layout.astro';
+const htmlContent = `<h1>7. 核心算法I：zk-SNARK与Groth16——简洁证明的黄金标准</h1>
+<h2>7.1 学习目标</h2>
+<p>完成本章学习后，你应该能够：</p>
+<ul><li><strong>完整描述</strong> zk-SNARK的名称含义和工作流三部曲，向非技术同事解释"为什么一枚200字节的证明可以替代整本计算日志"。</li>
+<li><strong>独立推导</strong> Groth16的三阶段输入输出关系：给定一个电路 \$C\$，能写出 \$\\text{Setup}(C) \\rightarrow (pk, vk)\$、\$\\text{Prove}(pk, x, w) \\rightarrow \\pi\$、\$\\text{Verify}(vk, x, \\pi) \\rightarrow \\{0,1\\}\$ 的完整过程。</li>
+<li><strong>评估</strong> 可信设置的必要性与风险：能解释"毒性废料"（toxic waste）是什么，为什么MPC仪式中"只要有一人诚实就足够安全"。</li>
+<li><strong>动手执行</strong> SnarkJS的Groth16全流程：从Circom电路编译到Powers of Tau可信设置，再到证明生成和Solidity验证器导出。</li>
+</ul><hr>
+<h2>7.2 zk-SNARK全景概览</h2>
+<h3>7.2.1 名称拆解：Zero-Knowledge Succinct Non-Interactive Argument of Knowledge</h3>
+<p>让我们把 <strong>zk-SNARK</strong> 这个拗口的缩写拆开，像解剖一只手表一样逐个零件理解。</p>
+<p>| 字母 | 全称 | 含义 |<br>|:--:|:---|:---|<br>| <strong>zk</strong> | Zero-Knowledge | 零知识——验证者除了"陈述为真"之外，学不到任何额外信息 |<br>| <strong>S</strong> | Succinct | 简洁——证明体积很小（通常几百字节），验证时间很短（通常毫秒级） |<br>| <strong>N</strong> | Non-Interactive | 非交互——证明者只需发送一个消息给验证者，无需来回对话 |<br>| <strong>ARK</strong> | Argument of Knowledge | 知识论证——证明者不仅证明"某事为真"，还证明"自己知道使其为真的秘密数据" |</p>
+<p>你可以把 zk-SNARK 想象成一位魔术师表演"读心术"。观众（验证者）心里想了一个秘密数字，魔术师（证明者）不用知道这个数字是什么，却能向观众证明"我确实知道你的心算过程是正确的"。观众看完后仍然不知道那个秘密数字是多少（Zero-Knowledge），整个过程魔术师只说了一句话（Non-Interactive），而这句话非常短（Succinct），并且魔术师确实掌握着那个秘密的计算过程（Argument of Knowledge）[^149^]。</p>
+<h3>7.2.2 类比：SNARK像"把一本厚书压缩成一枚邮票大小的防伪标签"</h3>
+<p>假设你写了一本500页的数学证明书，详细记录了解一道难题的每一步推导。现在你想向全世界证明"我确实解出了这道题"，但有两个苛刻条件：第一，你不能透露解题的具体方法（零知识）；第二，对方验证你的证明不能超过1秒钟（简洁）。</p>
+<p>在密码学出现之前，这几乎是不可能的。但 zk-SNARK 做到了——它把500页的计算过程，压缩成一枚"邮票大小"的防伪标签（约200字节的证明）。任何人拿到这枚标签，只需执行几次数学检查，就能确信"你确实正确执行了那500页的计算"，而且永远无法从标签中反推出计算内容[^70^]。</p>
+<p>这枚"防伪标签"的秘密在于：<strong>它不是压缩了计算的"内容"，而是压缩了计算的"正确性证据"</strong>。类比来说，你不需要邮寄整本账簿来证明收支平衡，只需要寄一张经过会计师事务所签名的资产负债表。</p>
+<h3>7.2.3 SNARK的工作流三部曲</h3>
+<p>所有 zk-SNARK 系统都遵循同一个宏观三步曲，就像拍摄一部电影需要"前期筹备 → 拍摄制作 → 放映审核"：</p>
+<pre class="code-block"><code>┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   1. 可信设置    │────▶│   2. 证明生成    │────▶│   3. 验证证明    │
+│  (Trusted Setup) │     │    (Proving)     │     │  (Verification)  │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+        │                       │                       │
+        ▼                       ▼                       ▼
+   输入: 电路 C              输入: pk, x, w           输入: vk, x, π
+   输出: pk, vk             输出: 证明 π             输出: 接受/拒绝
+   一次性，预先执行          每次计算执行一次          任何人随时可执行
+</code></pre>
+<p><strong>第一步：可信设置（Setup）</strong>。这是系统启动时的"铸币仪式"。给定一个描述计算的电路 \$C\$，Setup 算法生成两个密钥：证明密钥 \$pk\$（proving key，给证明者用）和验证密钥 \$vk\$（verification key，给验证者用）。这个过程会留下危险的"毒性废料"，稍后在 7.4 节详述。</p>
+<p><strong>第二步：证明生成（Prove）</strong>。证明者拥有公开输入 \$x\$（比如交易金额）和私密输入 \$w\$（witness，比如私钥），利用 \$pk\$ 构造一个短证明 \$\\pi\$。这个过程执行了完整的计算，但只输出一枚"防伪标签"。</p>
+<p><strong>第三步：验证（Verify）</strong>。验证者只拿到 \$vk\$、\$x\$ 和 \$\\pi\$，执行几次高效的数学运算（Groth16 仅需3次配对），输出接受或拒绝。验证者<strong>完全不需要</strong>知道 witness \$w\$[^69^]。</p>
+<h3>7.2.4 SNARK家族谱系：从Pinocchio到Groth16到PLONK</h3>
+<p>zk-SNARK 不是单一算法，而是一个算法家族，十几年来经历了多代演进。理解它们的谱系，能帮助你在实际工程中做出正确选型。</p>
+<pre class="code-block"><code>2012-2013: 第一代SNARKs
+├── GGPR (2012) ── 理论奠基：QAP + 线性PCP
+└── Pinocchio (2013) ── 第一个实用系统：QAP + 双线性配对
+    └── 证明大小 ~288字节，验证需要 3+ 次配对
+
+2016: 黄金标准诞生
+└── Groth16 ── 压缩到极致：3个椭圆曲线点，~192字节
+    └── 验证仅需3次配对，~230K gas
+    └── 生产部署：Zcash Sapling, Tornado Cash, Filecoin
+
+2017-2018: 透明证明探索（无需可信设置）
+├── Bulletproofs (2017) ── IPA，对数级证明，无设置
+└── zk-STARK (2018) ── FRI + Merkle，量子安全
+
+2019-2020: 第二代通用SNARKs
+├── PLONK (2019) ── 通用可信设置 + Plonkish算术化
+│   ├── TurboPLONK (+ Custom Gates)
+│   └── UltraPLONK (+ Lookup Tables)
+└── Marlin (2020) ── 通用设置 + R1CS兼容
+
+2019-2021: 递归与无需设置
+├── Halo (2019) ── IPA递归，无设置
+├── Halo2 (2020) ── PLONKish + IPA (Zcash Orchard)
+└── Nova (2021) ── 折叠方案
+</code></pre>
+<p>在这个谱系中，<strong>Groth16 是一个独特的里程碑</strong>：它把证明大小压缩到了理论极限附近（仅3个椭圆曲线点），验证速度做到了同类最快。代价是——每个电路需要独立的可信设置[^68^]。如果你需要一个"证明小、验证快、gas低"的系统，且电路不频繁变更，Groth16 至今仍是最佳选择。</p>
+<hr>
+<h2>7.3 Groth16算法详解</h2>
+<h3>7.3.1 算法输入输出：Setup(C)→(pk,vk)；Prove(pk,x,w)→π；Verify(vk,x,π)→bool</h3>
+<p>让我们用形式化的符号来描述 Groth16 的三个核心算法[^61^]：</p>
+<p>\$\$\\text{Setup}(C) \\longrightarrow (pk, vk)\$\$</p>
+<p>\$\$\\text{Prove}(pk, x, w) \\longrightarrow \\pi\$\$</p>
+<p>\$\$\\text{Verify}(vk, x, \\pi) \\longrightarrow \\{0, 1\\}\$\$</p>
+<p>其中：<br><ul><li>\$C\$：算术电路（从R1CS编译而来），定义了"什么计算是被允许的"。</li><br><li>\$x\$：公开输入（public input），比如交易的发送方地址、金额、时间戳等所有人可见的信息。</li><br><li>\$w\$：私密见证（private witness），比如私钥、原像、路径节点等需要保密的信息。</li><br><li>\$pk\$：证明密钥（proving key），很大（可能几百MB），只有证明者需要。</li><br><li>\$vk\$：验证密钥（verification key），很小（几百字节到几KB），任何人都可以持有。</li><br><li>\$\\pi\$：证明（proof），Groth16 中仅约 <strong>192字节</strong>（3个椭圆曲线点）[^70^]。</li></ul></p>
+<p><strong>电路 \$C\$ 的角色</strong>可以类比为一份"公证委托书"：它明确规定了"如果要证明某件事，必须满足哪些数学约束"。Setup 根据这份委托书铸造了两把钥匙：\$pk\$ 是"盖章机器"（只有公证处能用），\$vk\$ 是"验章放大镜"（任何人都能用）。</p>
+<h3>7.3.2 可信设置（Trusted Setup）：为什么需要？</h3>
+<p>在深入 Groth16 之前，我们必须回答一个关键问题：<strong>为什么需要一个被信任的设置过程？为什么不能像普通程序一样直接运行？</strong></p>
+<p>让我们用一个类比来建立直觉。想象你要铸造一枚特制的印章，这枚印章能证明"某份文件确实经过了我的审核"。为了保证印章的权威性，你需要在铸造过程中混入一种特殊的合金——一旦印章铸成，合金的配方必须<strong>永久销毁</strong>。如果任何人保留了配方，他就能私刻一枚一模一样的假印章，伪造任何文件。</p>
+<p>Groth16 的可信设置正是这样一个"铸章仪式"。Setup 算法在生成 \$pk\$ 和 \$vk\$ 的过程中，使用了一组秘密随机数 \$(\\tau, \\alpha, \\beta, \\gamma, \\delta)\$，这组随机数被称为 <strong>"毒性废料"（toxic waste）</strong>[^78^]。Setup 完成后，这组随机数必须被彻底销毁。如果攻击者知道了它们，就能构造出<strong>看似有效但实际是伪造的证明</strong>。</p>
+<p>你可能会问：为什么密码学家要设计一个需要"信任"的系统？答案是——这是为了达到<strong>极致的简洁性</strong>。Groth16 把证明压缩到192字节、验证压缩到3次配对运算，这种"压缩比"依赖于在设置阶段预先计算一些"加密预处理数据"。这些数据就像一张精心设计的"数学地图"，让证明者可以在运行时快速导航，而不是从头勘探[^149^]。</p>
+<h3>7.3.3 结构化参考字符串（CRS）：Setup的产物，pk和vk的源头</h3>
+<p>可信设置的输出被统称为 <strong>CRS（Common Reference String，结构化参考字符串）</strong>。你可以把 CRS 想象成一张"数学地图的坐标册"，包含了在秘密点处求值后的椭圆曲线点。</p>
+<p>Setup 的核心数学操作是在一个秘密点 \$\\tau\$ 处对 QAP 多项式求值，并把结果"硬化"到椭圆曲线点上。具体来说，CRS 包含形如以下的元素：</p>
+<p>\$\$\\{ g^{\\tau^i} \\}_{i=0}^{n}, \\quad \\{ h^{\\tau^i} \\}_{i=0}^{n}, \\quad g^{\\alpha}, \\quad g^{\\beta}, \\quad g^{\\delta}, \\quad \\ldots\$\$</p>
+<p>其中 \$g\$ 和 \$h\$ 是两个椭圆曲线群的生成元，\$\\tau\$ 是设置阶段生成的秘密随机数（属于毒性废料的一部分）。</p>
+<p><strong>关键洞察</strong>：证明者和验证者都拿到 CRS 的一部分。证明者拿到 \$pk\$（包含大量 \$g^{\\tau^i}\$ 点，用于构造证明），验证者拿到 \$vk\$（包含少数几个关键点和配对参数，用于验证）。双方都不知道 \$\\tau\$ 本身——如果知道，就能伪造证明[^61^]。</p>
+<p>CRS 的大小与电路中的约束数量成正比。一个有几万个约束的电路，CRS 可能有几百MB。这意味着<strong>Setup 是一次性、离线的、预先的</strong>操作；而 Prove 和 Verify 是在线的、频繁执行的。</p>
+<h3>7.3.4 证明生成：用witness和proving key构造简短证明</h3>
+<p>现在让我们走进证明生成的"工厂"，看看192字节的证明是如何被锻造出来的。</p>
+<p><strong>输入</strong>：证明密钥 \$pk\$、公开输入 \$x\$、私密见证 \$w\$。<br><strong>输出</strong>：证明 \$\\pi = (A, B, C)\$——三个椭圆曲线点。</p>
+<p>证明生成的内部流程如下：</p>
+<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────────────┐
+│                    Groth16 证明生成流程                              │
+├─────────────────────────────────────────────────────────────────────┤
+│  输入: pk (proving key), x (公开输入), w (私密见证)                   │
+│                                                                     │
+│  Step 1: 构造完整见证向量 s = (1, x₁, ..., xₙ, w₁, ..., wₘ)          │
+│          其中1是常量，x是公开输入，w是私密输入                        │
+│                                                                     │
+│  Step 2: 在群上计算线性组合                                          │
+│          A = α + Σ sᵢ·Aᵢ(τ) + r·δ    ← 第一个曲线点                  │
+│          B = β  + Σ sᵢ·Bᵢ(τ) + s·δ   ← 第二个曲线点（在另一群）       │
+│                                                                     │
+│  Step 3: 计算 C 使得配对等式成立                                      │
+│          C = ( Σ wᵢ·(βAᵢ(τ)+αBᵢ(τ)+Cᵢ(τ)) + H(τ)·Z(τ) ) / δ + r·B + s·A - rs·δ │
+│                                                                     │
+│  Step 4: 输出证明 π = (A, B, C)                                      │
+│                                                                     │
+│  内部核心：利用pk中预计算的 g^{τⁱ} 点，通过多标量乘法(MSM)快速求值   │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>让我们逐步理解：</p>
+<p><strong>Step 1</strong> 把公开输入和私密见证组合成完整的 witness 向量 \$s\$。回忆第6章的 R1CS，\$s\$ 就是满足所有约束 \$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$ 的那个向量。</p>
+<p><strong>Step 2</strong> 中的 \$A\$ 和 \$B\$ 是两个椭圆曲线点，它们本质上是"加密的 witness 承诺"。公式中的 \$r\$ 和 \$s\$ 是证明者在运行时随机生成的"盲化因子"，用来保证零知识性——即使同一个 witness 被证明两次，生成的 \$A\$ 和 \$B\$ 也完全不同[^61^]。</p>
+<p><strong>Step 3</strong> 的 \$C\$ 是最复杂的部分。它的构造确保了验证等式 \$e(A, B) = e(\\alpha, \\beta) \\cdot e(\\text{input}, \\gamma) \\cdot e(C, \\delta)\$ 能够成立。你可以把 \$C\$ 想象成一个"平衡块"——证明者根据 A、B 和 witness 的信息，精确计算出 C，使得配对的"天平"两端重量相等。</p>
+<p><strong>Step 4</strong> 输出的证明 \$\\pi\$ 只有三个点。在 BN254 曲线上，每个点约64字节，所以总大小约 <strong>192字节</strong>[^70^]。作为对比，一个zk-STARK的证明大约是50-200KB，比Groth16大了400到1000倍[^97^]。</p>
+<h3>7.3.5 验证过程：仅需3次配对运算，毫秒级验证</h3>
+<p>验证是 Groth16 最优雅的部分。验证者不需要知道任何 witness，只需要拿着小小的 \$vk\$、公开输入 \$x\$ 和证明 \$\\pi = (A, B, C)\$，执行一次配对等式检查。</p>
+<p><strong>Groth16 验证等式</strong>：</p>
+<p>\$\$e(A, B) = e(\\alpha, \\beta) \\cdot e(\\text{IC}, \\gamma) \\cdot e(C, \\delta)\$\$</p>
+<p>让我们用 ASCII 图示来可视化这个配对方程的结构[^61^][^199^]：</p>
+<pre class="code-block"><code>                    Groth16 验证配对方程图示
+                    ───────────────────────
+
+     左端（证明的承诺组合）                    右端（三个验证因子相乘）
+
+        e( A , B )           =        e(α, β)  ·  e(IC, γ)  ·  e(C, δ)
+           │   │                         │  │        │   │        │   │
+           │   │                         │  │        │   │        │   │
+           ▼   ▼                         ▼  ▼        ▼   ▼        ▼   ▼
+        ┌─────┐                        ┌──┐ ┌──┐   ┌────┐ ┌──┐   ┌──┐ ┌──┐
+        │ π_A │  ──证明者承诺的witness   │α│ │β│   │ IC │ │γ│   │C │ │δ│
+        └─────┘    （在第一群G₁上）     └──┘ └──┘   └────┘ └──┘   └──┘ └──┘
+        ┌─────┐                        系统常数    公开输入    私密部分
+        │ π_B │  ──证明者承诺的witness    （Setup时   （由x线性  （证明的
+        └─────┘    （在第二群G₂上）      固定）      组合得到）  "平衡块"）
+        ┌─────┐
+        │ π_C │  ──调整项保证等式成立
+        └─────┘
+
+     其中 e(·,·) 是双线性配对运算：e(aP, bQ) = e(P,Q)^(ab)
+     
+     验证者只需：1次 e(A,B)  +  3次右侧配对相乘  =  总共约3次配对运算
+</code></pre>
+<p><strong>这个等式为什么能验证计算的正确性？</strong></p>
+<p>让我们从直觉上理解。等式左边 \$e(A, B)\$ 包含了证明者对 witness 的"双重承诺"——A 在群 G₁ 上，B 在群 G₂ 上。等式右边把验证拆解成三个部分：</p>
+<ul><li>\$e(\\alpha, \\beta)\$：系统常数项，在 Setup 时固定，验证等式的"基准零点"。</li>
+<li>\$e(\\text{IC}, \\gamma)\$：公开输入的贡献，IC（Input Combination）是公开输入 \$x\$ 的线性组合。</li>
+<li>\$e(C, \\delta)\$：私密 witness 和调整多项式的贡献，\$C\$ 就是证明者在生成阶段精心构造的"平衡块"。</li>
+</ul><p>因为配对的双线性特性，等式两边在指数层面实质上是同一个多项式恒等式。如果证明者没有正确的 witness，就无法构造出让等式成立的 \$C\$[^149^]。</p>
+<p><strong>验证效率</strong>：在以太坊上，Groth16 验证仅需调用 <code class="inline-code">ECPAIRING</code> 预编译合约（地址 <code class="inline-code">0x08</code>），消耗约 <strong>230K gas</strong>[^199^]。在现代CPU上，3次 BN254 配对运算仅需约1-3毫秒[^70^]。这意味着你可以在智能合约中以合理的成本验证一个任意复杂计算的 correctness。</p>
+<h3>7.3.6 Groth16的优缺点：最小证明、最快验证，但需每电路可信设置</h3>
+<p>为了工程选型，我们必须在具体场景中权衡 Groth16 的特性。以下是它在证明系统谱系中的定位[^70^][^67^]：</p>
+<p>| 维度 | Groth16 表现 | 对比参照 |<br>|:---:|:---|:---|<br>| <strong>证明大小</strong> | ~192字节（理论最小之一） | PLONK ~400-800字节；STARK ~50-200KB |<br>| <strong>验证时间</strong> | ~1-3毫秒（3次配对） | PLONK ~5毫秒；STARK ~5-10毫秒 |<br>| <strong>证明生成</strong> | O(n log n)，同类最快 | STARK 慢约68倍[^74^] |<br>| <strong>链上Gas</strong> | ~200-250K | PLONK ~300K；STARK ~1.5M |<br>| <strong>可信设置</strong> | 每电路独立设置 | PLONK 通用设置；STARK 无需设置 |<br>| <strong>电路灵活性</strong> | 固定，变更需重做Setup | PLONK 支持任意电路 |<br>| <strong>递归支持</strong> | 复杂，需额外构造 | Halo2 / Nova 原生支持 |<br>| <strong>安全假设</strong> | 双线性配对 + Knowledge-of-Exponent | STARK 仅依赖哈希函数 |</p>
+<p><strong>什么时候选 Groth16？</strong> 当你需要<strong>最小证明 + 最快验证 + 最低链上成本</strong>，且电路在部署后不会频繁变更时。典型的生产场景包括：固定格式的隐私转账（如 Tornado Cash）、固定规则的 Merkle 成员证明、预先审计过的标准电路。</p>
+<p><strong>什么时候避开 Groth16？</strong> 当你需要频繁更新电路逻辑、无法组织可信设置仪式、或对"毒性废料"风险有极低容忍度时。这些场景更适合 PLONK（通用设置）或 STARK（无设置）[^97^]。</p>
+<hr>
+<h2>7.4 可信设置仪式（Trusted Setup Ceremony）</h2>
+<h3>7.4.1 类比：可信设置像"多人共同封印宝盒"</h3>
+<p>让我们用一个更生活化的类比来理解可信设置仪式的安全模型。</p>
+<p>想象一个珍贵的宝盒，里面装着系统的"主密钥"。为了确保没有人能单独打开它，社区组织了一场封印仪式：100个人依次来到宝盒前，每个人都往锁里加一把自己的私人锁。最后，宝盒被100把锁层层保护。仪式的规则是：<strong>只要至少有一个人诚实地保管了自己的钥匙（没有泄露、没有复制），整个宝盒就是安全的</strong>——因为攻击者必须同时打开100把锁才能窃取主密钥，这实际上是不可能的[^136^]。</p>
+<p>这就是 Groth16 可信设置仪式的 MPC（Multi-Party Computation，多方计算）安全模型。每个参与者贡献自己的随机性，对 CRS 进行"再随机化"。只要有一个参与者诚实销毁了自己的随机贡献，攻击者就无法重构出毒性废料 \$(\\tau, \\alpha, \\beta, \\gamma, \\delta)\$。</p>
+<h3>7.4.2 两阶段设置：Phase 1（通用）+ Phase 2（电路特定）</h3>
+<p>Groth16 的可信设置分为两个阶段，这一设计极大地提高了效率和可复用性[^73^][^78^]：</p>
+<p><strong>Phase 1：Powers of Tau（通用阶段）</strong></p>
+<p>Phase 1 是"电路无关"的。它只依赖于一个参数 \$\\tau\$ 和一个最大约束数限制 \$2^n\$。输出是一个 <code class="inline-code">.ptau</code> 文件，可以被<strong>任何不超过该约束数的电路复用</strong>。</p>
+<pre class="code-block"><code># Phase 1: 初始化 Powers of Tau（以 bn128 曲线，约束上限 2^12 = 4096 为例）
+snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
+# 多人依次贡献随机性
+snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="Alice" -v
+snarkjs powersoftau contribute pot12_0001.ptau pot12_0002.ptau --name="Bob" -v
+# 准备 Phase 2
+snarkjs powersoftau prepare phase2 pot12_0002.ptau pot12_final.ptau -v
+</code></pre>
+<p><strong>Phase 2：电路特定阶段</strong></p>
+<p>Phase 2 把通用的 Powers of Tau 参数与<strong>特定电路的 R1CS</strong> 结合，生成该电路专用的 proving key 和 verification key。</p>
+<pre class="code-block"><code># Phase 2: 基于电路的特定设置
+snarkjs groth16 setup multiplier2.r1cs pot12_final.ptau multiplier2_0000.zkey
+# 再次邀请多人贡献随机性
+snarkjs zkey contribute multiplier2_0000.zkey multiplier2_0001.zkey --name="Charlie" -v
+# 验证设置正确性
+snarkjs zkey verify multiplier2.r1cs pot12_final.ptau multiplier2_0001.zkey
+</code></pre>
+<p>两阶段设计的妙处在于：社区可以组织一次大型的 Phase 1 仪式（比如以太坊的 KZG  ceremony，有数万人参与），生成一个高可信度的通用 <code class="inline-code">.ptau</code> 文件。之后每个具体电路只需要做小型的 Phase 2，大大降低了每次部署的信任门槛[^195^]。</p>
+<h3>7.4.3 著名的可信设置仪式</h3>
+<p>可信设置仪式不仅是密码学操作，还是一场社区参与的社会实验。以下是几个历史上著名的仪式[^136^]：</p>
+<p>| 项目 | 时间 | 参与者 | 特色 |<br>|:---|:---|:---|:---|<br>| <strong>Zcash Sprout</strong> | 2016 | 6人 | 第一场大规模ZKP仪式，使用"放射性衰变"产生随机性——一台计算机在隔离房间内检测盖革计数器的噪音 |<br>| <strong>Zcash Sapling</strong> | 2018 | 数百人 | 改进为Powers of Tau + Phase 2结构，安全性大幅提升 |<br>| <strong>Filecoin</strong> | 2020 | 全球数千人 | 规模最大之一，跨越多个时区的持续贡献 |<br>| <strong>以太坊 KZG</strong> | 2022-2023 | 数万人 | 为Danksharding准备，使用drand公共随机信标 + 个人贡献 |</p>
+<p>Zcash 的"放射性衰变仪式"尤其令人印象深刻。团队成员把一台笔记本电脑和盖革计数器放进一间被屏蔽的航空材料室，让计算机通过测量放射性物质的衰变噪音来生成不可预测的随机数。整个过程被录像并保留至今——这不是为了炫技，而是为了向社区证明：没有人提前知道这个随机数是什么[^136^]。</p>
+<h3>7.4.4 如果可信设置被攻破的后果</h3>
+<p>理解风险的最好方式是问自己：<strong>如果最坏的情况发生了，会怎样？</strong></p>
+<p>如果攻击者在 Setup 阶段窃取或重构了毒性废料 \$(\\tau, \\alpha, \\beta, \\gamma, \\delta)\$，他就能做一件极其危险的事：<strong>为任意输入构造伪造的证明</strong>[^195^]。</p>
+<p>具体来说，攻击者可以：<br><ul><li>不需要任何 witness，直接构造 \$A\$、\$B\$、\$C\$ 使得验证等式成立。</li><br><li>向智能合约提交一个"证明"，声称"我知道一个满足条件的私密数据"。</li><br><li>合约验证通过，执行相应的资金转移、权限提升或其他敏感操作。</li><br><li>但实际上，攻击者根本不知道那个"私密数据"是什么。</li></ul></p>
+<p>在真实世界中，这已经不是理论风险。zkSecurity 的研究报告记录了多起由于可信设置漏洞导致的真实攻击，其中一些发生在 Veil Protocol 等项目中[^195^]。最常见的事故原因是：</p>
+<ul><li><strong>跳过了 Phase 2 的贡献步骤</strong>：直接导出 verification key，导致 \$\\gamma\$ 和 \$\\delta\$ 未被随机化，攻击者可以伪造证明。</li>
+<li><strong>使用了单一参与者的设置</strong>：没有MPC仪式，一个人掌握了全部毒性废料。</li>
+<li><strong>随机数生成器被妥协</strong>：使用了可预测的熵源（如 <code class="inline-code">/dev/urandom</code> 在虚拟机中被克隆）。</li>
+</ul><p><strong>安全最佳实践</strong>：在生产环境中，Phase 2 必须包含至少一个来自你无法控制的一方的独立贡献。理想情况下，应该有多个地理分散、利益独立的参与者[^78^]。</p>
+<hr>
+<h2>7.5 实战：用SnarkJS完成Groth16全流程</h2>
+<p>现在让我们把理论付诸实践。本节将使用 <strong>SnarkJS</strong>（一个 JavaScript/WASM 实现的 zk-SNARK 库）配合 <strong>Circom</strong>，完成从电路编写到链上验证的完整 Groth16 工作流[^197^][^304^]。</p>
+<h3>7.5.1 用Circom编译电路到R1CS</h3>
+<p>我们从最简单的乘法电路开始。这个电路证明"我知道两个数 a 和 b，使得 a × b = c"。</p>
+<pre class="code-block"><code>// multiplier2.circom —— 最简单的Groth16演示电路
+pragma circom 2.0.0;
+
+template Multiplier2() {
+    // 信号声明：a、b是私有输入，c是公开输出
+    signal input a;
+    signal input b;
+    signal output c;
+
+    // <== 同时完成赋值和创建R1CS约束
+    // 编译后等价于一个约束: (a) * (b) = (c)
+    c <== a * b;
+}
+
+// 实例化主组件
+component main = Multiplier2();
+</code></pre>
+<p>编译电路生成 R1CS 约束系统和 WebAssembly witness 计算器：</p>
+<pre class="code-block"><code># 编译Circom电路，生成R1CS、WASM和符号文件
+# --r1cs: 生成约束系统文件 .r1cs
+# --wasm: 生成WebAssembly witness计算器
+# --sym:  生成调试符号文件
+circom multiplier2.circom --r1cs --wasm --sym
+
+# 查看电路信息：约束数、信号数、公开输入数
+snarkjs r1cs info multiplier2.r1cs
+</code></pre>
+<p>编译完成后，我们需要准备输入并生成 witness：</p>
+<pre class="code-block"><code># 创建输入文件 input.json: 证明 "3 × 11 = 33"
+echo '{"a": "3", "b": "11"}' > input.json
+
+# 使用WASM witness计算器生成完整 witness 文件
+node multiplier2_js/generate_witness.js \\\\
+    multiplier2_js/multiplier2.wasm \\\\
+    input.json \\\\
+    witness.wtns
+</code></pre>
+<h3>7.5.2 执行Powers of Tau可信设置（测试网简化版）</h3>
+<p>接下来执行两阶段可信设置。在<strong>生产环境</strong>中，Phase 1 和 Phase 2 都应该有多人参与。这里我们演示<strong>本地测试</strong>的简化流程：</p>
+<pre class="code-block"><code># ═══════════════════════════════════════════════════════════════
+# Phase 1: Powers of Tau（通用设置）
+# ═══════════════════════════════════════════════════════════════
+
+# Step 1: 初始化 Powers of Tau
+# bn128 = 椭圆曲线选择（以太坊预编译支持）
+# 12 = 最大约束数为 2^12 = 4096（对我们的乘法电路绰绰有余）
+snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
+
+# Step 2: 贡献随机性（本地测试版，仅一轮）
+# --name 标记贡献者身份
+# 运行后会提示输入随机文本（熵源），或按回车使用自动熵
+snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau \\\\
+    --name="FirstContributor" -v
+
+# Step 3: 准备 Phase 2
+# 把 Powers of Tau 转换为 Phase 2 可用的格式
+snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
+
+# ═══════════════════════════════════════════════════════════════
+# Phase 2: 电路特定设置
+# ═══════════════════════════════════════════════════════════════
+
+# Step 4: 基于电路的 R1CS 初始化专用 proving key
+# multiplier2.r1cs = 电路约束文件
+# pot12_final.ptau = Phase 1 产物
+# multiplier2_0000.zkey = 输出的初始电路密钥
+snarkjs groth16 setup multiplier2.r1cs pot12_final.ptau multiplier2_0000.zkey
+
+# Step 5: 贡献随机性到电路特定密钥
+# ⚠️ 安全警告：生产环境必须有至少一个外部独立贡献！
+# 跳过此步直接导出vk会导致gamma和delta相等，攻击者可伪造证明
+snarkjs zkey contribute multiplier2_0000.zkey multiplier2_final.zkey \\\\
+    --name="CircuitContributor" -v
+
+# Step 6: 验证密钥完整性
+snarkjs zkey verify multiplier2.r1cs pot12_final.ptau multiplier2_final.zkey
+
+# Step 7: 导出 verification key（给验证者用）
+snarkjs zkey export verificationkey multiplier2_final.zkey verification_key.json
+</code></pre>
+<p><strong>⚠️ 关键安全提醒</strong>：上面的流程是<strong>本地测试专用</strong>。在生产环境中，Phase 2 的 <code class="inline-code">zkey contribute</code> 必须包含至少一个你无法控制的参与者的贡献。如果你跳过这个步骤直接导出 verification key，系统会变得完全不安全——任何人都可以伪造证明[^195^]。</p>
+<h3>7.5.3 生成证明并导出Solidity验证器</h3>
+<p>有了 proving key 和 witness，生成证明只需一条命令：</p>
+<pre class="code-block"><code># ═══════════════════════════════════════════════════════════════
+# 证明生成
+# ═══════════════════════════════════════════════════════════════
+
+# 使用 proving key 和 witness 生成 Groth16 证明
+# 输出: proof.json (约192字节的证明) + public.json (公开输入)
+snarkjs groth16 prove multiplier2_final.zkey witness.wtns \\\\
+    proof.json public.json
+
+# 查看生成的证明内容（3个椭圆曲线点）
+cat proof.json
+# 预期输出格式：
+# {
+#   "pi_a": ["12345...", "67890...", "1"],
+#   "pi_b": [["...", "..."], ["...", "..."], ["1", "0"]],
+#   "pi_c": ["...", "...", "1"],
+#   "protocol": "groth16"
+# }
+
+# ═══════════════════════════════════════════════════════════════
+# 本地验证（JavaScript中）
+# ═══════════════════════════════════════════════════════════════
+
+# 验证 proof.json 是否有效
+snarkjs groth16 verify verification_key.json public.json proof.json
+# 预期输出: "OK!" 或验证失败的详细信息
+
+# ═══════════════════════════════════════════════════════════════
+# 导出Solidity验证器（链上验证）
+# ═══════════════════════════════════════════════════════════════
+
+# 生成可在以太坊上部署的验证器合约
+snarkjs zkey export solidityverifier multiplier2_final.zkey verifier.sol
+
+# 生成用于调用验证函数的calldata
+snarkjs zkey export soliditycalldata public.json proof.json
+# 输出示例（3个G1点和公开输入的ABI编码）：
+# ["0x...","0x..."],["0x...","0x..."],["0x...","0x..."],["0x21"]
+</code></pre>
+<p>生成的 <code class="inline-code">verifier.sol</code> 是一个标准的 Solidity 合约，核心函数如下：</p>
+<pre class="code-block"><code>// verifier.sol —— SnarkJS 导出的 Groth16 验证器（简化示意）
+// 使用以太坊预编译合约: ECPAIRING (地址 0x08)
+
+function verifyProof(
+    uint[2] calldata a,           // π_A (G1点)
+    uint[2][2] calldata b,        // π_B (G2点)
+    uint[2] calldata c,           // π_C (G1点)
+    uint[1] calldata input        // 公开输入 (本例中只有c=33)
+) public view returns (bool r) {
+    // 内部构造配对输入，调用 ECPAIRING(0x08) 预编译
+    // 验证: e(A,B) == e(α,β) · e(vk_x,γ) · e(C,δ)
+    // Gas消耗约200-250K
+}
+</code></pre>
+<p>在 Remix 或 Hardhat 中部署这个合约后，你可以用 <code class="inline-code">snarkjs zkey export soliditycalldata</code> 生成的参数直接调用 <code class="inline-code">verifyProof()</code>。如果返回 <code class="inline-code">true</code>，说明证明有效[^304^]。</p>
+<h3>7.5.4 在JavaScript中验证证明</h3>
+<p>除了在命令行使用 <code class="inline-code">snarkjs groth16 verify</code>，你也可以在自己的钱包前端或后端服务中直接调用 SnarkJS 的 JavaScript API：</p>
+<pre class="code-block"><code>// verify.js —— 在Node.js或浏览器中验证Groth16证明
+const snarkjs = require("snarkjs");
+const fs = require("fs");
+
+async function verifyGroth16Proof() {
+    // 加载验证密钥（从Setup阶段导出的JSON文件）
+    const vKey = JSON.parse(fs.readFileSync("verification_key.json"));
+    
+    // 加载公开输入和证明（通常由钱包后端或用户提交）
+    const publicSignals = JSON.parse(fs.readFileSync("public.json"));
+    const proof = JSON.parse(fs.readFileSync("proof.json"));
+    
+    // 执行验证：仅需几毫秒，不涉及任何witness信息
+    const res = await snarkjs.groth16.verify(vKey, publicSignals, proof);
+    
+    if (res === true) {
+        console.log("✅ 验证通过 — 证明者确实知道满足电路的witness");
+        // 钱包可以安全地执行后续操作（如签名交易、更新状态）
+    } else {
+        console.log("❌ 验证失败 — 证明无效或伪造");
+        // 拒绝操作，记录异常
+    }
+}
+
+verifyGroth16Proof();
+</code></pre>
+<p>这个代码片段展示了 Groth16 在实际钱包应用中的验证侧。<strong>验证是极轻量的</strong>——只需要加载几百字节的 <code class="inline-code">verification_key.json</code>，执行几次配对运算，完全不涉及任何 witness 数据。这使得钱包可以在用户的浏览器中直接验证第三方提交的证明，无需信任任何服务器[^197^]。</p>
+<hr>
+<h2>7.6 本章小结与思考题</h2>
+<h3>核心概念回顾</h3>
+<p>本章我们系统学习了 zk-SNARK 家族中的黄金标准——Groth16。以下是核心知识框架：</p>
+<p><strong>zk-SNARK 的本质</strong>：将计算正确性转化为多项式恒等式，再用椭圆曲线配对压缩验证。四个字母分别代表零知识（zk）、简洁性（S）、非交互性（N）和知识论证（ARK）。</p>
+<p><strong>Groth16 的三阶段</strong>：<br><ul><li><strong>Setup</strong>\$(C) \\rightarrow (pk, vk)\$：一次性可信设置，生成 CRS，留下必须销毁的毒性废料。</li><br><li><strong>Prove</strong>\$(pk, x, w) \\rightarrow \\pi\$：证明者用 witness 构造仅192字节的证明 \$\\pi = (A, B, C)\$。</li><br><li><strong>Verify</strong>\$(vk, x, \\pi) \\rightarrow \\{0,1\\}\$：验证者执行3次配对检查等式 \$e(A,B) = e(\\alpha,\\beta) \\cdot e(\\text{IC},\\gamma) \\cdot e(C,\\delta)\$。</li></ul></p>
+<p><strong>可信设置仪式</strong>：Phase 1（Powers of Tau，通用可复用）+ Phase 2（电路特定）。MPC安全模型保证：只要至少一个参与者诚实销毁随机贡献，系统就是安全的。历史上 Zcash、Filecoin、以太坊均组织过大规模仪式[^136^]。</p>
+<p><strong>工程权衡</strong>：Groth16 赢在证明大小（192B）、验证速度（~3ms）和链上成本（~200K gas），输在需要每电路独立可信设置。后续第8章的 PLONK 将用通用设置解决这一痛点[^70^]。</p>
+<h3>思考题</h3>
+<p><strong>概念理解题：</strong></p>
+<ul><li><strong>类比深化</strong>：如果 Groth16 的可信设置像"铸造一枚只能开一次的模具"，那么 PLONK 的通用设置像什么？STARK 的透明设置又像什么？请用你自己的类比解释三者区别。</li>
+<li><strong>安全分析</strong>：假设你在开发一个Web3钱包的隐私转账功能，使用Groth16电路。你信任的合作伙伴已经完成了Phase 1（Powers of Tau），你现在需要执行Phase 2。请列出至少3条你必须遵守的安全操作规范，并解释每条规范防范的攻击场景。</li>
+</ul><p><strong>动手实践题：</strong></p>
+<ul><li><strong>代码实验</strong>：基于7.5节的SnarkJS流程，将 <code class="inline-code">multiplier2.circom</code> 扩展为一个三路乘法电路 <code class="inline-code">Multiplier3</code>，证明 \$a \\times b \\times c = d\$。记录你的电路约束数变化，并执行完整的 Setup → Prove → Verify 流程。导出 Solidity 验证器并在本地 Hardhat 网络中部署测试。</li>
+<li><strong>性能对比</strong>：使用同样的 <code class="inline-code">multiplier2</code> 电路，分别用 <code class="inline-code">snarkjs groth16</code> 和 <code class="inline-code">snarkjs plonk</code> 两种证明系统生成证明。比较两者的证明大小（proof.json 文件大小）、验证时间（可用 <code class="inline-code">console.time()</code> 测量）和导出验证器的合约大小。结合本章的对比表格，解释你为什么会在不同场景中选择其中之一。</li></ul>`;
+---
+
+<Layout title="第07章 - 核心算法I：zk-SNARK与Groth16" description="ZK学习第07章：核心算法I：zk-SNARK与Groth16">
+  <main class="min-h-screen bg-[#0A0A0F]">
+    <section class="py-12 px-4 border-b border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto">
+        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+          <span>←</span> 返回 ZK 学习列表
+        </a>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)]">
+            07
+          </div>
+          <span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">
+            核心算法
+          </span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white">核心算法I：zk-SNARK与Groth16</h1>
+      </div>
+    </section>
+
+    <section class="py-8 px-4">
+      <div class="max-w-4xl mx-auto">
+        <article class="prose-zk" set:html={htmlContent} />
+      </div>
+    </section>
+
+    <section class="py-8 px-4 border-t border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto flex justify-between items-center">
+        
+          <a href="/zk-learning/06" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <span>←</span>
+            <div class="text-left">
+              <div class="text-xs text-[#6a6a80]">上一章</div>
+              <div class="text-sm font-medium">电路基础：从程序到约束系统</div>
+            </div>
+          </a>
+        
+          <a href="/zk-learning/08" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <div class="text-right">
+              <div class="text-xs text-[#6a6a80]">下一章</div>
+              <div class="text-sm font-medium">核心算法II：PLONK与通用可信设置</div>
+            </div>
+            <span>→</span>
+          </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style is:global>
+  .prose-zk { color: #9a9ab0; line-height: 1.8; font-size: 0.95rem; }
+  .prose-zk h1 { color: #fff; font-size: 1.8rem; font-weight: 700; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h2 { color: #fff; font-size: 1.4rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h3 { color: #e0e0f0; font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .prose-zk h4 { color: #e0e0f0; font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  .prose-zk h5, .prose-zk h6 { color: #c0c0d0; font-size: 1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+  .prose-zk p { margin: 0.75rem 0; }
+  .prose-zk ul { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .prose-zk li { margin: 0.35rem 0; }
+  .prose-zk li::marker { color: #00d4aa; }
+  .prose-zk blockquote { margin: 1rem 0; padding: 0.75rem 1rem; border-left: 3px solid rgba(0, 212, 170, 0.4); background: rgba(0, 212, 170, 0.03); border-radius: 0 6px 6px 0; color: #b0b0c0; font-style: italic; }
+  .prose-zk hr { border: none; border-top: 1px solid #2a2a3a; margin: 1.5rem 0; }
+  .prose-zk .code-block { background: #0f0f16; border: 1px solid #2a2a3a; border-radius: 8px; padding: 1rem; margin: 1rem 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; color: #c0c0d0; }
+  .prose-zk .inline-code { background: rgba(0, 212, 170, 0.08); color: #00d4aa; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; border: 1px solid rgba(0, 212, 170, 0.15); }
+  .prose-zk strong { color: #e0e0f0; font-weight: 600; }
+  .prose-zk em { color: #b0b0c0; }
+</style>

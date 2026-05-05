@@ -1,0 +1,436 @@
+---
+import Layout from '../../layouts/Layout.astro';
+const htmlContent = `<h1>第8章 核心算法II：PLONK与通用可信设置——一把钥匙开多把锁</h1>
+<blockquote>本章难度：★★★★☆（进阶）  </blockquote>
+<blockquote>前置依赖：第6章（电路基础——Plonkish约束系统）、第7章（Groth16）  </blockquote>
+<blockquote>建议阅读时间：40分钟  </blockquote>
+<blockquote>配套代码：Noir电路示例（见8.7节）</blockquote>
+<hr>
+<h2>学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul><li><strong>解释</strong> PLONK的通用可信设置如何解决Groth16的"每电路一次仪式"痛点，并能在技术选型场景中判断何时使用PLONK而非Groth16。</li>
+<li><strong>描述</strong> PLONK的核心电路表示方式（Plonkish算术化）：门约束通过selector polynomial控制，拷贝约束通过置换论证（Permutation Argument）强制，并将这些概念对应到trace table的行与列。</li>
+<li><strong>复述</strong> PLONK五轮证明流程（Round 1–5）的每一步目的与输出，理解witness多项式、置换累积器、商多项式、评估点与打开证明的递进关系。</li>
+<li><strong>理解</strong> KZG多项式承诺的原理——如何将一个多项式"压缩"为一个椭圆曲线点，以及如何在不暴露多项式本身的情况下证明其在某一点的取值。</li>
+</ul><hr>
+<h2>8.1 PLONK的诞生动机</h2>
+<h3>8.1.1 Groth16的痛点：每把锁配一把专用钥匙</h3>
+<p>在第7章中，我们学习了Groth16——它拥有极致简洁的证明（仅192字节）和飞快的验证速度（仅需3次配对运算），但有一个致命短板：<strong>每设计一个新电路，就必须重新执行一次可信设置仪式（Trusted Setup Ceremony）</strong> [^70^]。</p>
+<p>让我们回顾一下Groth16的可信设置流程。它分为两个阶段：</p>
+<ul><li><strong>Phase 1（Powers of Tau）</strong>：生成通用的结构化参考字符串（SRS），这一步与电路无关，可以复用。</li>
+<li><strong>Phase 2（电路特定）</strong>：将Phase 1的输出与具体电路绑定，生成该电路特有的proving key和verification key [^78^]。</li>
+</ul><p>这意味着，如果你开发了一个隐私转账电路，做了可信设置，后来又想添加一个"金额范围证明"的功能——哪怕只是改动了电路中的一条约束线——Phase 2也必须重新来过。而Phase 2的"毒性废料"（toxic waste）——即生成过程中必须被销毁的秘密随机数——如果泄露，任何人都能伪造该电路的证明 [^78^]。</p>
+<p>你可以想象这样一种场景：一个ZK钱包团队每两周迭代一次电路功能。如果每次迭代都要召集数十位社区参与者进行MPC仪式，那将是一场运维噩梦。</p>
+<h3>8.1.2 类比：从"定制钥匙"到"万能钥匙"</h3>
+<p>让我们用一个生活中的类比来建立直觉。</p>
+<p><strong>Groth16的可信设置像什么呢？</strong> 它像一栋老式公寓的物业管理方式：每间公寓的门锁都是特殊定制的——101室的钥匙只能开101室，102室的钥匙只能开102室。如果你想换锁（修改电路），锁匠必须上门重新制作一套全新的钥匙和锁芯。这种"每把锁配一把专用钥匙"的模式，安全性没问题，但灵活性极差。</p>
+<p><strong>PLONK的可信设置则像一把万能钥匙系统。</strong> 物业管理一次性请锁匠配置了一个"主锁芯模板"，这个模板规定了钥匙的最大齿形长度和复杂度（对应电路的最大规模）。此后，无论是101室还是205室，只要在模板允许的复杂度范围内，都可以直接使用同一套钥匙系统。换房间？不需要再找锁匠——万能钥匙直接适配 [^67^]。</p>
+<p>这把"万能钥匙"就是PLONK的<strong>通用可信设置（Universal Trusted Setup）</strong>：一次性预配置一个支持最大电路规模的参数，之后任意不超过该规模的电路都可以直接使用，无需重新仪式 [^70^]。</p>
+<h3>8.1.3 通用可信设置的技术本质</h3>
+<p>从数学上讲，通用可信设置利用的是<strong>Powers of Tau</strong>参数——一组椭圆曲线点的序列：</p>
+<p>\$\$\\text{SRS} = \\{[1]_1, [\\tau]_1, [\\tau^2]_1, \\ldots, [\\tau^D]_1, [1]_2, [\\tau]_2\\}\$\$</p>
+<p>其中 \$\\tau\$ 是在可信设置仪式中由多方贡献的随机值，\$D\$ 是支持的最大多项式次数（对应最大电路门数）。只要 \$D\$ 足够大（例如 \$D = 2^{28}\$，支持数十亿门），任何不超过此规模的电路都可以复用同一套SRS [^70^]。</p>
+<p>PLONK（Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge）由Gabizon、Williamson和Ciobotaru于2019年提出 [^146^]，正是基于这一思路。它不再将每个电路编码为QAP（二次算术程序），而是采用了一种全新的算术化方式——<strong>Plonkish Arithmetization</strong>。</p>
+<hr>
+<h2>8.2 PLONK的电路表示</h2>
+<h3>8.2.1 门约束：电路是一张可编程的电子表格</h3>
+<p>在第6章我们已经初步接触了Plonkish约束系统。现在让我们深入理解它的工作机制。</p>
+<p>Groth16使用R1CS（Rank-1 Constraint System），每个约束只能表达一个乘法关系：\$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$。所有加法必须通过线性组合"免费"折叠到\$A\$、\$B\$、\$C\$向量中 [^123^]。</p>
+<p>PLONK则将计算表示为一张<strong>执行轨迹表（Trace Table）</strong>，就像一张电子表格：</p>
+<p>| 行（门索引） | \$w_L\$（左输入） | \$w_R\$（右输入） | \$w_O\$（输出） | \$q_L\$ | \$q_R\$ | \$q_M\$ | \$q_O\$ | \$q_C\$ |<br>|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|<br>| 0 | \$a\$ | \$b\$ | \$c\$ | 0 | 0 | 1 | -1 | 0 |<br>| 1 | \$d\$ | \$e\$ | \$f\$ | 1 | 1 | 0 | 0 | -5 |</p>
+<p>每一行对应一个<strong>门（Gate）</strong>，各列存储了不同的信号和选择器系数。核心的门约束方程为 [^155^][^146^]：</p>
+<p>\$\$q_M \\cdot w_L \\cdot w_R + q_L \\cdot w_L + q_R \\cdot w_R + q_O \\cdot w_O + q_C = 0\$\$</p>
+<p>这里：<br><ul><li>\$w_L, w_R, w_O\$ 是该门的左输入、右输入和输出信号（即witness值）。</li><br><li>\$q_L, q_R, q_M, q_O, q_C\$ 是<strong>选择器（Selector）</strong>，它们是这个门的"类型标签"。</li></ul></p>
+<p>让我们解读第一行：\$q_M=1, q_O=-1\$，其余选择器为0。代入方程：</p>
+<p>\$\$1 \\cdot a \\cdot b + (-1) \\cdot c = 0 \\implies c = a \\cdot b\$\$</p>
+<p>这是一个<strong>乘法门</strong>。第二行：\$q_L=1, q_R=1, q_C=-5\$，代入得：</p>
+<p>\$\$1 \\cdot d + 1 \\cdot e + (-5) = 0 \\implies d + e = 5\$\$</p>
+<p>这是一个<strong>加法门</strong>（外加常数约束）。</p>
+<p>你可以看到，<strong>同一套电路结构只需要改变选择器的值，就能表达不同类型的运算</strong>。这正是PLONK"通用"的关键——选择器可以被编码为多项式，而多项式承诺方案（KZG）让我们能高效地承诺和验证这些多项式。</p>
+<h3>8.2.2 拷贝约束：用置换论证确保"同一条线"</h3>
+<p>在电子表格中，我们经常引用其他单元格的值，例如 <code class="inline-code">=A1+A2</code>。在电路中，这意味着第5行的输出 \$w_O\$ 必须等于第3行的左输入 \$w_L\$——同一个逻辑变量出现在不同位置。</p>
+<p><strong>拷贝约束（Copy Constraints）</strong> 就是用来强制这种"跨单元格相等"的机制。PLONK不直接写 \$w_3 = w_5\$ 这样的等式约束（那会增加大量额外门），而是使用<strong>置换论证（Permutation Argument）</strong>，也称为Grand Product Argument [^144^]。</p>
+<p><strong>类比</strong>：想象一个班级有30名学生，每人发了一张卡片写上自己的名字。老师把所有卡片收上来，洗乱后重新发回。每个学生检查自己收到的卡片——如果所有人的卡片都和自己原来的名字一致，说明老师在"置换"卡片时实际上什么都没做（即恒等置换）。PLONK的拷贝约束类似：它证明了电路中所有需要相等的信号位置，在执行了一次公开可知的置换后，对应的值仍然匹配。</p>
+<p>具体来说，PLONK将所有需要相等的信号位置标记为同一个"置换集合"，然后证明prover知道一个<strong>置换累积器多项式（permutation accumulator polynomial）</strong> \$Z\$，满足 \$Z\$ 在特定点的取值遵循某种累积乘积关系。这个论证的优雅之处在于：<strong>拷贝约束也被编码为多项式恒等式</strong>，和门约束一样可以通过商多项式统一验证 [^144^]。</p>
+<h3>8.2.3 从电路到多项式</h3>
+<p>现在让我们把trace table转换为多项式——这是PLONK进入证明阶段的关键一步。</p>
+<p>对于电路的 \$n\$ 个门，我们选择一个大小为 \$n\$ 的乘法子群 \$H = \\{1, \\omega, \\omega^2, \\ldots, \\omega^{n-1}\\}\$ 作为<strong>评估域</strong>，其中 \$\\omega\$ 是 \$n\$ 次单位根。然后：</p>
+<ul><li><strong>Witness多项式</strong>：将 \$w_L, w_R, w_O\$ 三列分别通过Lagrange插值，得到三个多项式 \$a(X), b(X), c(X)\$，使得在 \$H\$ 的每个元素上取值为对应行的witness值。</li>
+<li><strong>Selector多项式</strong>：将 \$q_L, q_R, q_M, q_O, q_C\$ 五列插值为多项式 \$q_L(X), q_R(X), q_M(X), q_O(X), q_C(X)\$。</li>
+<li><strong>门约束多项式</strong>：构造</li>
+</ul>   \$\$g(X) = q_M(X) \\cdot a(X) \\cdot b(X) + q_L(X) \\cdot a(X) + q_R(X) \\cdot b(X) + q_O(X) \\cdot c(X) + q_C(X)\$\$
+   如果电路执行正确，\$g(X)\$ 应该在 \$H\$ 的所有 \$n\$ 个点上都等于零。
+<ul><li><strong>拷贝约束多项式</strong>：通过置换论证构造额外的多项式约束，确保跨行相等的信号确实相等 [^146^]。</li>
+</ul><p>最后，将所有约束合并为<strong>商多项式（Quotient Polynomial）</strong> \$t(X)\$：</p>
+<p>\$\$t(X) = \\frac{g(X) + \\text{copy\\_constraint\\_terms}}{Z_H(X)}\$\$</p>
+<p>其中 \$Z_H(X) = X^n - 1\$ 是<strong>消失多项式（Vanishing Polynomial）</strong>，它在 \$H\$ 的所有 \$n\$ 个点上恰好为零。如果约束被满足，分子在 \$H\$ 上恒为零，意味着分子可以被 \$Z_H(X)\$ 整除，商 \$t(X)\$ 就是一个合法的多项式。</p>
+<blockquote><strong>直觉检查</strong>：这一步和第7章中Groth16的QAP非常相似——都是把"多点上的约束成立"转化为"一个多项式恒等式"。区别在于：Groth16的QAP只处理乘法约束，而PLONK的门多项式可以直接表达加法和乘法的线性组合，且Plonkish格式天然支持自定义门。</blockquote>
+<hr>
+<h2>8.3 PLONK证明流程：五轮构建</h2>
+<p>PLONK的证明协议是一个<strong>多项式交互式预言证明（PIOP, Polynomial Interactive Oracle Proof）</strong>系统 [^63^]。prover和verifier通过多轮交互，逐步构建和验证多项式承诺。最终通过Fiat-Shamir启发式将其转化为非交互式协议。</p>
+<p>下面是PLONK（KZG版本）核心证明流程的五轮架构：</p>
+<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│                     PLONK 证明流程：Round 1 ~ Round 5                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Round 1: 提交 Witness 多项式                                               │
+│  ├─ Prover 计算 witness 值 a[i], b[i], c[i]（i = 0..n-1）                   │
+│  ├─ 插值得到多项式 a(X), b(X), c(X)                                         │
+│  └─ 使用 KZG 承诺并发送给 Verifier: [a]₁, [b]₁, [c]₁                      │
+│                              ↓                                              │
+│  Round 2: 提交置换累积器多项式 (Grand Product)                                │
+│  ├─ Prover 计算拷贝约束对应的置换累积器 Z(X)                                 │
+│  ├─ Z(X) 编码了所有需要相等的 witness 位置的等价关系                           │
+│  └─ KZG 承诺并发送: [Z]₁                                                   │
+│                              ↓                                              │
+│  Round 3: 构造并提交商多项式                                                 │
+│  ├─ Verifier 发送随机挑战 β, γ（Fiat-Shamir: 从前面承诺哈希生成）            │
+│  ├─ Prover 构造合并约束多项式:                                              │
+│  │   num(X) = 门约束多项式 + β·拷贝约束多项式 + γ·公开输入多项式             │
+│  ├─ 计算商多项式: t(X) = num(X) / Z_H(X)                                   │
+│  └─ 拆分 t(X) 为低次部分 t_lo, t_mid, t_hi，分别承诺发送                      │
+│                              ↓                                              │
+│  Round 4: 在挑战点处评估                                                     │
+│  ├─ Verifier 发送评估挑战 z（随机点）                                        │
+│  ├─ Prover 计算所有相关多项式在 z 处的取值:                                   │
+│  │   ā = a(z), b̄ = b(z), c̄ = c(z), z̄ = Z(z), t̄ = t(z), ...                 │
+│  └─ 将这些评估值发送给 Verifier                                              │
+│                              ↓                                              │
+│  Round 5: 构造并提交打开证明 (Opening Proofs)                                 │
+│  ├─ Prover 为每个多项式构造 KZG 打开证明:                                    │
+│  │   "f(z) = y" 的简洁证明，不暴露 f 的其他系数                              │
+│  ├─ 将多个打开证明聚合成一个批次证明                                         │
+│  └─ Verifier 用一次配对运算验证所有打开证明的一致性                            │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════     │
+│  最终验证: Verifier 检查                                                     │
+│  1) 所有多项式在挑战点 z 处的评估值与 Round 4 报告的一致（通过 KZG 打开证明） │
+│  2) 这些评估值满足合并后的约束方程（在 z 点处的代数关系）                       │
+│  3) 所有随机挑战均由 Fiat-Shamir 从公开数据和前面轮次的承诺推导而来            │
+└─────────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>8.3.1 零测试：多项式在集合上"消失"</h3>
+<p>PLONK的核心验证可以归结为一个问题：<strong>给定一个承诺了的多项式 \$g(X)\$，如何验证它在某个集合 \$H\$ 上处处为零？</strong></p>
+<p>直接检查 \$H\$ 上的 \$n\$ 个点需要 \$O(n)\$ 次运算，失去了简洁性。PLONK的方法是：</p>
+<blockquote>如果 \$g(X)\$ 在 \$H = \\{1, \\omega, \\ldots, \\omega^{n-1}\\}\$ 上全部为零，那么 \$g(X)\$ 一定能被消失多项式 \$Z_H(X) = X^n - 1\$ 整除。即存在多项式 \$t(X)\$ 使得 \$g(X) = t(X) \\cdot Z_H(X)\$。</blockquote>
+<p>所以verifier只需要验证这个多项式恒等式在某个<strong>随机点 \$z\$</strong> 处成立：</p>
+<p>\$\$g(z) \\stackrel{?}{=} t(z) \\cdot Z_H(z)\$\$</p>
+<p>这个等式只需少量域运算即可检查。而prover则需要通过KZG承诺证明它确实知道满足该恒等式的 \$g(X)\$ 和 \$t(X)\$。</p>
+<p>这是<strong>Schwartz-Zippel引理</strong>的直接应用：两个次数为 \$d\$ 的不同多项式，在随机点处相等的概率不超过 \$d/|F|\$，其中 \$|F|\$ 是域的大小。对于密码学常用的大域（如 \$p \\approx 2^{254}\$），这个概率小到可以忽略不计 [^108^]。</p>
+<h3>8.3.2 Fiat-Shamir启发式：从交互到非交互</h3>
+<p>在上面的五轮流程中，verifier需要发送多个随机挑战（\$\\beta, \\gamma, z\$）。这意味着协议是<strong>交互式</strong>的——prover和verifier必须实时通信。</p>
+<p><strong>Fiat-Shamir启发式</strong>提供了一个优雅的转化方法 [^27^]：</p>
+<blockquote>将所有由verifier发送的随机挑战，替换为将prover之前发送的所有消息（承诺值、公开输入）输入密码学哈希函数（如SHA-256或Poseidon）得到的输出。</blockquote>
+<p><strong>类比</strong>：想象一个审计师（verifier）原本需要现场从帽子里随机抽签来抽查账簿。Fiat-Shamir启发式相当于说："审计师不需要亲自到场抽签——我们可以用一份双方都能看到的报纸日期版号作为随机源。"prover自己"抽签"，但因为抽签结果完全由prover已经公开承诺过的信息决定，prover无法操控结果来作弊。</p>
+<p>在PLONK中，所有挑战 \$\\beta, \\gamma, z\$ 都是通过哈希前面轮次的KZG承诺值计算得到的。这保证了prover在构造后续多项式时，无法预知挑战值并构造作弊多项式——因为一旦它选择了多项式，承诺值就固定了，哈希输出也就固定了 [^27^]。</p>
+<hr>
+<h2>8.4 KZG多项式承诺详解</h2>
+<h3>8.4.1 类比：把一本书压缩成一个印章</h3>
+<p>KZG承诺（Kate-Zaverucha-Goldberg Commitment）是PLONK的"发动机"。让我们先通过一个类比建立直觉。</p>
+<p><strong>想象你写了一本500页的书（对应一个500次的多项式），想把它交给出版社。出版社不想一次读完500页来确认内容——那太慢了。你们约定了一个聪明的机制：</strong></p>
+<ul><li>你用一个特殊的"印章机"把整本书压成一个极小的印章（椭圆曲线上的一个点）。</li>
+<li>出版社随机说："请给我看第247页的内容。"</li>
+<li>你提供第247页的内容，以及一个"防伪标签"——一个小纸片，证明这一页确实来自你之前盖章的那本书，而不是你临时编造的。</li>
+<li>出版社用印章机验证防伪标签，确认第247页的内容与印章一致，而且你不需要暴露其他499页。</li>
+</ul><p>这就是KZG承诺的核心：<br><ul><li><strong>承诺（Commit）</strong> = 把多项式"压缩"成一个椭圆曲线点</li><br><li><strong>打开（Open）</strong> = 证明 \$f(z) = y\$ 在某一点成立</li><br><li><strong>验证（Verify）</strong> = 通过配对运算检查打开证明的有效性</li></ul></p>
+<h3>8.4.2 基于配对的承诺构造</h3>
+<p>让我们进入形式化描述。</p>
+<p><strong>可信设置阶段</strong>生成结构化参考字符串（SRS）：</p>
+<p>\$\$\\text{SRS} = \\{[1]_1, [\\tau]_1, [\\tau^2]_1, \\ldots, [\\tau^D]_1\\}\$\$</p>
+<p>其中 \$\\tau\$ 是仪式中生成的秘密随机值，必须被安全销毁。\$[x]_1\$ 表示椭圆曲线群 \$\\mathbb{G}_1\$ 中基点 \$G_1\$ 的 \$x\$ 倍点。\$D\$ 是支持的最大多项式次数 [^96^]。</p>
+<p><strong>承诺一个多项式</strong>：给定多项式 \$f(X) = f_0 + f_1 X + f_2 X^2 + \\ldots + f_d X^d\$，prover计算：</p>
+<p>\$\$\\text{Commit}(f) = [f(\\tau)]_1 = f_0 \\cdot [1]_1 + f_1 \\cdot [\\tau]_1 + f_2 \\cdot [\\tau^2]_1 + \\ldots + f_d \\cdot [\\tau^d]_1\$\$</p>
+<p>这个承诺是一个单一的椭圆曲线点（在BN254曲线上约32字节，在BLS12-381上约48字节）[^96^]。<strong>注意</strong>：prover并不知道 \$\\tau\$ 的值，但它知道 \$[\\tau^k]_1\$ 这些公开的点，因此可以通过多标量乘法（MSM）计算出 \$[f(\\tau)]_1\$。</p>
+<p><strong>安全性直觉</strong>：承诺 \$[f(\\tau)]_1\$ 本质上是"在秘密点 \$\\tau\$ 处评估多项式 \$f\$ 的值"，但以椭圆曲线点的形式呈现。由于离散对数困难假设，从 \$[f(\\tau)]_1\$ 反推出 \$f\$ 的系数是计算不可行的。这保证了承诺的<strong>隐藏性</strong>。</p>
+<h3>8.4.3 打开证明：证明 \$f(z) = y\$ 而不暴露 \$f\$</h3>
+<p>现在verifier想知道：多项式 \$f\$ 在点 \$z\$ 处的值是否等于某个声称的 \$y\$。</p>
+<p>prover声称 \$f(z) = y\$。构造商多项式：</p>
+<p>\$\$q(X) = \\frac{f(X) - y}{X - z}\$\$</p>
+<p>如果 \$f(z) = y\$ 确实成立，那么 \$f(X) - y\$ 在 \$X = z\$ 处有根，可以被 \$(X - z)\$ 整除，商 \$q(X)\$ 就是一个合法的多项式。</p>
+<p>prover发送<strong>打开证明</strong> \$[q(\\tau)]_1\$（即对 \$q(X)\$ 做KZG承诺）。verifier通过以下配对等式验证 [^96^]：</p>
+<p>\$\$e(\\text{Commit}(f) - [y]_1, [1]_2) \\stackrel{?}{=} e([q(\\tau)]_1, [\\tau - z]_2)\$\$</p>
+<p>这里 \$e\$ 是椭圆曲线配对（Bilinear Pairing），我们在第4章已经学习过。</p>
+<p><strong>为什么这个等式成立？</strong> 在指数上展开：</p>
+<ul><li>左边指数：\$f(\\tau) - y\$</li>
+<li>右边指数：\$q(\\tau) \\cdot (\\tau - z) = (f(\\tau) - y)\$</li>
+</ul><p>两边相等，配对关系成立。而verifier之所以能相信 \$f(z) = y\$，是因为如果等式成立但 \$f(z) \\neq y\$，那么 \$q(X)\$ 就不是多项式（除以 \$X-z\$ 有余数），prover就无法构造出合法的 \$[q(\\tau)]_1\$（除非它能解决d-SDH难题）[^96^]。</p>
+<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│                      KZG 多项式承诺流程                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   可信设置阶段 (一次性，多方计算仪式)                                         │
+│   ┌─────────────────────────────────────┐                                   │
+│   │ τ = 随机秘密值 (必须销毁)            │                                   │
+│   │ SRS = {[1]₁, [τ]₁, [τ²]₁,...,[τᴰ]₁}│                                   │
+│   │        {[1]₂, [τ]₂}                 │                                   │
+│   └─────────────────────────────────────┘                                   │
+│                              ↓                                              │
+│   承诺阶段 (Prover)                                                          │
+│   ┌─────────────────────────────────────┐                                   │
+│   │ 输入: f(X) = f₀ + f₁X + ... + f_d Xᵈ │                                   │
+│   │ 输出: C = [f(τ)]₁                    │                                   │
+│   │       = f₀·[1]₁ + f₁·[τ]₁ + ...      │                                   │
+│   └─────────────────────────────────────┘                                   │
+│                              ↓                                              │
+│   打开阶段 (Prover 响应 Verifier 的挑战点 z)                                  │
+│   ┌─────────────────────────────────────┐                                   │
+│   │ y = f(z)  ← 声称的取值              │                                   │
+│   │ q(X) = (f(X) - y) / (X - z)         │                                   │
+│   │ π = [q(τ)]₁  ← 打开证明 (单个群元素) │                                   │
+│   └─────────────────────────────────────┘                                   │
+│                              ↓                                              │
+│   验证阶段 (Verifier, 仅需常数时间)                                           │
+│   ┌─────────────────────────────────────┐                                   │
+│   │ 检查: e(C - [y]₁, [1]₂) = e(π, [τ-z]₂)│                                  │
+│   │        │         │          │    │    │                                   │
+│   │        └─────────┴──────────┴────┴────┘                                   │
+│   │           仅 2 次配对运算 → O(1) 验证                                      │
+│   └─────────────────────────────────────┘                                   │
+│                                                                             │
+│   安全假设: 强 Diffie-Hellman (d-SDH)                                        │
+│   证明大小: O(1) ≈ 48 字节 (BLS12-381)                                       │
+│   验证成本: O(1) 2次配对                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>8.4.4 批量打开：一次抽查多页</h3>
+<p>在PLONK的证明流程中，prover需要同时打开多个多项式（\$a(X), b(X), c(X), Z(X), t(X)\$ 等）在同一个点 \$z\$ 处的取值。KZG支持<strong>批量打开（Batch Opening）</strong>来节省通信和验证开销。</p>
+<p><strong>核心思想</strong>：通过随机线性组合将多个多项式的打开请求合并为一次。</p>
+<p>假设verifier想验证 \$f_1(z) = y_1\$, \$f_2(z) = y_2\$, ..., \$f_k(z) = y_k\$。prover构造聚合多项式：</p>
+<p>\$\$F(X) = f_1(X) + r \\cdot f_2(X) + r^2 \\cdot f_3(X) + \\ldots + r^{k-1} \\cdot f_k(X)\$\$</p>
+<p>其中 \$r\$ 是另一个由Fiat-Shamir导出的随机挑战。然后prover只需提供 \$F(z)\$ 的单一打开证明，verifier可以通过公开信息自行计算期望的 \$Y = y_1 + r \\cdot y_2 + \\ldots + r^{k-1} \\cdot y_k\$ 并验证 \$F(z) = Y\$。</p>
+<p>这在PLONK的Round 5中至关重要：通过批量打开，PLONK最终将所有多项式评估的证明压缩到一个极小的集合中，使得整个证明大小控制在400–800字节左右 [^70^]。</p>
+<hr>
+<h2>8.5 PLONK变体与演进</h2>
+<p>PLONK的通用架构催生了一个繁荣的"PLONK家族"。各变体在核心框架上增强了特定能力。</p>
+<h3>8.5.1 TurboPLONK与UltraPLONK：自定义门和查找表</h3>
+<p><strong>TurboPLONK</strong> = PLONK + <strong>自定义门（Custom Gates）</strong> [^70^]。</p>
+<p>标准PLONK的门约束是固定的算术形式（乘法+加法的线性组合）。TurboPLONK允许设计者定义任意低次多项式作为门，例如：</p>
+<p>\$\$q_{CUSTOM} \\cdot (w_L^5 + w_R^3 - w_O) = 0\$\$</p>
+<p>这看起来只是多了一个方程，但对某些运算有巨大的节省。例如，计算一个数的5次方在标准PLONK中需要4个乘法门（\$x \\to x^2 \\to x^4 \\to x^5\$），而在TurboPLONK中只需要一个自定义门。</p>
+<p><strong>UltraPLONK</strong> = TurboPLONK + <strong>查找表（Lookup Tables, via Plookup）</strong> [^70^]。</p>
+<p>查找表允许prover证明"某个witness值存在于一个预定义的表中"。这对以下场景极其高效：<br><ul><li>位运算（AND、OR、XOR）：无需逐位分解，直接查表</li><br><li>字节替换（S-Box）：AES、SHA-256中的关键操作</li><br><li>范围证明：证明一个数在 \$[0, 2^{32})\$ 内</li></ul></p>
+<p>实证数据表明，UltraPLONK的查找表可以将SHA-256电路从约25,000个R1CS约束压缩到约3,000–5,000个PLONK门 [^70^]——<strong>5倍的效率提升</strong>。</p>
+<p>| 特性 | PLONK | TurboPLONK | UltraPLONK |<br>|:---|:---|:---|:---|<br>| 门约束 | 固定算术形式 | 自定义低次多项式 | 自定义 + 查找表 |<br>| SHA-256约束数 | ~25,000 | ~15,000 | ~3,000–5,000 |<br>| 典型应用 | 通用电路 | 特定优化电路 | zkEVM、哈希密集电路 |<br>| 生产部署 | zkSync早期 | 自定义场景 | Aztec、Scroll |</p>
+<h3>8.5.2 Plonky2：PLONK + FRI，递归证明的先锋</h3>
+<p><strong>Plonky2</strong>由Polygon Zero团队开发，是一个引人注目的混合架构。它用PLONK的算术化方式表达电路，但用<strong>FRI（Fast Reed-Solomon IOP of Proximity）</strong>作为多项式承诺方案，替代KZG [^112^]。</p>
+<p>这意味着：<br><ul><li><strong>无可信设置</strong>：FRI基于哈希函数而非椭圆曲线配对，完全透明</li><br><li><strong>原生递归支持</strong>：FRI的验证过程主要是哈希检查和少量域运算，可以很容易地编码为一个PLONKish电路——然后递归地生成"验证验证过程的证明"</li><br><li><strong>证明较大</strong>：FRI的证明大小为 \$O(\\log^2 d)\$，约40–200KB，远大于KZG版本的48字节 [^96^]</li></ul></p>
+<p>Plonky2的递归能力对区块链扩容至关重要。它允许将大量交易的验证压缩为一个小型递归证明，最终只需在链上验证一个极小的"根证明"。</p>
+<hr>
+<h2>8.6 实战：用Noir编写PLONK兼容电路</h2>
+<p>Noir是Aztec团队开发的ZK语言，采用Rust风格语法。它的核心理念是：开发者用传统编程思维写验证逻辑，约束系统自动生成 [^194^]。Noir编译后的中间表示（ACIR）可以被多种后端执行，其中Barretenberg后端基于UltraPLONK/Honk架构 [^242^]。</p>
+<p>本节我们编写一个<strong>Merkle成员证明电路</strong>——这是Web3钱包隐私功能中最常见的ZK场景之一。该电路证明：prover知道一个叶子节点和一个Merkle路径，可以重建出等于公开声明的Merkle根的值，但不暴露叶子节点的具体内容。</p>
+<h3>8.6.1 Noir电路代码</h3>
+<pre class="code-block"><code>// 文件名: src/main.nr
+// 电路: MerklePathProof —— 证明知道某个叶子，且该叶子在公开的Merkle根中
+// 后端: Barretenberg (UltraPLONK/Honk)
+
+use dep::std::hash::poseidon2;  // 引入Poseidon2哈希，ZK友好的哈希函数
+
+// Merkle树深度常量 —— 树有 2^DEPTH 个叶子
+// 在编译时确定，影响约束数量和电路规模
+const DEPTH: u32 = 10;
+
+fn main(
+    // ========== 公开输入 (pub) ==========
+    // 这些值在验证时公开可见，可被链上合约读取
+    merkle_root: pub Field,        // 要验证的Merkle根哈希
+    nullifier_hash: pub Field,      // 空值哈希，用于防双花
+    recipient: pub Field,            // 资金接收地址
+    fee: pub Field,                 // 手续费金额
+
+    // ========== 私有输入 (private) ==========
+    // 这些值被隐藏，仅prover知道，通过ZK证明其存在性
+    secret: Field,                  // 叶子节点的秘密值（如隐私转账中的note密钥）
+    nullifier: Field,               // 空值（证明这个叶子尚未被花费）
+    path_elements: [Field; DEPTH], // Merkle路径上的兄弟节点哈希（从叶子到根）
+    path_indices: [Field; DEPTH],  // 路径方向：0=左，1=右（决定hash排序）
+) {
+    // ── 第一步：计算叶子节点的承诺值 ──
+    // 叶子 = Poseidon2(secret, nullifier)
+    // 这类似于Tornado Cash中的commitment生成
+    let leaf = poseidon2::hash([secret, nullifier]);
+
+    // ── 第二步：验证空值哈希 ──
+    // 确保prover提供的nullifier_hash确实由nullifier派生
+    // 这防止prover用同一个叶子多次花费
+    let computed_nullifier_hash = poseidon2::hash([nullifier]);
+    assert(computed_nullifier_hash == nullifier_hash);
+
+    // ── 第三步：沿Merkle路径逐层哈希，重建根 ──
+    // current = leaf，然后逐层向上计算
+    let mut current = leaf;
+
+    for i in 0..DEPTH {
+        // path_indices[i] 必须是 0 或 1（二进制）
+        // Noir会自动为Field类型的路径索引生成范围约束
+        // 注意：在纯PLONK中这需要额外的位分解约束，
+        // UltraPLONK的查找表可以更高效地处理
+
+        // 根据path_indices[i]选择左右排序
+        // 如果 index = 0: hash(current, path_elements[i]) —— current在左
+        // 如果 index = 1: hash(path_elements[i], current) —— current在右
+        let left = if path_indices[i] == 0 {
+            current
+        } else {
+            path_elements[i]
+        };
+
+        let right = if path_indices[i] == 0 {
+            path_elements[i]
+        } else {
+            current
+        };
+
+        // 计算父节点哈希，向上攀升一层
+        current = poseidon2::hash([left, right]);
+    }
+
+    // ── 第四步：验证重建的根等于声明的根 ──
+    // 这是电路的核心约束：如果路径正确，current应等于merkle_root
+    assert(current == merkle_root);
+
+    // ── 第五步：约束recipient和fee为非负（在Field语义下自动满足）──
+    // 在Noir/PLONK中，Field元素天然在有限域内，但如需范围约束
+    // （如fee < 2^64），需要使用UltraPLONK的查找表特性
+}
+
+// ── 测试模块 ──
+#[test]
+fn test_merkle_path() {
+    // 测试输入：构造一个简单的2层Merkle树做验证
+    let secret = 12345;
+    let nullifier = 67890;
+    let leaf = poseidon2::hash([secret, nullifier]);
+
+    // 构造一个简化的测试路径（实际测试中DEPTH应与常量一致）
+    // 这里仅展示测试结构，真实场景需要完整10层路径
+    let dummy_path: [Field; 10] = [0; 10];
+    let dummy_indices: [Field; 10] = [0; 10];
+
+    // 注意：完整测试需要预先计算有效的Merkle根
+    // 这里仅作编译检查
+}
+</code></pre>
+<h3>8.6.2 Noir到PLONK约束的映射理解</h3>
+<p>当你用Noir编写上面的电路时，编译器在背后执行了一系列到我们学过的PLONK概念的映射：</p>
+<p>| Noir代码层面 | PLONK约束层面 | UltraPLONK优化 |<br>|:---|:---|:---|<br>| <code class="inline-code">assert(a == b)</code> | 等式门约束 \$w_L - w_R = 0\$ | 标准算术约束 |<br>| <code class="inline-code">poseidon2::hash(...)</code> | ~240个Plonk门（置换网络+S-Box） | 查找表加速S-Box |<br>| <code class="inline-code">if x == 0 { a } else { b }</code> | 选择器门 + 拷贝约束 | 自定义MUX门 |<br>| <code class="inline-code">for</code> 循环 | 展开为重复的门模式 | Region布局优化 |<br>| <code class="inline-code">let mut current</code> | witness多项式的逐行更新 | 置换论证保证跨行一致 |<br>| 数组索引访问 | 固定列（fixed column）中的预置值 | 查找表约束 |</p>
+<p><strong>关键洞察</strong>：Noir的<code class="inline-code">assert()</code>语句直接对应PLONK中的门约束。而像<code class="inline-code">poseidon2::hash</code>这样的标准库函数，其内部已经被优化为高度紧凑的Plonkish门序列——这正是TurboPLONK/UltraPLONK的价值所在 [^70^]。</p>
+<h3>8.6.3 生成并验证证明</h3>
+<pre class="code-block"><code># 1. 创建Noir项目
+nargo new merkle_proof
+cd merkle_proof
+
+# 2. 将上面的电路代码写入 src/main.nr
+# 3. 编译电路（生成ACIR中间表示+PLONK约束）
+nargo compile
+
+# 4. 生成Prover输入文件（编辑 Prover.toml 填入witness值）
+nargo check
+
+# 5. 执行电路并生成witness
+nargo execute my_witness
+
+# 6. 使用Barretenberg后端生成证明
+bb prove -b ./target/merkle_proof.json \\\\
+         -w ./target/my_witness.gz \\\\
+         --write_vk \\\\
+         -o ./target/
+
+# 7. 验证证明
+bb verify -p ./target/proof \\\\
+          -k ./target/vk
+
+# 8. 导出Solidity验证器合约（部署到以太坊）
+bb write_solidity_verifier \\\\
+   --scheme ultra_honk \\\\
+   -k ./target/vk \\\\
+   -b ./target/merkle_proof.json \\\\
+   -o ./target/Verifier.sol
+</code></pre>
+<p>注意这里的 <code class="inline-code">--scheme ultra_honk</code> 参数 [^301^]：Honk是Barretenberg的UltraPLONK变体，使用了我们在8.5.1节中讨论过的自定义门和查找表优化。对于包含大量哈希运算的Merkle电路，UltraHonk比标准PLONK显著更快、约束更少。</p>
+<hr>
+<h2>8.7 本章小结</h2>
+<p>本章从Groth16的痛点出发，深入探讨了PLONK及其核心支撑技术KZG承诺：</p>
+<p><strong>PLONK的核心创新</strong>在于<strong>通用可信设置</strong>和<strong>Plonkish算术化</strong>。它用一张执行轨迹表（trace table）表示电路，通过选择器多项式 \$q_L, q_R, q_M, q_O, q_C\$ 灵活定义门类型，通过置换论证强制跨单元格的拷贝约束 [^146^]。相比Groth16的每电路一次可信设置，PLONK只需一次性预配置支持最大电路规模的SRS，此后任意电路均可复用 [^67^]。</p>
+<p><strong>PLONK的五轮证明流程</strong>从witness多项式开始，经置换累积器、商多项式构造、随机点评估，最终通过KZG批量打开完成验证。Fiat-Shamir启发式将这一交互式PIOP转化为非交互式SNARK [^27^]。</p>
+<p><strong>KZG承诺</strong>是PLONK的"发动机"，它将多项式压缩为单个椭圆曲线点，并通过配对运算实现 \$O(1)\$ 大小的打开证明和 \$O(1)\$ 时间的验证 [^96^]。其代价是需要可信设置（d-SDH假设），换来了极致的证明简洁性。</p>
+<p><strong>PLONK家族</strong>持续演进：TurboPLONK引入自定义门，UltraPLONK叠加查找表将SHA-256约束降低约5倍 [^70^]；Plonky2则将PLONK算术化与FRI承诺结合，消除了可信设置需求并原生支持递归证明。</p>
+<p>对于Web3钱包开发者，PLONK生态（Noir、Barretenberg、gnark）提供了比Groth16更灵活的开发体验——电路迭代无需重新仪式，且UltraPLONK的查找表让复杂密码学原语（哈希、范围证明）的电路编写变得触手可及。</p>
+<hr>
+<h2>思考题与练习</h2>
+<p><strong>概念理解</strong></p>
+<ul><li><strong>选型分析题</strong>：假设你正在开发一个Web3钱包的隐私转账功能，预计电路每季度会迭代一次（添加新功能如多签、时间锁）。在Groth16和PLONK之间你会如何选择？请从可信设置成本、证明大小、验证Gas、开发生态四个维度对比，并给出你的决策和理由。</li>
+<li><strong>机制理解题</strong>：PLONK使用商多项式 \$t(X) = g(X) / Z_H(X)\$ 来验证约束。如果prover试图作弊（例如witness中某个门的输出不等于输入的乘积），那么在什么条件下verifier仍能发现？请结合Schwartz-Zippel引理和随机挑战点 \$z\$ 的选择来回答。</li>
+</ul><p><strong>动手实践</strong></p>
+<ul><li><strong>代码实验题</strong>：安装Noir和Barretenberg，将8.6节中的Merkle电路编译并运行 <code class="inline-code">nargo info</code> 查看生成的约束数量。然后尝试修改<code class="inline-code">DEPTH</code>常量（从10改为5和15），观察约束数量如何变化。这个变化是线性的吗？为什么？（提示：考虑Poseidon哈希的固定开销和路径层数的关系。）</li>
+<li><strong>扩展挑战题</strong>：在8.6节的Merkle电路基础上，添加一个<strong>范围证明约束</strong>：要求<code class="inline-code">fee</code>必须小于 \$2^{64}\$。在Noir中，这可以通过<code class="inline-code">assert(fee as u64 == fee as u64)</code>或标准库的<code class="inline-code">decompose</code>函数实现。编译后对比约束数量的增加，并思考：为什么UltraPLONK的查找表能比普通PLONK更高效地实现范围证明？</li>
+</ul><hr>
+<blockquote><strong>本章衔接提示</strong>：第7章（Groth16）和第8章（PLONK）共同覆盖了主流SNARK生态。在第9章中，我们将探索一条完全不同的路线——<strong>zk-STARK</strong>，它彻底抛弃了可信设置，用透明的方式实现零知识证明。你可以把STARK理解为"连万能钥匙都不需要"的证明系统。</blockquote>`;
+---
+
+<Layout title="第08章 - 核心算法II：PLONK与通用可信设置" description="ZK学习第08章：核心算法II：PLONK与通用可信设置">
+  <main class="min-h-screen bg-[#0A0A0F]">
+    <section class="py-12 px-4 border-b border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto">
+        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+          <span>←</span> 返回 ZK 学习列表
+        </a>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)]">
+            08
+          </div>
+          <span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">
+            核心算法
+          </span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white">核心算法II：PLONK与通用可信设置</h1>
+      </div>
+    </section>
+
+    <section class="py-8 px-4">
+      <div class="max-w-4xl mx-auto">
+        <article class="prose-zk" set:html={htmlContent} />
+      </div>
+    </section>
+
+    <section class="py-8 px-4 border-t border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto flex justify-between items-center">
+        
+          <a href="/zk-learning/07" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <span>←</span>
+            <div class="text-left">
+              <div class="text-xs text-[#6a6a80]">上一章</div>
+              <div class="text-sm font-medium">核心算法I：zk-SNARK与Groth16</div>
+            </div>
+          </a>
+        
+          <a href="/zk-learning/09" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <div class="text-right">
+              <div class="text-xs text-[#6a6a80]">下一章</div>
+              <div class="text-sm font-medium">核心算法III：zk-STARK与透明证明</div>
+            </div>
+            <span>→</span>
+          </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style is:global>
+  .prose-zk { color: #9a9ab0; line-height: 1.8; font-size: 0.95rem; }
+  .prose-zk h1 { color: #fff; font-size: 1.8rem; font-weight: 700; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h2 { color: #fff; font-size: 1.4rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h3 { color: #e0e0f0; font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .prose-zk h4 { color: #e0e0f0; font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  .prose-zk h5, .prose-zk h6 { color: #c0c0d0; font-size: 1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+  .prose-zk p { margin: 0.75rem 0; }
+  .prose-zk ul { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .prose-zk li { margin: 0.35rem 0; }
+  .prose-zk li::marker { color: #00d4aa; }
+  .prose-zk blockquote { margin: 1rem 0; padding: 0.75rem 1rem; border-left: 3px solid rgba(0, 212, 170, 0.4); background: rgba(0, 212, 170, 0.03); border-radius: 0 6px 6px 0; color: #b0b0c0; font-style: italic; }
+  .prose-zk hr { border: none; border-top: 1px solid #2a2a3a; margin: 1.5rem 0; }
+  .prose-zk .code-block { background: #0f0f16; border: 1px solid #2a2a3a; border-radius: 8px; padding: 1rem; margin: 1rem 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; color: #c0c0d0; }
+  .prose-zk .inline-code { background: rgba(0, 212, 170, 0.08); color: #00d4aa; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; border: 1px solid rgba(0, 212, 170, 0.15); }
+  .prose-zk strong { color: #e0e0f0; font-weight: 600; }
+  .prose-zk em { color: #b0b0c0; }
+</style>

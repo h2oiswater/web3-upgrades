@@ -1,0 +1,543 @@
+---
+import Layout from '../../layouts/Layout.astro';
+const htmlContent = `<h1>第12章 实战I：用Circom编写ZK电路</h1>
+<blockquote><strong>前置知识提示</strong>：本章需要你已掌握第6章（Circom语法与R1CS约束系统）和第7章（Groth16证明系统与SnarkJS工具链）的内容。如果你尚未阅读这两章，建议先回顾其中的核心概念：signal与template的区别、<code class="inline-code"><==</code>与<code class="inline-code">===</code>运算符的含义、Powers of Tau可信设置仪式、以及证明生成与验证的完整流程。</blockquote>
+<hr>
+<h2>12.1 学习目标</h2>
+<p>完成本章学习后，你将能够：</p>
+<ul><li><strong>独立完成Circom完整开发流程</strong>：从环境搭建、电路编写、编译、witness生成到证明构造与验证，能够不借助教程完整走通一个ZK项目的全部环节。</li>
+<li><strong>编写并测试三类实际ZK电路</strong>：范围证明（Range Proof）、Merkle成员证明（Merkle Membership Proof）、以及多步计算正确性证明，理解每类电路的设计思想和约束构造方法。</li>
+<li><strong>理解witness生成和证明构造的实操细节</strong>：清楚<code class="inline-code">input.json</code>、WASM witness计算器、<code class="inline-code">.wtns</code>文件、以及snarkjs各命令在底层做了什么，能在遇到错误时定位问题所在。</li>
+<li><strong>识别最常见的ZK电路安全漏洞</strong>：理解"欠约束"（Underconstrained）风险的本质，掌握信号（signal）与变量（var）的关键区分，并知道如何使用审计工具对电路进行静态分析。</li>
+</ul><hr>
+<h2>12.2 开发环境搭建</h2>
+<h3>12.2.1 安装Circom编译器和SnarkJS</h3>
+<p>在正式进入电路编写之前，我们需要把工具链安装妥当。你可以把这套工具链想象成一套"特殊编译器"：Circom编译器负责把人类可读的电路描述翻译成证明系统能理解的R1CS约束系统[^214^]；SnarkJS则是一个全功能的"证明工厂"，负责可信设置、witness计算、证明生成和验证。</p>
+<p><strong>第一步：安装Circom编译器</strong></p>
+<p>Circom编译器使用Rust编写，因此你的系统中需要先安装Rust工具链。如果你已经安装了<code class="inline-code">cargo</code>，可以直接从源码编译：</p>
+<pre class="code-block"><code># 克隆Circom仓库
+git clone https://github.com/iden3/circom.git
+cd circom
+
+# 编译并安装（Release模式编译较慢，但生成的可执行文件性能更好）
+cargo build --release
+cargo install --path circom
+</code></pre>
+<p>安装完成后，执行以下命令验证：</p>
+<pre class="code-block"><code>circom --version
+# 预期输出类似：circom compiler 2.1.9
+</code></pre>
+<p><strong>第二步：安装SnarkJS</strong></p>
+<p>SnarkJS是一个基于Node.js和WebAssembly的zk-SNARK库，支持Groth16、PLONK和FFLONK三种证明系统[^197^]。安装非常直接：</p>
+<pre class="code-block"><code>npm install -g snarkjs
+
+# 验证安装
+snarkjs --version
+</code></pre>
+<p><strong>第三步：安装circomlib（标准电路库）</strong></p>
+<p><code class="inline-code">circomlib</code>是iden3团队维护的官方标准库，包含了Poseidon哈希、Num2Bits、比较器、Merkle树验证等大量经过社区检验的电路模板[^259^]。我们将在后续项目中直接复用其中的组件，而不是从零手写每一个基础逻辑。</p>
+<pre class="code-block"><code># 在你的项目目录中初始化npm并安装circomlib
+mkdir my-zk-project && cd my-zk-project
+npm init -y
+npm install circomlib
+</code></pre>
+<p>安装完成后，<code class="inline-code">node_modules/circomlib/circuits/</code>目录下会包含所有可用的<code class="inline-code">.circom</code>模板文件，你可以通过<code class="inline-code">include</code>指令引用它们。</p>
+<h3>12.2.2 项目结构规划</h3>
+<p>一个结构清晰的ZK项目能让调试和协作事半功倍。以下是推荐的项目目录结构：</p>
+<pre class="code-block"><code>my-zk-project/
+├── circuits/              # 存放所有.circom电路文件
+│   ├── rangeproof.circom
+│   ├── merkleproof.circom
+│   └── computation.circom
+├── inputs/                # 存放各电路的input.json
+│   ├── rangeproof_input.json
+│   ├── merkleproof_input.json
+│   └── computation_input.json
+├── build/                 # 编译产物（r1cs, wasm, sym文件等）
+├── ptau/                  # Powers of Tau可信设置文件
+└── package.json
+</code></pre>
+<p>建议为每个电路创建独立的编译目录，避免不同电路的编译产物相互覆盖。接下来的三个项目，我们将按照这个结构组织文件。</p>
+<hr>
+<h2>12.3 项目一：范围证明（Range Proof）</h2>
+<h3>12.3.1 需求分析</h3>
+<p><strong>场景设定</strong>：想象你正在开发一款Web3钱包的隐私功能。Alice想向Bob证明"我的账户余额大于0且小于100"，但她不想暴露具体余额是多少——可能是3，也可能是97。在传统世界里，Alice只能直接把余额数字给Bob看；而在ZK世界里，她可以构造一个<strong>范围证明</strong>（Range Proof），让Bob相信她的余额确实在那个区间内，却对具体数值一无所知。</p>
+<p>这个场景在真实钱包应用中极为常见：证明年龄超过18岁而不暴露生日、证明信用评分达到某阈值而不暴露具体分数、证明Token持仓在限购范围内而不暴露持仓量。</p>
+<p><strong>形式化需求</strong>：给定一个私有输入\$x\$，证明\$0 \\leq x < 2^n\$（在本例中我们取\$n=8\$，即证明\$0 \\leq x < 256\$）。公开输入为空（或仅公开证明本身有效）。</p>
+<h3>12.3.2 电路设计：二进制分解约束</h3>
+<p>范围证明的核心思路非常优雅：如果\$x\$可以用\$n\$个二进制位表示，且每一位只能是0或1，那么\$x\$必然落在\$[0, 2^n)\$区间内。你可以把它想象成一个"数字安检门"——安检人员不看你口袋里具体有多少钱，而是让你把钱包里的钞票一张张摊在桌上，确认每一张都是合法的币值（要么是0元，要么是1元），而且总张数不超过\$n\$张。</p>
+<p><strong>约束构造步骤</strong>：</p>
+<ul><li>将\$x\$分解为\$n\$个二进制位\$b_0, b_1, ..., b_{n-1}\$，使得 \$x = \\sum_{i=0}^{n-1} b_i \\cdot 2^i\$</li>
+<li>对每一位施加约束：\$b_i \\cdot (b_i - 1) = 0\$，即\$b_i\$只能是0或1</li>
+<li>验证分解正确性：所有位按权重求和等于原值\$x\$</li>
+</ul><p>幸运的是，circomlib已经为我们提供了<code class="inline-code">Num2Bits</code>模板，它自动完成上述所有约束[^211^]。我们只需调用它，然后按需增加上界约束即可。</p>
+<h3>12.3.3 完整Circom代码</h3>
+<p>创建文件<code class="inline-code">circuits/rangeproof.circom</code>：</p>
+<pre class="code-block"><code>pragma circom 2.0.0;
+
+// 引入circomlib中的Num2Bits模板
+// Num2Bits(n)将一个field元素拆分为n个二进制位，并约束每一位是0或1
+include "../node_modules/circomlib/circuits/bitify.circom";
+include "../node_modules/circomlib/circuits/comparators.circom";
+
+/*
+ * RangeProof模板：证明私有输入in在[0, max]范围内
+ * 参数：
+ *   n - 二进制位数，决定可表示的最大范围（最大值 < 2^n）
+ * 信号：
+ *   in - 私有输入，待证明范围的数值
+ *   max - 公开输入，范围的上界（可选，本例固定为255）
+ */
+template RangeProof(n) {
+    // 声明私有输入信号：需要隐藏的数值
+    signal input in;
+    
+    // 声明公开输入信号：范围上界（公开，让验证者知道我们在证明什么范围）
+    signal input max;
+    
+    // 中间信号：in的二进制位分解结果
+    signal bits[n];
+    
+    // 步骤1：使用Num2Bits将in分解为n个二进制位
+    // Num2Bits内部会创建n个约束：bits[i] * (bits[i] - 1) === 0
+    // 以及一个约束确保 bits按权重求和等于in
+    component n2b = Num2Bits(n);
+    n2b.in <== in;
+    
+    // 将Num2Bits的输出连接到我们的bits信号
+    for (var i = 0; i < n; i++) {
+        bits[i] <== n2b.out[i];
+    }
+    
+    // 步骤2：使用LessThan比较器证明 in < 2^n
+    // 实际上Num2Bits已经隐含了这一点（因为n位二进制最大表示2^n - 1）
+    // 但为了更直观，我们显式使用LessThan模板
+    component lt = LessThan(n);
+    lt.in[0] <== in;
+    lt.in[1] <== max + 1;  // LessThan证明 a < b，所以这里用 max+1
+    
+    // 约束比较结果必须为1（即in确实小于max+1）
+    lt.out === 1;
+    
+    // 注：Num2Bits已经保证了in >= 0（因为二进制分解天然只表示非负数）
+    // 所以结合LessThan，我们证明了 0 <= in < max+1，即 0 <= in <= max
+}
+
+// 主组件实例化：使用8位二进制，证明范围0~255
+component main {public [max]} = RangeProof(8);
+</code></pre>
+<p><strong>代码解析</strong>：</p>
+<ul><li><code class="inline-code">Num2Bits(n)</code>是circomlib的核心模板，它将一个field元素拆分为\$n\$位二进制表示[^247^]。其内部创建了两类约束：</li>
+</ul>  - 对每一位\$out[i]\$，约束\$out[i] \\cdot (out[i] - 1) = 0\$，确保是二进制
+  - 约束\$\\sum_{i=0}^{n-1} out[i] \\cdot 2^i = in\$，确保分解正确
+<ul><li><code class="inline-code">LessThan(n)</code>是另一个circomlib模板，它比较两个\$n\$位数并输出布尔结果。我们约束其输出必须为1。</li>
+<li><code class="inline-code">{public [max]}</code>语法将<code class="inline-code">max</code>标记为公开输入，这样验证者在验证证明时能看到范围上界，而<code class="inline-code">in</code>保持私有。</li>
+</ul><h3>12.3.4 编译、Witness生成、证明与验证全流程</h3>
+<p><strong>步骤1：编译电路</strong></p>
+<pre class="code-block"><code>cd my-zk-project
+
+# 编译rangeproof电路，生成R1CS、WASM和符号文件
+circom circuits/rangeproof.circom \\\\
+    --r1cs \\\\
+    --wasm \\\\
+    --sym \\\\
+    -o build/rangeproof/
+</code></pre>
+<p>编译完成后，<code class="inline-code">build/rangeproof/</code>目录下会出现：<br><ul><li><code class="inline-code">rangeproof.r1cs</code>：R1CS约束系统文件</li><br><li><code class="inline-code">rangeproof_js/</code>：包含WebAssembly witness计算器的目录</li><br><li><code class="inline-code">rangeproof.sym</code>：符号文件，用于调试时将约束索引映射回信号名[^214^]</li></ul></p>
+<p><strong>步骤2：准备输入并生成Witness</strong></p>
+<p>创建<code class="inline-code">inputs/rangeproof_input.json</code>：</p>
+<pre class="code-block"><code>{
+    "in": "42",
+    "max": "100"
+}
+</code></pre>
+<blockquote>注意：所有数字都以字符串形式传入，因为field元素可能超出JavaScript的安全整数范围（\$2^{53}\$）。</blockquote>
+<p>生成witness：</p>
+<pre class="code-block"><code>node build/rangeproof/rangeproof_js/generate_witness.js \\\\
+    build/rangeproof/rangeproof_js/rangeproof.wasm \\\\
+    inputs/rangeproof_input.json \\\\
+    build/rangeproof/witness.wtns
+</code></pre>
+<p><code class="inline-code">witness.wtns</code>文件包含了电路中所有信号的具体值（包括私有输入、中间计算结果和输出），是证明生成器的必要输入[^208^]。</p>
+<p><strong>步骤3：Trusted Setup（Groth16）</strong></p>
+<pre class="code-block"><code># Phase 1: Powers of Tau（通用，可复用）
+snarkjs powersoftau new bn128 12 build/ptau/pot12_0000.ptau -v
+snarkjs powersoftau contribute build/ptau/pot12_0000.ptau build/ptau/pot12_0001.ptau --name="First" -v
+snarkjs powersoftau prepare phase2 build/ptau/pot12_0001.ptau build/ptau/pot12_final.ptau -v
+
+# Phase 2: 电路特定设置
+snarkjs groth16 setup build/rangeproof/rangeproof.r1cs build/ptau/pot12_final.ptau build/rangeproof/rangeproof_0000.zkey
+snarkjs zkey contribute build/rangeproof/rangeproof_0000.zkey build/rangeproof/rangeproof_final.zkey --name="1st" -v
+snarkjs zkey export verificationkey build/rangeproof/rangeproof_final.zkey build/rangeproof/verification_key.json
+</code></pre>
+<blockquote>⚠️ <strong>安全警告</strong>：Phase 2的<code class="inline-code">zkey contribute</code>步骤<strong>绝不能跳过</strong>。[^195^] Groth16的可信设置需要至少一个参与者贡献随机性并销毁其"toxic waste"。如果攻击者知道所有Phase 2的秘密参数，就能伪造任意证明。2023年的Veil Protocol等真实项目曾因此类疏忽遭受攻击。</blockquote>
+<p><strong>步骤4：证明生成与验证</strong></p>
+<pre class="code-block"><code># 生成证明（prover拥有的私有witness + 公开输入）
+snarkjs groth16 prove build/rangeproof/rangeproof_final.zkey \\\\
+    build/rangeproof/witness.wtns \\\\
+    build/rangeproof/proof.json \\\\
+    build/rangeproof/public.json
+
+# 验证证明（任何人都可以用公开信息完成）
+snarkjs groth16 verify build/rangeproof/verification_key.json \\\\
+    build/rangeproof/public.json \\\\
+    build/rangeproof/proof.json
+</code></pre>
+<p><code class="inline-code">public.json</code>只包含公开输入（本例中即<code class="inline-code">max: 100</code>），<code class="inline-code">proof.json</code>是实际的零知识证明。验证者通过<code class="inline-code">verification_key.json</code>和公开输入即可确认"证明者知道一个小于等于100的数"，但永远无法知道那个数是42。</p>
+<hr>
+<h2>12.4 项目二：Merkle成员证明（Merkle Membership Proof）</h2>
+<h3>12.4.1 需求分析</h3>
+<p><strong>场景设定</strong>：假设你的钱包应用接入了一个隐私身份协议。协议维护一棵Merkle树，树上每个叶子节点代表一个已注册用户的身份承诺（commitment）。Alice需要向智能合约证明"我是这棵树上的注册用户"，但她既不想暴露自己的叶子值（可能关联到她的真实身份），也不想暴露自己在树中的具体位置。</p>
+<p>这正是Tornado Cash取款电路的核心逻辑[^125^]：用户证明她知道某个叶子节点的preimage（<code class="inline-code">nullifier</code>和<code class="inline-code">secret</code>），并且该叶子存在于合约当前维护的Merkle树中。合约只需验证ZK证明和Merkle根，无需知道任何关于该叶子的具体信息。</p>
+<p><strong>形式化需求</strong>：<br><ul><li>私有输入：叶子值\$leaf\$、路径上的兄弟节点\$pathElements[depth]\$、路径方向\$pathIndices[depth]\$（0表示左，1表示右）</li><br><li>公开输入：Merkle根\$root\$</li><br><li>证明：从\$leaf\$出发，按照\$pathIndices\$指示的方向，与\$pathElements\$逐层哈希，最终结果等于\$root\$</li></ul></p>
+<h3>12.4.2 电路设计：Poseidon哈希链 + 路径方向选择</h3>
+<p>Merkle路径验证的电路设计可以类比为一个"向上爬楼梯"的过程。想象一棵从上往下生长的家族树，叶子在最底层（地面），根在最顶层（天花板）。你知道自己站在哪个叶子上（私有），也知道每一层楼梯的"扶手"长什么样（兄弟节点的哈希值，私有），以及每次转弯是向左还是向右（路径方向，私有）。电路要验证的是：如果你按照正确的路线爬楼梯，并在每一层把当前值和扶手值按规则"混合"（哈希），最终到达天花板时的"手印"（哈希结果）确实和公开发布的手印（Merkle根）匹配。</p>
+<p>在ZK电路中，"混合"操作必须使用<strong>ZK友好哈希函数</strong>。普通的SHA-256在电路中代价极高（需要数万个约束），而Poseidon哈希专门为ZK优化，仅需约240个约束[^106^][^312^]。这正是Tornado Cash等隐私协议选择Poseidon的原因。</p>
+<p><strong>路径方向的处理</strong>：每一层哈希时，如果当前节点是左子节点，则哈希顺序为\$hash(current, sibling)\$；如果是右子节点，则顺序为\$hash(sibling, current)\$。在Circom中，我们可以用多路选择器（multiplexer）来根据\$pathIndex\$动态选择输入顺序。</p>
+<h3>12.4.3 完整Circom代码</h3>
+<p>创建文件<code class="inline-code">circuits/merkleproof.circom</code>：</p>
+<pre class="code-block"><code>pragma circom 2.0.0;
+
+// 引入Poseidon哈希函数（ZK友好的哈希，约束数少）
+include "../node_modules/circomlib/circuits/poseidon.circom";
+// 引入多路选择器，用于根据路径方向选择哈希输入顺序
+include "../node_modules/circomlib/circuits/mux1.circom";
+
+/*
+ * MerkleMembership模板：证明一个叶子节点存在于给定Merkle树中
+ * 参数：
+ *   depth - Merkle树的深度（从叶子到根的路径长度）
+ * 信号：
+ *   leaf - 私有输入：叶子节点的值
+ *   pathElements[depth] - 私有输入：路径上的兄弟节点值（每一层的哈希搭档）
+ *   pathIndices[depth] - 私有输入：路径方向，0=当前是左节点，1=当前是右节点
+ *   root - 公开输入：Merkle树根哈希
+ */
+template MerkleMembership(depth) {
+    // 私有信号：叶子值（不暴露给验证者）
+    signal input leaf;
+    
+    // 私有信号：路径上的兄弟节点数组
+    signal input pathElements[depth];
+    
+    // 私有信号：路径方向指示数组（0=左，1=右）
+    signal input pathIndices[depth];
+    
+    // 公开信号：Merkle树根（验证者已知）
+    signal input root;
+    
+    // 中间信号：每一层计算后的哈希值
+    // hash[0]是叶子本身，hash[depth]是最终计算出的根
+    signal hash[depth + 1];
+    hash[0] <== leaf;
+    
+    // 逐层向上计算哈希
+    for (var i = 0; i < depth; i++) {
+        // 关键约束1：pathIndices[i]必须是二进制（0或1）
+        // 如果忘记这个约束，攻击者可能传入2或3，破坏哈希顺序逻辑
+        pathIndices[i] * (pathIndices[i] - 1) === 0;
+        
+        // 使用两个Mux1选择器决定Poseidon的输入顺序
+        // 当pathIndices[i] == 0时（当前是左节点）：
+        //   left = hash[i], right = pathElements[i]
+        // 当pathIndices[i] == 1时（当前是右节点）：
+        //   left = pathElements[i], right = hash[i]
+        
+        component leftMux = Mux1();
+        leftMux.s <== pathIndices[i];
+        leftMux.c[0] <== hash[i];           // pathIndex=0时选hash[i]
+        leftMux.c[1] <== pathElements[i];    // pathIndex=1时选pathElements[i]
+        
+        component rightMux = Mux1();
+        rightMux.s <== pathIndices[i];
+        rightMux.c[0] <== pathElements[i];   // pathIndex=0时选pathElements[i]
+        rightMux.c[1] <== hash[i];            // pathIndex=1时选hash[i]
+        
+        // 计算当前层的Poseidon哈希
+        component hasher = Poseidon(2);
+        hasher.inputs[0] <== leftMux.out;
+        hasher.inputs[1] <== rightMux.out;
+        
+        // 将哈希结果传递给下一层
+        hash[i + 1] <== hasher.out;
+    }
+    
+    // 关键约束2：计算出的根必须等于公开的root
+    // 如果不匹配，证明者无法生成有效证明
+    root === hash[depth];
+}
+
+// 主组件：深度为4的Merkle树（最多支持2^4=16个叶子）
+component main {public [root]} = MerkleMembership(4);
+</code></pre>
+<p><strong>代码解析</strong>：</p>
+<ul><li><code class="inline-code">Poseidon(2)</code>接受两个输入并输出一个哈希值。Poseidon的设计采用了"替换-置换网络"结构，在有限域上的运算非常高效[^106^]。</li>
+<li><code class="inline-code">Mux1</code>是一个1位选择器。<code class="inline-code">s</code>是选择信号（0或1），<code class="inline-code">c[0]</code>和<code class="inline-code">c[1]</code>是两个候选输入，<code class="inline-code">out</code>输出被选中的那个。两个Mux1配合使用，实现根据路径方向动态交换哈希输入顺序。</li>
+<li><code class="inline-code">pathIndices[i] * (pathIndices[i] - 1) === 0</code>这一行极其重要。如果没有这个约束，攻击者可以给<code class="inline-code">pathIndices[i]</code>传入field中的任意值（比如2），导致Mux1的行为不可预期，最终可能绕过根值校验。</li>
+</ul><h3>12.4.4 与链上Merkle根验证的结合思路</h3>
+<p>在真实的Web3钱包应用中，Merkle成员证明很少单独使用——它通常与智能合约配合，实现"隐私准入控制"。以下是典型的链上交互架构：</p>
+<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────┐
+│                        链下（用户端）                          │
+│  ┌─────────────┐    ┌──────────────────┐    ┌──────────────┐  │
+│  │ 用户持有    │───>│ 计算Merkle路径   │───>│ Circom电路   │  │
+│  │ nullifier   │    │ 和路径方向        │    │ 生成ZK证明   │  │
+│  │ + secret    │    │                  │    │              │  │
+│  └─────────────┘    └──────────────────┘    └──────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ proof.json + public.json
+┌─────────────────────────────────────────────────────────────┐
+│                        链上（智能合约）                        │
+│  ┌──────────────────┐    ┌──────────────────────────────┐  │
+│  │ Verifier合约      │<───│ 业务合约（如PrivacyVault）   │  │
+│  │ 验证ZK证明有效性   │    │ 1. 验证proof                 │  │
+│  │                  │    │ 2. 检查nullifier未使用过       │  │
+│  └──────────────────┘    │ 3. 执行业务逻辑                │  │
+│                          └──────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>在实际部署时，你需要用snarkjs导出Solidity验证器合约[^197^][^304^]：</p>
+<pre class="code-block"><code>snarkjs zkey export solidityverifier \\\\
+    build/merkleproof/merkleproof_final.zkey \\\\
+    build/merkleproof/verifier.sol
+</code></pre>
+<p>导出的<code class="inline-code">verifier.sol</code>合约包含<code class="inline-code">verifyProof</code>函数，业务合约调用它即可在链上验证ZK证明。Gas消耗约为200k-250k，主要来自椭圆曲线配对预编译合约（地址<code class="inline-code">0x08</code>）的调用[^199^]。</p>
+<hr>
+<h2>12.5 项目三：简单计算证明</h2>
+<h3>12.5.1 需求分析</h3>
+<p><strong>场景设定</strong>：假设你的钱包支持一种"隐私委托计算"功能——用户可以把敏感计算外包给第三方服务器，但要求服务器提供"我确实按照你指定的公式计算了"的证明。例如：证明\$c = (a + b) \\times k\$被正确执行，其中\$a\$和\$b\$是私有输入（比如用户的两个子账户余额），\$k\$是公开乘数（比如汇率），\$c\$是公开结果。</p>
+<p>这个场景在DeFi聚合器、隐私 payroll 和链下计算验证中都有应用。与范围证明和Merkle证明不同，这里核心不是"隐藏什么"，而是"证明计算正确性"。</p>
+<h3>12.5.2 电路设计：乘法、加法约束的组合</h3>
+<p>计算证明的设计思路非常直接：把每一步算术运算都转化为R1CS约束。你可以把它想象成一个"数学作业批改机"——学生（证明者）不仅给出最终答案，还要展示每一步的推导过程，老师（验证者）检查每一步推导是否符合规则，而不用重新做完整张卷子。</p>
+<p>对于表达式\$c = (a + b) \\times k\$，电路需要：<br><ul><li>计算中间值\$sum = a + b\$</li><br><li>约束\$c = sum \\times k\$</li></ul></p>
+<h3>12.5.3 完整Circom代码</h3>
+<p>创建文件<code class="inline-code">circuits/computation.circom</code>：</p>
+<pre class="code-block"><code>pragma circom 2.0.0;
+
+/*
+ * SecureComputation模板：证明公开结果c是由私有输入a,b按公式正确计算得出
+ * 公式：c = (a + b) * k
+ * 信号：
+ *   a, b - 私有输入
+ *   k, c - 公开输入（k是乘数，c是声称的结果）
+ */
+template SecureComputation() {
+    // 私有输入信号
+    signal input a;
+    signal input b;
+    
+    // 公开输入信号
+    signal input k;
+    signal input c;
+    
+    // 中间信号：a与b的和（这个值不对外公开，但被约束系统记录）
+    signal sum;
+    
+    // 步骤1：约束 sum === a + b
+    // 这里使用 <== 同时完成赋值和约束创建
+    sum <== a + b;
+    
+    // 步骤2：约束 c === sum * k
+    // 这意味着证明者必须知道满足 (a+b)*k == c 的a和b
+    c <== sum * k;
+    
+    /* 等价展开写法（帮助理解底层R1CS）：
+     *
+     * sum <== a + b;   转化为约束：sum === a + b
+     * c <== sum * k;   转化为约束：c === sum * k
+     *
+     * R1CS要求约束形如 A * B = C，加法约束通过引入常数1信号间接表达：
+     * (a + b) * 1 = sum
+     * sum * k = c
+     */
+}
+
+// 主组件：a,b私有；k,c公开
+component main {public [k, c]} = SecureComputation();
+</code></pre>
+<h3>12.5.4 编译与测试</h3>
+<p>创建<code class="inline-code">inputs/computation_input.json</code>：</p>
+<pre class="code-block"><code>{
+    "a": "7",
+    "b": "3",
+    "k": "5",
+    "c": "50"
+}
+</code></pre>
+<blockquote>验证：\$(7 + 3) \\times 5 = 10 \\times 5 = 50\$ ✓</blockquote>
+<p>编译和证明流程与项目一相同：</p>
+<pre class="code-block"><code># 编译
+circom circuits/computation.circom --r1cs --wasm --sym -o build/computation/
+
+# 生成witness
+node build/computation/computation_js/generate_witness.js \\\\
+    build/computation/computation_js/computation.wasm \\\\
+    inputs/computation_input.json \\\\
+    build/computation/witness.wtns
+
+# 使用相同的ptau文件进行电路特定setup（Phase 2即可）
+snarkjs groth16 setup build/computation/computation.r1cs \\\\
+    build/ptau/pot12_final.ptau \\\\
+    build/computation/computation_0000.zkey
+snarkjs zkey contribute build/computation/computation_0000.zkey \\\\
+    build/computation/computation_final.zkey --name="1st" -v
+snarkjs zkey export verificationkey build/computation/computation_final.zkey \\\\
+    build/computation/verification_key.json
+
+# 证明与验证
+snarkjs groth16 prove build/computation/computation_final.zkey \\\\
+    build/computation/witness.wtns \\\\
+    build/computation/proof.json \\\\
+    build/computation/public.json
+
+snarkjs groth16 verify build/computation/verification_key.json \\\\
+    build/computation/public.json \\\\
+    build/computation/proof.json
+</code></pre>
+<p><strong>验证失败的实验</strong>：把<code class="inline-code">c</code>改成<code class="inline-code">51</code>，witness生成会成功（因为JavaScript计算不关心约束），但证明生成时会失败——因为Prover无法构造满足约束的witness。这正体现了ZK的核心价值：<strong>错误的计算无法产生有效的证明</strong>。</p>
+<hr>
+<h2>12.6 安全注意事项</h2>
+<p>编写ZK电路时，安全不是一个"锦上添花"的选项，而是决定项目生死的核心因素。与传统智能合约漏洞不同，ZK电路的漏洞往往更隐蔽——因为攻击者可以在不破坏任何密码学原语的情况下，仅仅通过利用约束系统的缺陷来伪造有效证明[^244^]。本节讨论三类最常见的安全风险。</p>
+<h3>12.6.1 欠约束（Underconstrained）风险：最常见的ZK电路漏洞</h3>
+<p><strong>什么是欠约束？</strong></p>
+<p>想象你在设计一个保险箱，但只锁了前门，忘了检查后门是否上锁。在ZK电路中，"欠约束"就是指某些信号参与了赋值运算，但没有被纳入R1CS约束系统。攻击者可以为这些自由信号选择任意值，只要最终输出"看起来正确"，就能生成有效证明[^244^][^252^]。</p>
+<p><strong>典型错误模式</strong>：</p>
+<pre class="code-block"><code>// 危险示例：欠约束的信号
+signal input x;
+signal y;
+
+// 仅赋值，不创建约束！
+y <-- x * x + 3;
+
+// 正确做法：
+// y <== x * x + 3;   // 赋值+约束同时完成
+</code></pre>
+<p><code class="inline-code"><--</code>运算符只赋值不创建约束[^270^]。如果后续没有其他约束限制<code class="inline-code">y</code>，攻击者可以给<code class="inline-code">y</code>传入任意值，而验证者无法察觉。学术研究表明，约70%的真实电路可以通过自动化工具检测出欠约束问题，但实际项目中仍有大量漏洞因此产生[^244^]。</p>
+<p><strong>三个项目的安全自检</strong>：</p>
+<p>| 项目 | 欠约束风险点 | 本例中的防护措施 |<br>|------|-------------|-----------------|<br>| 范围证明 | <code class="inline-code">Num2Bits</code>内部位信号未约束 | 复用circomlib的成熟模板，位约束内置 |<br>| Merkle证明 | <code class="inline-code">pathIndices</code>未约束为非二进制 | 显式添加<code class="inline-code">p*(p-1)=0</code>约束 |<br>| 计算证明 | 中间信号<code class="inline-code">sum</code>未约束 | 使用<code class="inline-code"><==</code>确保赋值+约束同时完成 |</p>
+<h3>12.6.2 信号与变量的区分：约束vs非约束</h3>
+<p>这是Circom初学者最容易混淆的概念。你可以把电路想象成一块印刷电路板（PCB）：</p>
+<ul><li><strong>信号（signal）</strong>是PCB上的铜导线——它们连接各个元件（约束），流过它们的电信号（值）会被电路的物理结构所限制。在ZK中，信号的值进入witness，受R1CS约束[^268^]。</li>
+<li><strong>变量（var）</strong>是工程师在蓝图纸上做的草稿计算——它们只在编译时存在，用于确定电路的拓扑结构（比如循环次数、数组索引），但不进入实际的电路。</li>
+</ul><pre class="code-block"><code>// var用于编译时计算（循环索引、条件判断）
+for (var i = 0; i < 10; i++) {
+    // i是var，只在编译时存在
+    // hash[i]是signal，在电路中实际存在
+}
+
+// 危险：用var保存电路中间结果
+var temp = a * b;   // temp只在编译时计算一次！
+signal s;
+s <== temp;       // s被赋了一个固定值，不受a,b变化的影响
+
+// 正确：用signal保存电路中间结果
+signal temp;
+temp <== a * b;   // temp的值在witness生成时根据a,b动态确定，且受约束
+</code></pre>
+<h3>12.6.3 审计工具介绍：Circomspect、Picus</h3>
+<p>手动审查每个信号是否被正确约束是枯燥且容易出错的。好在社区已经开发了几款自动化审计工具[^308^]：</p>
+<p>| 工具 | 类型 | 检测能力 | 使用场景 |<br>|------|------|---------|---------|<br>| <strong>Circomspect</strong> | 静态分析器 / Linter | 欠约束信号、未使用信号、危险运算符<code class="inline-code"><--</code> | 开发阶段集成到CI/CD |<br>| <strong>Picus</strong> | 自动唯一性验证器 | 验证电路是否对每个输出都有唯一的witness | 审计前批量检测 |<br>| <strong>ecne</strong> | R1CS约束引擎 | 检查R1CS约束系统的健全性 | 底层约束分析 |</p>
+<p><strong>使用Circomspect检查你的电路</strong>：</p>
+<pre class="code-block"><code># 安装（需要Rust环境）
+cargo install circomspect
+
+# 对项目一的电路进行静态分析
+circomspect circuits/rangeproof.circom
+
+# 预期会报告：
+# - 未使用信号警告（如果有）
+# - <--运算符使用警告（如果有）
+# - 欠约束信号警告（如果有）
+</code></pre>
+<p><strong>推荐的安全开发 checklist</strong>：</p>
+<ul><li>绝不在最终代码中使用<code class="inline-code"><--</code>，仅在调试阶段临时使用</li>
+<li>对所有选择器信号（如<code class="inline-code">pathIndices</code>）显式添加二进制约束</li>
+<li>每次写电路后运行Circomspect扫描</li>
+<li>对关键电路在测试网部署前进行第三方审计</li>
+<li>复用circomlib等成熟库，而不是从零实现基础组件</li>
+</ul><hr>
+<h2>12.7 本章小结</h2>
+<p>本章带领你完成了从环境搭建到三个完整ZK电路的实战旅程。</p>
+<p><strong>核心概念回顾</strong>：</p>
+<ul><li><strong>Circom编译器</strong>将电路描述翻译为R1CS约束系统，<code class="inline-code">--r1cs --wasm --sym</code>参数分别生成约束文件、WASM witness计算器和调试符号文件[^214^]。</li>
+<li><strong>范围证明</strong>的核心思路是二进制分解：通过<code class="inline-code">Num2Bits</code>模板将数值拆分为受约束的二进制位，天然限定数值在\$[0, 2^n)\$区间内[^211^]。</li>
+<li><strong>Merkle成员证明</strong>通过Poseidon哈希链重建从叶子到根的路径，使用<code class="inline-code">Mux1</code>多路选择器根据路径方向动态调整哈希输入顺序。Poseidon的ZK友好设计使整棵树的路径验证仅需约\$240 \\times depth\$个约束[^106^]。</li>
+<li><strong>计算正确性证明</strong>将每一步算术运算转化为R1CS约束，确保\$(a+b) \\times k = c\$不仅在JavaScript计算层面成立，更在密码学约束层面被严格保证。</li>
+<li><strong>安全是ZK电路的生命线</strong>。欠约束（Underconstrained）是最常见也最危险的漏洞类型，使用<code class="inline-code"><--</code>而非<code class="inline-code"><==</code>、忘记对选择器信号做二进制约束、混淆signal与var，都可能导致攻击者伪造证明[^244^][^252^]。</li>
+<li><strong>审计工具</strong>（Circomspect、Picus、ecne）应该成为开发流程的标准环节，就像传统开发中的ESLint或Slither一样不可或缺[^308^]。</li>
+</ul><hr>
+<h2>思考题与练习题</h2>
+<h3>概念理解</h3>
+<p><strong>1.</strong> 在项目一的范围证明中，如果我们移除<code class="inline-code">pathIndices[i] * (pathIndices[i] - 1) === 0</code>这行约束，攻击者可能如何利用这个漏洞？请描述具体的攻击步骤和后果。</p>
+<p><strong>2.</strong> 比较以下两行代码的区别：<code class="inline-code">sum <== a + b;</code>与<code class="inline-code">sum <-- a + b;</code>。假设后续没有任何其他约束涉及<code class="inline-code">sum</code>，在第二种情况下，证明者能否生成有效证明？验证者能否发现异常？为什么？</p>
+<h3>动手实践</h3>
+<p><strong>3.</strong> 扩展项目一的RangeProof电路：当前电路证明\$0 \\leq in \\leq max\$。请修改电路，增加一个下界<code class="inline-code">min</code>的公开输入，使得电路证明\$min \\leq in \\leq max\$。提示：需要证明两个不等式同时成立，考虑如何复用<code class="inline-code">LessThan</code>或<code class="inline-code">GreaterThan</code>模板。</p>
+<p><strong>4.</strong> 在项目二的MerkleMembership电路基础上，增加一个<code class="inline-code">nullifierHash</code>的验证：要求电路同时证明<code class="inline-code">nullifierHash == Poseidon(nullifier)</code>，其中<code class="inline-code">nullifier</code>是新的私有输入。这个设计模式正是Tornado Cash的核心机制[^125^]——请完成这个扩展电路，并编写对应的<code class="inline-code">input.json</code>进行测试。</p>`;
+---
+
+<Layout title="第12章 - 实战I：用Circom编写ZK电路" description="ZK学习第12章：实战I：用Circom编写ZK电路">
+  <main class="min-h-screen bg-[#0A0A0F]">
+    <section class="py-12 px-4 border-b border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto">
+        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+          <span>←</span> 返回 ZK 学习列表
+        </a>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)]">
+            12
+          </div>
+          <span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">
+            实战项目
+          </span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white">实战I：用Circom编写ZK电路</h1>
+      </div>
+    </section>
+
+    <section class="py-8 px-4">
+      <div class="max-w-4xl mx-auto">
+        <article class="prose-zk" set:html={htmlContent} />
+      </div>
+    </section>
+
+    <section class="py-8 px-4 border-t border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto flex justify-between items-center">
+        
+          <a href="/zk-learning/11" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <span>←</span>
+            <div class="text-left">
+              <div class="text-xs text-[#6a6a80]">上一章</div>
+              <div class="text-sm font-medium">以太坊ZK应用II：隐私与身份</div>
+            </div>
+          </a>
+        
+          <a href="/zk-learning/13" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <div class="text-right">
+              <div class="text-xs text-[#6a6a80]">下一章</div>
+              <div class="text-sm font-medium">实战II：用Noir与Solidity部署链上ZK</div>
+            </div>
+            <span>→</span>
+          </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style is:global>
+  .prose-zk { color: #9a9ab0; line-height: 1.8; font-size: 0.95rem; }
+  .prose-zk h1 { color: #fff; font-size: 1.8rem; font-weight: 700; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h2 { color: #fff; font-size: 1.4rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h3 { color: #e0e0f0; font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .prose-zk h4 { color: #e0e0f0; font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  .prose-zk h5, .prose-zk h6 { color: #c0c0d0; font-size: 1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+  .prose-zk p { margin: 0.75rem 0; }
+  .prose-zk ul { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .prose-zk li { margin: 0.35rem 0; }
+  .prose-zk li::marker { color: #00d4aa; }
+  .prose-zk blockquote { margin: 1rem 0; padding: 0.75rem 1rem; border-left: 3px solid rgba(0, 212, 170, 0.4); background: rgba(0, 212, 170, 0.03); border-radius: 0 6px 6px 0; color: #b0b0c0; font-style: italic; }
+  .prose-zk hr { border: none; border-top: 1px solid #2a2a3a; margin: 1.5rem 0; }
+  .prose-zk .code-block { background: #0f0f16; border: 1px solid #2a2a3a; border-radius: 8px; padding: 1rem; margin: 1rem 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; color: #c0c0d0; }
+  .prose-zk .inline-code { background: rgba(0, 212, 170, 0.08); color: #00d4aa; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; border: 1px solid rgba(0, 212, 170, 0.15); }
+  .prose-zk strong { color: #e0e0f0; font-weight: 600; }
+  .prose-zk em { color: #b0b0c0; }
+</style>

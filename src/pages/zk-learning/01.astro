@@ -1,0 +1,233 @@
+---
+import Layout from '../../layouts/Layout.astro';
+const htmlContent = `<h1>第一章 导论：走进零知识证明的世界</h1>
+<h2>学习目标</h2>
+<p>完成本章后，你应该能够：</p>
+<ul><li><strong>用自己的语言解释零知识证明的定义</strong>，并说出其核心三要素的名称和含义；</li>
+<li><strong>通过三个生活化类比复述ZK的基本思想</strong>，向一位非技术同事说明"证明而不泄露"是如何工作的；</li>
+<li><strong>列出1985年至2026年间ZK发展的四个关键里程碑</strong>，并说明每一次突破解决了什么问题；</li>
+<li><strong>区分ZK在区块链中的"扩容"和"隐私"两大使命</strong>，举例说明各自的典型应用场景。</li>
+</ul><hr>
+<h2>1.1 什么是零知识证明</h2>
+<h3>1.1.1 从一个直观的定义开始</h3>
+<p>想象一下这样的场景：你声称自己知道一个保险柜的密码，但你不愿把密码告诉任何人，包括验证者。零知识证明（Zero-Knowledge Proof，简称 ZKP 或 ZK）正是一种密码学协议，它让你（<strong>证明者</strong>，Prover）能够向验证者（<strong>验证者</strong>，Verifier）<strong>确信</strong>你知道密码，而在这个过程中<strong>密码本身不会被泄露一丝一毫</strong>[^64^]。</p>
+<p>在密码学的形式化语言中，零知识证明被定义为一种交互式（或非交互式）协议，满足以下三个核心性质：</p>
+<ul><li><strong>完整性（Completeness）</strong>：如果你确实知道密码，诚实地执行协议，验证者一定会被说服；</li>
+<li><strong>可靠性（Soundness）</strong>：如果你不知道密码，无论你怎么欺骗，验证者几乎不可能被说服；</li>
+<li><strong>零知识性（Zero-Knowledge）</strong>：验证者在交互结束后，除了"你知道密码"这个事实之外，没有获得任何额外信息。</li>
+</ul><p>你可以把这三条性质理解为一场学术答辩的三项考核标准：完整性保证"真学者一定能通过"，可靠性保证"假学者几乎不可能蒙混过关"，而零知识性保证"答辩过程不会泄露你的研究笔记"——考官确认了你的能力，但带走不了一份你的手稿。</p>
+<h3>1.1.2 类比一：阿里巴巴的洞穴</h3>
+<p>ZK领域最经典的入门故事是<strong>阿里巴巴的洞穴</strong>（Ali Baba's Cave），由Quisquater等人在1989年提出。让我们跟着这个故事建立直觉。</p>
+<p>想象一个环形的洞穴，入口在左侧，右侧的环形通道被一扇魔法门阻断。只有知道咒语"芝麻开门"的人才能穿过这扇门。现在，你想向一个朋友证明你知道咒语，但又不想把咒语说出来。你们按如下方式操作：</p>
+<ul><li>你独自进入洞穴，随机走到左侧尽头（A口）或右侧魔法门前（B口）；</li>
+<li>你的朋友站在洞口，他看不到你在哪一侧，然后随机喊"从A出来"或"从B出来"；</li>
+<li>如果你正好在朋友喊的那一侧，直接走出来即可；如果你在另一侧，念咒语穿过魔法门走出来。</li>
+</ul><p>这个协议的关键在于：<strong>如果你不知道咒语</strong>，而朋友连续多次随机选择出口，你每次恰好猜对的概率会像抛硬币一样急速衰减。朋友重复10次，你蒙混过关的概率就只有 \$1/2^{10} \\approx 0.1\\%\$；重复100次，概率小到可以忽略不计。但与此同时，朋友观察到的全部信息只是"你从正确的出口走出来了"——他从未听到咒语，也无法判断你原本在哪一侧。这就是零知识的精髓：确信被建立，信息未被泄露。</p>
+<h3>1.1.3 类比二：数独游戏</h3>
+<p>现在让我们用一个更贴近日常的例子来加深理解。<strong>数独</strong>（Sudoku）是一种在9×9格子中填数字的逻辑游戏，规则是每行、每列、每个3×3宫格都必须包含1到9且不重复。假设你解开了一道极其困难的数独题，想向朋友证明你解出来了，但又不想把答案直接给他看——因为他还没解完，你给了他答案就相当于"剧透"了。</p>
+<p>零知识证明方案可以这样设计：</p>
+<ul><li>你把答案写在81张独立的卡片上（每张卡片对应一个格子），然后正面朝下倒扣在桌面上；</li>
+<li>朋友随机选择验证一个约束：比如"检查第3行的9个数字是否恰好是1-9各出现一次"；</li>
+<li>你翻开第3行的9张卡片。朋友看到1-9各出现一次，确认这一行约束满足；</li>
+<li>然后你把这9张卡片重新洗牌、背面朝上放回原位，消除朋友对数字具体位置的记忆。</li>
+</ul><p>这个过程可以重复多次。每次朋友随机选择一行、一列或一个宫格来验证。经过足够多的轮次后，朋友会确信整个数独答案是正确的——因为如果哪怕有一个约束被违反，朋友在随机抽查中迟早会发现。但朋友在任何时候都只能看到<strong>某一组9个数字</strong>（且被洗过顺序），无法还原出完整的数独盘面布局。这就是"证明了我解出了数独，但没有泄露任何格子的具体值"。</p>
+<blockquote><strong>形式化映射</strong>：在实际的zk-SNARK协议中，"数独答案"对应的是电路的<strong>见证（witness）</strong>——即证明者知道但不公开的秘密输入。"约束验证"对应的是算术电路中 \$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$ 形式的R1CS约束[^101^]。证明者通过多项式编码将所有约束压缩到一个紧凑的证明中，验证者通过代数检验来确认所有约束同时满足。</blockquote>
+<h3>1.1.4 类比三：密封试卷</h3>
+<p>作为Web3钱包开发者，你一定熟悉KYC（了解你的客户）流程。让我们用<strong>密封试卷</strong>来类比ZK在合规场景中的应用。</p>
+<p>假设你参加了一场高难度资格考试。考试结束后，考官需要确认你"掌握了足够知识以通过考试"，但按照隐私法规，考官无权查看你的具体答题内容——这可能包含你个人的推理习惯、草稿痕迹等敏感信息。</p>
+<p>零知识方案可以这样运作：你把完整答案装入一个密封袋，在袋口贴上不可伪造的封条（密码学承诺）。之后考官随机抽取一道题目编号（比如"请展示第7题的解答过程"），你只打开这道题的密封区域，展示答案和推导过程。考官可以验证：</p>
+<ul><li>这份密封袋的封条确实来自你（承诺不可伪造）；</li>
+<li>你展示的解答确实与封条内的整体试卷一致（局部与整体的一致性）；</li>
+<li>这道题你答对了（约束满足）。</li>
+</ul><p>而考官看不到其他99道题的答案。这正是zk-KYC的核心理念：你生成一个ZK证明"我通过了合规要求的全部检查项"，监管机构验证这个证明，但无需看到你的护照号码、家庭住址或收入明细[^52^]。</p>
+<hr>
+<h2>1.2 ZK的历史与里程碑</h2>
+<p>零知识证明并非一夜之间出现在区块链世界中的。它的发展经历了近四十年的理论积累，又在过去十年中因加密货币的实用需求而加速爆发。让我们沿着时间线回顾这段旅程。</p>
+<h3>1.2.1 理论奠基期（1985–2012）</h3>
+<p>1985年，Shafi Goldwasser、Silvio Micali 和 Charles Rackoff 发表了里程碑论文《The Knowledge Complexity of Interactive Proof Systems》，首次形式化定义了<strong>零知识证明</strong>和<strong>知识复杂度</strong>概念[^68^]。在此之前，密码学界只关心"计算不可区分"，而Goldwasser等人提出了一个更具哲学深度的问题：<strong>证明的本质是什么？答案是"知识的转移"</strong>——但如果我们能让验证者"确信"而不实际转移知识呢？</p>
+<p>随后的二十余年里，理论计算机科学家们在<strong>概率可检验证明（PCP）定理</strong>、<strong>线性交互式证明</strong>和<strong>双线性配对</strong>等方向上深耕。这些成果为后来的实用化奠定了数学基础，但离工程落地还很遥远——早期的ZK证明大小以兆字节计，验证需要数分钟。</p>
+<h3>1.2.2 走向实用：zk-SNARKs与Zcash（2013–2016）</h3>
+<p>2013年是一个转折点。Parno、Gentry、Howell 和 Raykova 发表了<strong>Pinocchio</strong>协议，首次展示了"可实用"的zk-SNARK：证明大小降至288字节，验证时间降至毫秒级[^121^]。随后，Jens Groth 在2016年将这一体系优化到极限——<strong>Groth16</strong>协议仅需<strong>192字节</strong>的证明（3个椭圆曲线点）和<strong>3次配对运算</strong>即可完成验证[^70^]。</p>
+<p>几乎在同一时期，Zcash于2016年上线，成为<strong>首个大规模部署zk-SNARK的加密货币</strong>[^68^]。Zcash的"屏蔽交易"（shielded transactions）利用Groth16隐藏了交易的发送方、接收方和金额——这是零知识证明首次服务于数百万用户的真实隐私需求。</p>
+<h3>1.2.3 透明度革命：zk-STARKs与PLONK（2018–2020）</h3>
+<p>zk-SNARKs虽然高效，却有一个致命弱点：<strong>可信设置（Trusted Setup）</strong>。Groth16需要为每个电路独立举行一场"多方计算仪式"（MPC Ceremony），参与者生成的"毒性废料"（toxic waste）若被任何一方保留，就可伪造证明[^78^]。这就像是保险柜的备用钥匙——必须被销毁，但你怎么确认它真的被销毁了？</p>
+<p>2018年，Eli Ben-Sasson 等人提出了<strong>zk-STARK</strong>（Scalable Transparent Arguments of Knowledge），完全摒弃了可信设置，转而使用公开可验证的随机性和抗碰撞哈希函数[^22^]。STARK在透明性和量子安全性上取得了突破，代价是证明大小膨胀到50–200KB（比SNARK大数百倍）[^97^]。</p>
+<p>2019年，Gabizon、Williamson 和 Ciobotaru 发表了<strong>PLONK</strong>协议，找到了一个中间地带：一次<strong>通用可信设置</strong>（Universal Trusted Setup）即可支持任意电路，无需为每个电路重复仪式[^70^]。PLONK还引入了<strong>Plonkish算术化</strong>和<strong>自定义门（Custom Gates）</strong>，让电路设计更灵活，成为当前zkEVM项目的主流选择。</p>
+<h3>1.2.4 应用爆发：zkRollup、zkEVM与成本骤降（2021–2026）</h3>
+<p>2021年之后，以太坊的Gas费用飙升催生了<strong>zkRollup</strong>赛道。核心思路很简单：将大量交易在链下执行，生成一个ZK有效性证明提交到以太坊主网，主网只需验证这个证明（成本约20万Gas），而无需重新执行每笔交易[^26^]。</p>
+<p>2022年，Vitalik Buterin 提出了<strong>zkEVM四类型分类框架</strong>（Type 1到Type 4），系统性地梳理了EVM兼容性与证明效率之间的权衡[^26^]。Scroll（Type 2）、zkSync Era（Type 4）、Linea（Type 2）、StarkNet（非EVM）等项目展开激烈竞争。</p>
+<p>2024–2025年是ZK技术的<strong>成本拐点</strong>。EIP-4844引入的Blob数据通道使ZK Rollup交易费用降低约80%[^182^]；同时，证明生成成本在一年内下降了<strong>90%以上</strong>——从\$0.05–0.10/笔降至\$0.02/笔甚至更低，证明延迟从16分钟压缩到16秒[^238^]。2025年，Scroll成为<strong>首个达到Stage 1去中心化阶段</strong>的ZK Rollup[^163^]，StarkNet则部署了新一代<strong>S-two证明器</strong>，利用Circle STARK和M31小素数域将证明速度提升一个数量级[^213^]。</p>
+<h3>历史里程碑总表</h3>
+<p>| 年份 | 里程碑 | 核心贡献 | 解决的关键问题 |<br>|:---:|--------|---------|-------------|<br>| 1985 | Goldwasser-Micali-Rackoff论文 | 首次形式化定义零知识证明和知识复杂度[^68^] | "证明而不泄露"是否理论上可行 |<br>| 2013 | Pinocchio协议 | 首次实用化zk-SNARK，288字节证明[^121^] | 从理论到工程可行的跨越 |<br>| 2016 | Groth16 + Zcash上线 | 192字节最小证明；首个大规模ZK隐私币[^70^] | 证明极致压缩 + 真实隐私应用 |<br>| 2018 | zk-STARK发表 | 完全透明、无需可信设置、量子安全[^22^] | 消除可信设置的信任假设 |<br>| 2019 | PLONK协议 | 通用可信设置 + Plonkish算术化[^70^] | 一次设置支持任意电路 |<br>| 2022 | Vitalik zkEVM分类 | Type 1–4框架明确兼容性与效率权衡[^26^] | 为zkRollup设计提供坐标系 |<br>| 2024–2025 | EIP-4844 + 证明成本骤降 | Blob通道 + 证明成本降90%+[^238^] | ZK Rollup经济可行性成熟 |<br>| 2025–2026 | Scroll Stage 1 + S-two | 首个去中心化ZK Rollup；Circle STARK量产[^163^] | 去中心化与高性能兼得 |</p>
+<hr>
+<h2>1.3 ZK在区块链中的两大使命</h2>
+<p>在区块链语境下，零知识证明承担着两项截然不同但同样关键的使命。理解它们的区别，将帮助你判断何时应该将ZK集成到你的钱包产品中。</p>
+<h3>1.3.1 扩容使命：用证明替代重新执行</h3>
+<p>区块链面临的核心困境是<strong>不可能三角</strong>——去中心化、安全性和可扩展性三者无法同时最大化。ZK Rollup的扩容思路是：</p>
+<blockquote>与其让以太坊主网的每个节点重新执行1000笔交易，不如让一个节点在链下执行，然后生成一个ZK证明提交到主网。主网只需要验证这个证明——一个简短的代数检验——就能确认"这1000笔交易确实被正确执行了"[^26^]。</blockquote>
+<p>这个思路的精妙之处在于<strong>不对称性</strong>：证明生成需要大量链下计算（可能是原始计算量的100–1000倍），但证明验证极其轻量（几毫秒、几十万Gas）。这就像是你请一位数学教授花了一整天验证一本账簿，然后给你一张盖了密码学印章的收据——你只需要看一眼印章就知道账簿没问题，无需自己重算。</p>
+<p>下图展示了从"原始交易"到"链上验证"的ZK扩容工作流程：</p>
+<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────────────────┐
+│                        ZK Rollup 工作流程                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   用户层          L2 排序器/证明器             L1 以太坊主网               │
+│   ─────           ───────────────            ──────────────              │
+│                                                                         │
+│   交易① ──┐                                                              │
+│   交易② ──┼──→ ┌─────────────┐                                           │
+│   交易③ ──┤    │  批次聚合    │                                           │
+│      ...  │    │  (Sequencer) │                                           │
+│   交易N ──┘    └──────┬──────┘                                           │
+│                       │                                                 │
+│                       ▼                                                 │
+│              ┌─────────────────┐                                        │
+│              │  算术电路执行    │  ← 将交易逻辑转化为约束系统               │
+│              │  (Witness生成)  │                                        │
+│              └────────┬────────┘                                        │
+│                       │                                                 │
+│                       ▼                                                 │
+│              ┌─────────────────┐                                        │
+│              │   证明生成        │  ← 生成ZK证明（最计算密集型步骤）        │
+│              │  (Prover, 链下)  │                                        │
+│              └────────┬────────┘                                        │
+│                       │                                                 │
+│                       │  提交证明 + 状态差异                            │
+│                       ▼                                                 │
+│              ┌─────────────────┐                                        │
+│              │  L1 验证合约      │                                        │
+│              │  验证ZK证明       │  ← 仅需~200K gas，毫秒级                  │
+│              │  (Verifier, 链上)│                                        │
+│              └────────┬────────┘                                        │
+│                       │                                                 │
+│                       ▼                                                 │
+│              ┌─────────────────┐                                        │
+│              │  状态根更新       │  ← 确认新状态有效                        │
+│              │  (新状态承诺)     │                                        │
+│              └─────────────────┘                                        │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>对钱包开发者的意义</strong>：当你的用户与ZK Rollup交互时，他们签署的交易实际上是在L2上执行。钱包需要支持与L2 RPC的通信、展示L2余额、以及在必要时触发L1取款（退出）流程。</p>
+<h3>1.3.2 隐私使命：在公开账本上进行私密交易</h3>
+<p>如果说扩容使命是"让更多人用得起区块链"，隐私使命则是"让使用者的行为不被全网监视"。</p>
+<p>以太坊等公链的默认状态是<strong>完全透明</strong>：任何人都可以在Etherscan上查询任意地址的余额、交易历史和合约交互记录。这种透明性对审计和验证有利，但对普通用户的隐私是灾难性的——你的所有财务活动就像被写在小区公告栏上。</p>
+<p>ZK隐私方案通过密码学方式在公开账本上实现"屏蔽"：</p>
+<ul><li><strong>Tornado Cash</strong>：用户将资金存入一个由智能合约维护的Merkle树中，生成一个 commitment。取款时，用户通过ZK证明"我知道某个 commitment 的秘密 preimage，且这个 commitment 确实在树中"，但合约不知道用户对应的是哪个叶子节点[^125^]。这打破了资金来源与去向的链上关联。</li>
+<li><strong>Aztec Network</strong>：更进一步，Aztec提供"<strong>可编程隐私</strong>"——开发者可以选择加密应用的哪些数据。用户在自己的设备上本地生成证明，敏感数据永不离开手机[^47^]。</li>
+<li><strong>zkLogin / zkIdentity</strong>：Sui的zkLogin允许用户用Google/Facebook的OAuth凭证生成ZK证明来登录Web3钱包，无需暴露实际凭证或管理助记词[^30^]。</li>
+</ul><p><strong>对钱包开发者的意义</strong>：钱包可以成为ZK隐私功能的"第一道门户"。例如，集成zk-KYC模块让用户生成"我已完成合规验证"的证明而不泄露身份信息[^52^]；支持隐私L2（如Aztec）的资产管理；或者集成零知识社交恢复——用Web2关系或护照证明来恢复账户，而不暴露关系图谱[^39^]。</p>
+<hr>
+<h2>1.4 学习路径预览</h2>
+<p>本书共14章，按照"从直觉到形式化、从数学到代码"的原则设计。以下是四阶段路线图：</p>
+<h3>四阶段路线图</h3>
+<p>| 阶段 | 章节范围 | 核心主题 | 前置知识 | 预计时间 |<br>|:---:|---------|---------|---------|:-------:|<br>| <strong>一、数学筑基</strong> | 第2–5章 | 模运算与有限域、群/环/域、椭圆曲线、双线性配对 | 高中数学 + Python基础 | 4–5周 |<br>| <strong>二、电路转化</strong> | 第6–8章 | 算术电路、R1CS、QAP、多项式承诺、KZG | 阶段一 + 线性代数入门 | 3–4周 |<br>| <strong>三、算法理解</strong> | 第9–11章 | Groth16、PLONK、zk-STARK/FRI、证明系统选型 | 阶段二 + 多项式基础 | 4–5周 |<br>| <strong>四、应用实战</strong> | 第12–14章 | Circom/Noir电路开发、钱包集成ZK、安全审计 | 阶段三 + Solidity基础 | 3–4周 |</p>
+<h3>阶段一：数学筑基（第2–5章）</h3>
+<p>你可能在担心："我没有数论基础，能看懂吗？"本书的核心理念是<strong>代码先行</strong>。每一章的数学概念都会配备可直接运行的Python代码。例如，学习有限域时，你不是先看抽象定义，而是先运行一段"时钟算术"代码：</p>
+<pre class="code-block"><code># 模运算的直觉：12小时制时钟
+def clock_add(a, b, mod=12):
+    """时钟加法：10点 + 5小时 = 3点"""
+    return (a + b) % mod
+
+print(clock_add(10, 5))  # 输出: 3
+</code></pre>
+<p>从这个熟悉的例子出发，我们会逐步过渡到素域 \$F_p\$、椭圆曲线群、双线性配对等核心结构[^216^][^197^]。</p>
+<h3>阶段二：电路转化（第6–8章）</h3>
+<p>当数学基础稳固后，我们将学习如何将"程序逻辑"转化为ZK电路能够理解的约束形式。核心问题是：你写了一段代码 <code class="inline-code">if (age >= 18)</code>，ZK电路不认识"if"语句——它只认识加法和乘法。如何把条件判断、循环、数组访问翻译为 \$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$ 的形式[^101^]？这就是R1CS和QAP的故事。</p>
+<h3>阶段三：算法理解（第9–11章）</h3>
+<p>掌握了电路转化后，我们将深入三大主流证明系统：</p>
+<ul><li><strong>Groth16</strong>：证明最小（192字节）、验证最快，但需要电路特定的可信设置[^70^]；</li>
+<li><strong>PLONK（KZG版）</strong>：通用设置、支持自定义门，是当前zkEVM的主流[^67^]；</li>
+<li><strong>zk-STARK</strong>：完全透明、量子安全，但证明较大（50–200KB）[^97^]。</li>
+</ul><p>我们会用表格、流程图和代码逐个拆解它们的构造，让你能够根据项目需求做出技术选型。</p>
+<h3>阶段四：应用实战（第12–14章）</h3>
+<p>最后，你将亲手编写和部署ZK电路：</p>
+<ul><li>用 <strong>Circom</strong> 写一个简单的Poseidon哈希验证电路，用 <strong>snarkjs</strong> 生成证明并导出Solidity验证器[^214^]；</li>
+<li>用 <strong>Noir</strong> 实现一个Merkle成员证明电路，体验Rust风格语法带来的开发效率[^242^]；</li>
+<li>在钱包层面集成ZK功能：隐私转账、zkLogin社交登录、选择性披露身份凭证。</li>
+</ul><hr>
+<h2>本章小结</h2>
+<p>本章是你进入零知识证明世界的第一站。让我们回顾一下核心要点：</p>
+<p><strong>零知识证明的本质</strong>是"证明者向验证者证明某个陈述为真，且不泄露任何额外信息"。它由三大性质定义：完整性（诚实的证明者总能说服验证者）、可靠性（虚假陈述几乎不可能蒙混过关）和零知识性（验证者学不到任何额外信息）。</p>
+<p><strong>三个类比</strong>帮助你建立了直觉：阿里巴巴的洞穴展示了"随机挑战+重复验证"的交互证明思想；数独游戏说明了"随机抽查局部约束以确认全局正确性"的原理；密封试卷则映射了ZK在合规隐私中的实际应用模式。</p>
+<p><strong>历史演进</strong>从1985年的理论定义，到2016年Groth16的极致压缩和Zcash的首次大规模部署，再到2018–2019年STARK和PLONK在透明度和通用性上的突破，最终在2021–2026年间催生了zkRollup生态和zkEVM竞赛。</p>
+<p><strong>两大使命</strong>定义了ZK在区块链中的价值坐标：扩容使命用ZK证明替代链上重新执行，实现"链下计算、链上验证"；隐私使命在公开账本上实现私密交易、匿名身份和选择性披露。</p>
+<p><strong>四阶段学习路径</strong>从数学筑基（模运算、椭圆曲线、配对）出发，经过电路转化（R1CS、QAP）、算法理解（Groth16、PLONK、STARK），最终到达应用实战（Circom/Noir开发、钱包集成）。每一阶段都以代码驱动，理论与可运行示例并进。</p>
+<hr>
+<h2>思考题与练习题</h2>
+<h3>概念理解题</h3>
+<ul><li><strong>三要素辨析</strong>：假设一个协议满足"完整性"和"可靠性"，但不满足"零知识性"——它能被称为零知识证明吗？请举一个不满足零知识性的实际场景（比如传统银行KYC流程），说明为什么它不符合ZK的定义。</li>
+<li><strong>类比迁移</strong>：将"密封试卷"类比进一步延伸：如果你需要在钱包中实现"证明用户已满18岁但不暴露出生日期"的功能，"密封袋"对应ZK中的什么密码学原语？"随机抽题"对应什么验证机制？（提示：可参考zk-KYC和选择性披露的概念[^52^]。）</li>
+</ul><h3>动手实践题</h3>
+<ul><li><strong>体验第一个ZK证明</strong>：按照以下步骤，在你的计算机上运行一个最简化的ZK证明流程（无需理解内部数学，先建立"它确实能工作"的信心）：</li>
+</ul>   - 安装 <code class="inline-code">snarkjs</code>：<code class="inline-code">npm install -g snarkjs</code>
+   - 使用本章提到的 Circom 乘法电路模板[^214^]，将其保存为 <code class="inline-code">multiplier.circom</code>
+   - 编译电路并运行完整的 <code class="inline-code">setup → prove → verify</code> 流程
+   - 记录你的证明文件大小（应该是极小的，可能只有几百字节）和验证耗时
+   - <strong>思考题</strong>：如果你将输入从 <code class="inline-code">a=3, b=11</code> 改为 <code class="inline-code">a=3, b=12</code>，验证会失败吗？为什么？
+<ul><li><strong>调研与对比</strong>：选择两个当前活跃的ZK Rollup项目（如Scroll和StarkNet），查阅它们的官方文档，完成以下对比表：</li>
+</ul><p>| 对比维度 | 项目A | 项目B |<br>|---------|-------|-------|<br>| 证明系统（SNARK/STARK/其他） | | |<br>| 是否需要可信设置 | | |<br>| 当前交易费用范围 | | |<br>| 取款到L1的等待时间 | | |<br>| 对钱包开发者最友好的集成方式 | | |</p>
+<blockquote><strong>提示</strong>：可以从L2BEAT网站[^163^]和各项目文档获取最新数据。</blockquote>
+<hr>
+<p><em>本章为全书导论，第2章将从"时钟算术"开始，带你进入模运算与有限域的世界。</em></p>`;
+---
+
+<Layout title="第01章 - 导论：走进零知识证明的世界" description="ZK学习第01章：导论：走进零知识证明的世界">
+  <main class="min-h-screen bg-[#0A0A0F]">
+    <section class="py-12 px-4 border-b border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto">
+        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+          <span>←</span> 返回 ZK 学习列表
+        </a>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)]">
+            01
+          </div>
+          <span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">
+            导论
+          </span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white">导论：走进零知识证明的世界</h1>
+      </div>
+    </section>
+
+    <section class="py-8 px-4">
+      <div class="max-w-4xl mx-auto">
+        <article class="prose-zk" set:html={htmlContent} />
+      </div>
+    </section>
+
+    <section class="py-8 px-4 border-t border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto flex justify-between items-center">
+        <div />
+        
+          <a href="/zk-learning/02" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <div class="text-right">
+              <div class="text-xs text-[#6a6a80]">下一章</div>
+              <div class="text-sm font-medium">数学基础I：模运算与有限域</div>
+            </div>
+            <span>→</span>
+          </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style is:global>
+  .prose-zk { color: #9a9ab0; line-height: 1.8; font-size: 0.95rem; }
+  .prose-zk h1 { color: #fff; font-size: 1.8rem; font-weight: 700; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h2 { color: #fff; font-size: 1.4rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h3 { color: #e0e0f0; font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .prose-zk h4 { color: #e0e0f0; font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  .prose-zk h5, .prose-zk h6 { color: #c0c0d0; font-size: 1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+  .prose-zk p { margin: 0.75rem 0; }
+  .prose-zk ul { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .prose-zk li { margin: 0.35rem 0; }
+  .prose-zk li::marker { color: #00d4aa; }
+  .prose-zk blockquote { margin: 1rem 0; padding: 0.75rem 1rem; border-left: 3px solid rgba(0, 212, 170, 0.4); background: rgba(0, 212, 170, 0.03); border-radius: 0 6px 6px 0; color: #b0b0c0; font-style: italic; }
+  .prose-zk hr { border: none; border-top: 1px solid #2a2a3a; margin: 1.5rem 0; }
+  .prose-zk .code-block { background: #0f0f16; border: 1px solid #2a2a3a; border-radius: 8px; padding: 1rem; margin: 1rem 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; color: #c0c0d0; }
+  .prose-zk .inline-code { background: rgba(0, 212, 170, 0.08); color: #00d4aa; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; border: 1px solid rgba(0, 212, 170, 0.15); }
+  .prose-zk strong { color: #e0e0f0; font-weight: 600; }
+  .prose-zk em { color: #b0b0c0; }
+</style>

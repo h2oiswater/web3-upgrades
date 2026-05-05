@@ -1,0 +1,614 @@
+---
+import Layout from '../../layouts/Layout.astro';
+const htmlContent = `<h1>第13章 实战II：用Noir与Solidity部署链上ZK应用</h1>
+<blockquote><strong>本章定位</strong>：全书最核心的端到端实战章节。你将从一行Noir代码开始，经历电路设计、证明生成、Solidity验证器导出，最终在以太坊测试网上部署一个可运行的隐私投票合约。如果说第12章的Circom实战让你触摸到了ZK电路的"电线和螺丝"，那么本章的Noir实战则是让你直接驾驶一架组装好的飞机——你需要理解仪表盘，但不需要亲手焊接引擎。</blockquote>
+<hr>
+<h2>13.1 学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul><li><strong>使用Noir语言独立编写中等复杂度的ZK电路</strong>，包括Merkle成员证明、哈希验证和范围约束，理解<code class="inline-code">private</code>与<code class="inline-code">pub</code>输入的语义边界。</li>
+<li><strong>解释链上ZK验证合约的完整工作流</strong>：从证明的生成、序列化，到Solidity合约接收公开输入与证明数据并调用预编译合约完成验证。</li>
+<li><strong>独立完成"从电路到链上"的端到端部署</strong>：使用<code class="inline-code">nargo</code>编译电路、使用<code class="inline-code">bb</code>生成证明与验证密钥、导出UltraHonk Solidity验证器，并在Sepolia测试网完成一次完整的隐私投票交易。</li>
+</ul><hr>
+<h2>13.2 Noir简介与环境搭建</h2>
+<h3>13.2.1 Noir的设计哲学：写逻辑，而非接线</h3>
+<p>在深入代码之前，让我们用一个类比建立直觉。想象你需要证明"我拥有一张有效的演唱会门票"，但不想出示门票上的座位号。</p>
+<ul><li><strong>Circom的方式</strong>像是手工搭建一台验票机：你需要逐个连接齿轮（信号）、设计卡槽形状（约束）、确保每一根弹簧的张力精确匹配（R1CS）。它赋予你极致的控制力，但要求你理解机器内部的每一颗螺丝。</li>
+<li><strong>Noir的方式</strong>像是直接撰写一张"验票规则说明书"：你写下"持票者必须能提供一个哈希值，该哈希值与官方票务数据库中的某条记录匹配"。Noir编译器会自动将这段逻辑翻译成约束系统。你不需要关心约束是如何排布的——就像你写JavaScript时不需要关心V8引擎的内存分配策略。[^194^]</li>
+</ul><p>Noir由Aztec团队开发，采用Rust风格语法，核心抽象层是ACIR（Abstract Circuit Intermediate Representation）。ACIR作为中间表示层，让Noir可以对接多种证明后端（Barretenberg、Marlin、Groth16等），实现"一次编写，多处证明"的backend-agnostic架构。[^242^]</p>
+<h3>13.2.2 安装nargo和barretenberg后端</h3>
+<p>让我们把开发环境搭建起来。你需要两个核心组件：</p>
+<p>| 组件 | 作用 | 类比 |<br>|------|------|------|<br>| <strong>nargo</strong> | Noir的包管理器和编译器 | 类似Rust的cargo，管理依赖、编译项目、运行测试 |<br>| <strong>barretenberg (<code class="inline-code">bb</code>)</strong> | Aztec的C++证明后端 | 类似Node.js的V8引擎，负责把编译后的电路实际转换为证明 |</p>
+<p><strong>安装命令</strong>[^230^][^240^]：</p>
+<pre class="code-block"><code># 步骤1：安装nargo（Noir编译器）
+curl -L https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash
+noirup
+
+# 验证安装
+nargo --version
+
+# 步骤2：安装barretenberg后端
+curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/master/barretenberg/bbup/install | bash
+bbup
+
+# 验证安装
+bb --version
+</code></pre>
+<blockquote><strong>版本兼容性警告</strong>：Noir与Barretenberg的版本必须严格匹配，否则会出现不可预期的错误。例如Noir v0.38.0需要搭配BB v0.61.0使用[^300^]。如果后续命令报错，首先检查版本匹配。</blockquote>
+<p>安装完成后，你的工作流将是这样的：</p>
+<pre class="code-block"><code>┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐
+│  src/main.nr │ → │ nargo compile│ → │ target/*.json (ACIR)│
+│  (Noir源码)  │    │   (编译电路)  │    │   (电路中间表示)     │
+└─────────────┘    └─────────────┘    └─────────────────────┘
+                                              ↓
+┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐
+│  proof.bin  │ ← │  bb prove    │ ← │ witness.gz ( witness)│
+│  (证明输出)  │    │  (生成证明)  │    │   (见证数据)        │
+└─────────────┘    └─────────────┘    └─────────────────────┘
+</code></pre>
+<p>Noir的完整工作流命令如下[^231^][^242^]：</p>
+<pre class="code-block"><code>nargo new my_project        # 创建新项目
+cd my_project
+nargo check                 # 类型检查，生成Prover.toml模板
+# 编辑 Prover.toml 填入输入值
+nargo execute my_witness    # 编译电路并生成witness
+bb prove -b ./target/my_project.json -w ./target/my_witness.gz \\\\
+         --write_vk -o target   # 生成证明和验证密钥
+bb verify -p ./target/proof -k ./target/vk   # 本地验证证明
+</code></pre>
+<h3>13.2.3 Noir vs Circom：何时选择哪个</h3>
+<p>你可能在第12章已经学习了Circom，自然会问："我该用哪一个？"答案取决于你想控制什么、隐藏什么。</p>
+<p>| 维度 | Circom | Noir |<br>|------|--------|------|<br>| <strong>抽象层次</strong> | 低（手动管理信号与约束） | 高（写逻辑，约束自动生成） |<br>| <strong>学习曲线</strong> | 陡峭（需理解R1CS、信号语义） | 平缓（Rust开发者可立即上手） |<br>| <strong>代码风格</strong> | DSL，类硬件描述语言 | Rust风格，传统编程思维 |<br>| <strong>证明系统</strong> | Groth16/PLONK/FFLONK（通过snarkjs） | UltraHonk/MegaHonk（通过barretenberg） |<br>| <strong>Trusted Setup</strong> | Groth16需要电路特定设置 | UltraHonk不需要 |<br>| <strong>标准库</strong> | circomlib（丰富成熟） | noir标准库（快速增长） |<br>| <strong>LLM友好度</strong> | 低（信号/约束概念特殊） | 高（Rust风格与训练数据匹配）[^263^] |<br>| <strong>典型场景</strong> | 生产级优化、自定义约束 | 快速原型、隐私合约开发 |</p>
+<p><strong>选择建议</strong>：<br><ul><li>如果你是Rust/TypeScript开发者，希望<strong>两周内产出可运行Demo</strong> → 选Noir。</li><br><li>如果你需要<strong>极致优化约束数量</strong>（例如每条约束都影响用户体验的移动端证明） → 选Circom。</li><br><li>如果你在为Aztec生态或隐私L2开发 → 必须选Noir，因为它是Aztec合约的原生语言[^248^]。</li></ul></p>
+<hr>
+<h2>13.3 项目：隐私投票系统</h2>
+<h3>13.3.1 需求分析：匿名与可验证的平衡艺术</h3>
+<p>让我们构建一个完整的ZK隐私投票应用。你可以把它想象为<strong>一个带密码的匿名意见箱</strong>：</p>
+<blockquote>任何人都可以把信投进箱子，但箱子只接受持有特定"会员印章"的人投的信。箱子管理员能统计票数，却无法知道哪封信是谁投的——即使他亲手拆开了每一封信。</blockquote>
+<p>具体需求拆解如下：</p>
+<ul><li><strong>投票权验证</strong>：投票者必须证明自己是注册选民（Merkle树成员证明），但不能暴露自己的具体身份。</li>
+<li><strong>防双投</strong>：每个选民只能投一次票。我们通过nullifier机制实现——同一个secret生成的nullifierHash只能使用一次。</li>
+<li><strong>匿名计票</strong>：合约收到投票时，只知道"这是一张来自合法选民的票"，不知道选民是谁、对应Merkle树中的哪个叶子。</li>
+</ul><p>这本质上是Tornado Cash的"存款-取款"模式在投票场景的变体[^125^][^298^]：选民先"注册"（生成commitment插入Merkle树），再"投票"（证明拥有对应commitment的preimage），同时用nullifier防止重复投票。</p>
+<h3>13.3.2 电路设计：验证投票权 + 匿名凭证</h3>
+<p>电路需要处理以下输入：</p>
+<pre class="code-block"><code>公开输入 (pub):
+  - merkle_root: Field       // 当前选民注册表的Merkle根
+  - nullifier_hash: Field    // 用于防双投的公开标识
+  - vote_commitment: Field // 投票内容（加密后的选择）
+
+私有输入 (private):
+  - voter_secret: Field      // 选民的私有密钥
+  - voter_nullifier: Field   // 选民的私有nullifier
+  - path_elements: [Field; TREE_DEPTH]  // Merkle路径上的兄弟节点
+  - path_indices: [Field; TREE_DEPTH]     // 左右方向标识（0或1）
+</code></pre>
+<p>电路的核心验证逻辑可以表示为三个约束链：</p>
+<p>\$\$\\underbrace{\\text{commitment} = \\text{Poseidon}(\\text{voter\\_secret}, \\text{voter\\_nullifier})}_{\\text{重建承诺}} \\quad \\xrightarrow{\\text{Merkle路径验证}} \\quad \\underbrace{\\text{root'} = \\text{merkle\\_root}}_{\\text{成员资格}}\$\$</p>
+<p>\$\$\\underbrace{\\text{nullifier\\_hash} = \\text{Poseidon}(\\text{voter\\_nullifier})}_{\\text{nullifier一致性}} \\quad \\land \\quad \\underbrace{\\text{path\\_indices}[i] \\in \\{0, 1\\}}_{\\text{二进制约束}}\$\$</p>
+<h3>13.3.3 完整Noir代码</h3>
+<p>让我们实现这个电路。创建项目结构：</p>
+<pre class="code-block"><code>nargo new private_voting
+cd private_voting
+</code></pre>
+<p>项目结构如下：</p>
+<pre class="code-block"><code>private_voting/
+├── Nargo.toml          # 项目配置与依赖
+├── Prover.toml         # 证明者输入（由nargo check生成）
+└── src/
+    └── main.nr         # 电路主代码
+</code></pre>
+<p><strong><code class="inline-code">Nargo.toml</code></strong> —— 声明依赖：</p>
+<pre class="code-block"><code>[package]
+name = "private_voting"
+type = "bin"            # 可执行电路（bin）或库（lib）
+authors = [""]
+compiler_version = ">=0.30.0"
+
+[dependencies]          # Noir的标准库提供Poseidon等密码学原语
+std = { tag = "v0.30.0", git = "https://github.com/noir-lang/noir" }
+</code></pre>
+<p><strong><code class="inline-code">src/main.nr</code></strong> —— 核心电路逻辑：</p>
+<pre class="code-block"><code>// ============================================
+// 隐私投票系统电路 —— Private Voting Circuit
+// ============================================
+// 本电路证明：投票者拥有有效的Merkle成员资格，
+// 且能正确重建对应的nullifier_hash
+
+use dep::std::hash::poseidon::bn254;  // 导入Poseidon哈希（BN254曲线版本）
+use dep::std::merkle::compute_merkle_root;  // 导入Merkle根计算函数
+
+// 常量：Merkle树深度。2^10 = 1024个叶子节点，足够小规模DAO
+// 增大此值可增加容量，但也会增加电路约束数量
+global TREE_DEPTH: u32 = 10;
+
+fn main(
+    // ========== 公开输入（链上可见） ==========
+    merkle_root: pub Field,        // 注册表Merkle根：所有人可见的当前状态
+    nullifier_hash: pub Field,      // 防双投标识：链上记录是否已投票
+    vote_commitment: pub Field,     // 加密后的投票选择：确保投票内容不泄露
+
+    // ========== 私有输入（仅证明者知晓） ==========
+    voter_secret: Field,            // 选民私钥：从未上链，仅本地生成证明时使用
+    voter_nullifier: Field,         // 私有nullifier：与secret配对生成commitment
+    path_elements: [Field; TREE_DEPTH],   // Merkle路径兄弟节点：从叶子到根
+    path_indices: [Field; TREE_DEPTH]       // 方向标识：0=左，1=右
+) {
+    // -------------------------------------------
+    // 步骤1：从secret和nullifier重建commitment
+    // -------------------------------------------
+    // 选民在注册阶段已将此commitment提交到合约，插入Merkle树
+    let commitment_input = [voter_secret, voter_nullifier];
+    let computed_commitment = bn254::hash_2(commitment_input);
+
+    // -------------------------------------------
+    // 步骤2：验证Merkle路径，证明commitment在注册表中
+    // -------------------------------------------
+    // compute_merkle_root 会自动根据path_indices选择左右拼接顺序
+    let computed_root = compute_merkle_root(computed_commitment, path_indices, path_elements);
+    
+    // 关键约束：计算出的根必须等于公开的merkle_root
+    // 这证明了"我知道一个在注册表中的commitment对应的secret"
+    assert(computed_root == merkle_root, "Merkle proof invalid: voter not registered");
+
+    // -------------------------------------------
+    // 步骤3：验证nullifier_hash的正确性
+    // -------------------------------------------
+    // 合约会记录所有已使用的nullifier_hash，防止同一选民投两次票
+    let nullifier_input = [voter_nullifier];
+    let computed_nullifier_hash = bn254::hash_1(nullifier_input);
+    assert(computed_nullifier_hash == nullifier_hash, "Nullifier hash mismatch");
+
+    // -------------------------------------------
+    // 步骤4：隐式约束 path_indices 为二进制值
+    // -------------------------------------------
+    // Noir的compute_merkle_root内部已经确保path_indices ∈ {0, 1}
+    // 但如果手动实现Merkle路径，需要显式添加：
+    // assert(path_indices[i] * (path_indices[i] - 1) == 0);
+}
+
+// ============================================
+// 电路测试 —— 在nargo test时运行
+// ============================================
+#[test]
+fn test_valid_vote() {
+    // 这是一个简化测试：使用预计算的Merkle路径
+    // 实际项目中，应在JavaScript/TypeScript中构建真实Merkle树
+    
+    let secret = 12345;
+    let nullifier = 67890;
+    let commitment = bn254::hash_2([secret, nullifier]);
+    
+    // 假设这是单节点Merkle树的简化场景
+    // 真实测试应使用10层完整路径
+    let dummy_root = commitment;  // 简化：叶子本身就是根
+    let dummy_path_elements = [0; TREE_DEPTH];
+    let dummy_path_indices = [0; TREE_DEPTH];
+    
+    // 调用main函数验证约束通过
+    main(
+        dummy_root,
+        bn254::hash_1([nullifier]),
+        999,  // dummy vote commitment
+        secret,
+        nullifier,
+        dummy_path_elements,
+        dummy_path_indices
+    );
+}
+</code></pre>
+<p>你可以想象一下这段代码与Circom版本的差异。在Circom中，你需要手动声明<code class="inline-code">signal input</code>、<code class="inline-code">signal output</code>，用<code class="inline-code"><==</code>或<code class="inline-code">===</code>逐个创建约束，还要include <code class="inline-code">poseidon.circom</code>并处理模板参数。而在Noir中，你写的是一个看起来很像普通Rust函数的逻辑——<code class="inline-code">assert</code>语句自动转化为约束，标准库的<code class="inline-code">compute_merkle_root</code>封装了所有底层的位运算和哈希接线。这就是抽象层次的力量：你把注意力放在"要证明什么"，而非"如何接线"。</p>
+<h3>13.3.4 生成证明和验证密钥</h3>
+<p>写完电路后，执行以下命令完成编译和证明[^301^]：</p>
+<pre class="code-block"><code># 步骤1：类型检查与生成输入模板
+nargo check
+
+# 步骤2：编辑 Prover.toml 填入实际值
+# 示例 Prover.toml 内容见下文
+
+# 步骤3：编译电路并生成witness
+nargo execute vote_witness
+
+# 步骤4：使用barretenberg生成证明和验证密钥（UltraHonk方案）
+bb prove -b ./target/private_voting.json \\\\
+         -w ./target/vote_witness.gz \\\\
+         --scheme ultra_honk \\\\
+         --write_vk \\\\
+         -o ./target
+
+# 步骤5：本地验证证明是否正确
+bb verify -p ./target/proof \\\\
+          -k ./target/vk \\\\
+          --scheme ultra_honk
+</code></pre>
+<p><strong><code class="inline-code">Prover.toml</code>示例</strong>：</p>
+<pre class="code-block"><code># 公开输入
+merkle_root = "0x1a2b3c4d5e6f..."      # 合约当前Merkle根
+nullifier_hash = "0x9f8e7d6c5b4a..."   # 预先计算的nullifier哈希
+vote_commitment = "0xdeadbeef..."    # 加密的投票选择
+
+# 私有输入
+voter_secret = "12345"
+voter_nullifier = "67890"
+path_elements = [
+    "0xabc...", "0xdef...", # ... 共10个元素
+]
+path_indices = ["0", "1", "0", "1", "0", "1", "0", "1", "0", "1"]
+</code></pre>
+<blockquote><strong>关于Merkle树的构造</strong>：在实际项目中，你需要在JavaScript端（使用<code class="inline-code">@zk-kit/merkle-tree</code>或自己实现）构造与Noir电路中<code class="inline-code">compute_merkle_root</code>完全一致的哈希树。最常见的陷阱是：JS端和Noir端使用不同的Poseidon参数（如不同的初始向量或轮常数），导致Merkle根不匹配、witness生成失败[^201^]。确保两端使用同一套Poseidon配置。</blockquote>
+<hr>
+<h2>13.4 Solidity验证合约</h2>
+<h3>13.4.1 验证合约的架构：信任数学，而非信任人</h3>
+<p>链上ZK验证的核心思想可以用一句话概括：<strong>把昂贵的隐私计算移到链下，把廉价的数学验证留在链上</strong>。</p>
+<p>想象一下古代的信使系统。国王要确认远方将军确实收到了命令，但不想在公文中写明具体兵力部署。于是国王和将军约定了一套密码规则：将军回信时必须附带一个"校验符"，这个校验符只有知道密码的人才能正确生成。宫中的验算官（验证合约）不需要知道密码，只需要按照公开规则检查校验符是否合法。</p>
+<p>在区块链中，这套"校验符"就是ZK证明，"验算官"就是Solidity验证合约。</p>
+<p>验证合约的典型架构如下：</p>
+<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────────┐
+│                       以太坊测试网 (Sepolia)                      │
+│                                                                  │
+│   ┌──────────────────┐        ┌──────────────────────────┐    │
+│   │   VotingContract   │        │   UltraVerifier (Solidity)│    │
+│   │  (业务逻辑合约)     │  ──→   │   (数学验证合约)          │    │
+│   │                   │ calls  │                          │    │
+│   │  - 维护Merkle树    │        │  - 接收公开输入 + 证明    │    │
+│   │  - 记录nullifier   │        │  - 调用预编译合约         │    │
+│   │  - 调用verifier   │        │  - 返回 true/false       │    │
+│   └──────────────────┘        └──────────────────────────┘    │
+│            │                               │                     │
+│            │                               ↓                     │
+│            │                    ┌──────────────────┐             │
+│            │                    │  bn128预编译合约  │             │
+│            │                    │  (0x06, 0x07, 0x08)│            │
+│            │                    │  执行椭圆曲线配对 │             │
+│            │                    └──────────────────┘             │
+│            ↓                                                     │
+│   ┌──────────────────┐                                         │
+│   │   已投nullifier映射 │ ← 防止双投（ spentNullifiers）         │
+│   └──────────────────┘                                         │
+└─────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>验证合约本身不处理业务逻辑，它只做一件事：给定一组公开输入和一个证明，返回"有效"或"无效"。业务合约（VotingContract）在接收到用户投票时，先将公开输入和证明传递给验证合约，只有当验证通过后，才执行计票逻辑。</p>
+<h3>13.4.2 UltraHonk验证器集成</h3>
+<p>Noir + Barretenberg的最新方案是<strong>UltraHonk</strong>，它基于PLONK协议，使用KZG多项式承诺，无需电路特定的trusted setup。导出Solidity验证器的命令如下[^301^]：</p>
+<pre class="code-block"><code># 从验证密钥和电路导出Solidity验证合约
+bb write_solidity_verifier \\\\
+    --scheme ultra_honk \\\\
+    -k ./target/vk \\\\
+    -b ./target/private_voting.json \\\\
+    -o ./target/UltraVerifier.sol
+</code></pre>
+<p>导出的<code class="inline-code">UltraVerifier.sol</code>是一个完整的、可直接部署的Solidity合约。它的核心函数签名如下（简化版）：</p>
+<pre class="code-block"><code>// SPDX-License-Identifier: MIT
+// 由barretenberg自动生成的UltraHonk验证器
+// 警告：请勿手动修改此合约的数学逻辑
+
+contract UltraVerifier {
+    // 验证函数：接收公开输入和证明数据
+    // 返回 true 表示证明有效，false 表示无效
+    function verify(
+        bytes calldata proof,
+        bytes32[] calldata publicInputs
+    ) public view returns (bool) {
+        // 内部调用KZG point-evaluation预编译 (0x0A)
+        // 以及bn128配对预编译 (0x08)
+        // 执行UltraHonk协议的验证等式...
+    }
+}
+</code></pre>
+<p>与Groth16验证器（需要传递<code class="inline-code">a, b, c</code>三个椭圆曲线点）不同，UltraHonk的证明是一个连续的字节数组<code class="inline-code">bytes calldata proof</code>，使用起来更加直观。公开输入则作为<code class="inline-code">bytes32[]</code>数组传递，顺序必须与Noir电路中<code class="inline-code">pub</code>标记的参数声明顺序一致。</p>
+<h3>13.4.3 业务合约：VotingContract</h3>
+<p>现在我们编写投票业务合约。它负责维护选民注册表（Merkle树）、记录已使用的nullifier、验证投票证明，并最终计票。</p>
+<pre class="code-block"><code>// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+// 导入由bb生成的验证器合约
+import "./UltraVerifier.sol";
+
+/**
+ * @title PrivateVoting
+ * @notice 隐私投票合约：验证ZK证明后匿名计票
+ * @dev    基于Noir UltraHonk电路 + barretenberg Solidity验证器
+ */
+contract PrivateVoting {
+    // ========== 状态变量 ==========
+    UltraVerifier public verifier;          // ZK验证器合约地址
+    bytes32 public currentMerkleRoot;       // 当前选民注册表Merkle根
+    
+    // 已使用的nullifier_hash → 防止双投
+    mapping(bytes32 => bool) public spentNullifiers;
+    
+    // 投票选择 → 票数统计 (简化：支持2个选项)
+    uint256 public votesForOptionA;
+    uint256 public votesForOptionB;
+    
+    // 投票事件：公开输入被记录，但无法关联到具体选民
+    event VoteCast(
+        bytes32 indexed nullifierHash,
+        bytes32 indexed voteCommitment,
+        uint256 timestamp
+    );
+
+    // ========== 构造函数 ==========
+    constructor(
+        address _verifier,
+        bytes32 _initialMerkleRoot
+    ) {
+        verifier = UltraVerifier(_verifier);
+        currentMerkleRoot = _initialMerkleRoot;
+    }
+
+    // ========== 管理员功能：更新Merkle根 ==========
+    // 实际项目中应使用多重签名或DAO治理
+    function updateMerkleRoot(bytes32 _newRoot) external {
+        // 简化为owner-only；生产环境需权限控制
+        currentMerkleRoot = _newRoot;
+    }
+
+    // ========== 核心功能：匿名投票 ==========
+    /**
+     * @notice 提交匿名投票
+     * @param proof          UltraHonk证明（序列化后的字节数组）
+     * @param nullifierHash  用于防双投的公开标识
+     * @param voteCommitment 加密后的投票选择
+     * @dev  调用者不需要是注册选民地址——任何人都可以提交有效的证明
+     */
+    function castVote(
+        bytes calldata proof,
+        bytes32 nullifierHash,
+        bytes32 voteCommitment
+    ) external {
+        // ---- 检查1：此nullifier是否已使用 ----
+        require(!spentNullifiers[nullifierHash], "Already voted");
+
+        // ---- 检查2：组装公开输入（顺序必须与Noir电路一致） ----
+        // Noir电路中的public参数顺序：
+        // 1. merkle_root  (Field)
+        // 2. nullifier_hash (Field)
+        // 3. vote_commitment (Field)
+        bytes32[] memory publicInputs = new bytes32[](3);
+        publicInputs[0] = currentMerkleRoot;
+        publicInputs[1] = nullifierHash;
+        publicInputs[2] = voteCommitment;
+
+        // ---- 检查3：调用UltraHonk验证器验证ZK证明 ----
+        require(
+            verifier.verify(proof, publicInputs),
+            "Invalid ZK proof"
+        );
+
+        // ---- 标记nullifier已使用（防止双投） ----
+        spentNullifiers[nullifierHash] = true;
+
+        // ---- 计票 ----
+        // 注意：voteCommitment是加密的，这里简化处理
+        // 实际方案需要同态加密或承诺-揭示机制
+        // 简化示例：假设voteCommitment的最低位决定选项
+        if (uint256(voteCommitment) % 2 == 0) {
+            votesForOptionA++;
+        } else {
+            votesForOptionB++;
+        }
+
+        emit VoteCast(nullifierHash, voteCommitment, block.timestamp);
+    }
+
+    // ========== 查询函数 ==========
+    function getResults() external view returns (uint256, uint256) {
+        return (votesForOptionA, votesForOptionB);
+    }
+}
+</code></pre>
+<p>这个合约展示了链上ZK验证的完整范式：</p>
+<ul><li><strong>输入顺序敏感</strong>：<code class="inline-code">publicInputs</code>数组的元素顺序必须与Noir电路中<code class="inline-code">pub</code>参数的声明顺序完全一致。顺序错误是最常见的集成bug之一。</li>
+<li><strong>nullifier防双投</strong>：链上只需要记录一个<code class="inline-code">bytes32</code>的nullifierHash，就能确保同一选民无法重复投票——而无需知道选民是谁。</li>
+<li><strong>证明与身份解耦</strong>：<code class="inline-code">castVote</code>可以被任何地址调用，因为验证的是ZK证明而非调用者地址。这正是隐私的精髓：行为和身份的分离。</li>
+</ul><h3>13.4.4 Gas成本分析</h3>
+<p>将ZK验证搬到链上是有成本的。理解这些成本对于设计用户体验至关重要。</p>
+<p>| 操作 | Gas成本 | 说明 |<br>|------|---------|------|<br>| <strong>单证明UltraHonk验证</strong> | ~200k - 300k | 主要成本来自KZG点评估预编译(0x0A)和配对检查 |<br>| <strong>存储nullifier (SSTORE)</strong> | ~20k (首次) / ~5k (后续) | 写入新状态的字节 |<br>| <strong>Groth16单证明验证</strong> | ~200k - 250k | ECPAIRING预编译(0x08)占约181k[^199^] |<br>| <strong>Groth16批量验证 (16个)</strong> | ~48k / 证明 | 摊销后成本大幅下降[^199^] |<br>| <strong>普通ERC-20转账</strong> | ~65k | 基准参考 |</p>
+<p>单证明验证的Gas有一个"硬下限"——因为椭圆曲线配对预编译的固有计算成本，即使极致优化也无法将Groth16单证明降到100k gas以下[^199^]。如果你的应用需要高频验证，<strong>批量验证（Batch Verification）</strong>是最佳策略：一次验证多个证明，将配对运算的固定成本摊销到多个用户身上。</p>
+<blockquote><strong>前端UX启示</strong>：在钱包应用中，应为用户预留约250k gas limit用于ZK投票操作，并在界面中提示"本次交易包含零知识证明验证，Gas略高于普通转账"。</blockquote>
+<hr>
+<h2>13.5 部署到测试网</h2>
+<h3>13.5.1 选择测试网络</h3>
+<p>我们建议同时在两条链上测试：</p>
+<p>| 测试网 | 用途 | 为什么 |<br>|--------|------|--------|<br>| <strong>Sepolia</strong> | 验证Solidity合约逻辑 | 最稳定的以太坊PoS测试网，工具链最成熟 |<br>| <strong>目标L2测试网</strong>（如Scroll Sepolia / zkSync Sepolia） | 测试L2上的验证成本 | L2 gas费更低，是隐私应用的实际部署目标 |</p>
+<h3>13.5.2 部署流程：合约部署 + 前端集成 + 证明生成流水线</h3>
+<p>完整的端到端流程如下：</p>
+<pre class="code-block"><code>Step 1: 编译与导出
+├─ nargo compile
+├─ bb prove --scheme ultra_honk
+├─ bb write_solidity_verifier → UltraVerifier.sol
+│
+Step 2: 合约部署（Hardhat/Foundry）
+├─ 部署 UltraVerifier.sol
+├─ 部署 PrivateVoting.sol（传入Verifier地址 + 初始Merkle根）
+│
+Step 3: 选民注册（链上/链下）
+├─ 每个选民本地生成 (secret, nullifier)
+├─ 计算 commitment = Poseidon(secret, nullifier)
+├─ 将所有commitment构建为Merkle树
+├─ 更新合约的 currentMerkleRoot
+│
+Step 4: 投票（用户侧）
+├─ 选民获取当前Merkle根和Merkle路径
+├─ 本地生成Noir证明（nargo execute + bb prove）
+├─ 将 proof + nullifierHash + voteCommitment 发送到合约
+└─ 合约验证 → 计票
+</code></pre>
+<p><strong>Foundry部署脚本示例</strong>：</p>
+<pre class="code-block"><code>// script/Deploy.s.sol
+// forge script script/Deploy.s.sol --rpc-url \\\$SEPOLIA_RPC --broadcast
+
+import "forge-std/Script.sol";
+import "../src/UltraVerifier.sol";
+import "../src/PrivateVoting.sol";
+
+contract Deploy is Script {
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
+
+        // 部署验证器合约（由bb自动生成）
+        UltraVerifier verifier = new UltraVerifier();
+        console.log("UltraVerifier deployed at:", address(verifier));
+
+        // 部署业务合约
+        bytes32 initialRoot = bytes32(vm.envBytes32("INITIAL_MERKLE_ROOT"));
+        PrivateVoting voting = new PrivateVoting(address(verifier), initialRoot);
+        console.log("PrivateVoting deployed at:", address(voting));
+
+        vm.stopBroadcast();
+    }
+}
+</code></pre>
+<h3>13.5.3 完整项目代码仓库结构</h3>
+<p>一个可运行的端到端项目应该这样组织：</p>
+<pre class="code-block"><code>private-voting-zk/
+├── circuits/                          # Noir电路
+│   ├── Nargo.toml
+│   ├── Prover.toml                    # 本地输入（不提交到git）
+│   └── src/
+│       └── main.nr                    # 投票电路
+│
+├── src/                               # Solidity合约
+│   ├── UltraVerifier.sol              # bb自动生成（不要手动修改）
+│   └── PrivateVoting.sol             # 业务合约
+│
+├── script/                            # 部署脚本
+│   └── Deploy.s.sol
+│
+├── test/                              # 测试
+│   └── PrivateVoting.t.sol
+│
+├── js-client/                         # 前端/证明生成
+│   ├── package.json
+│   ├── src/
+│   │   ├── merkleTree.ts             # Merkle树构建（与Noir一致）
+│   │   ├── generateProof.ts          # 调用nargo + bb生成证明
+│   │   └── vote.ts                   # 提交投票到链上
+│   └── tests/
+│
+├── Makefile                           # 一键流程
+└── README.md
+</code></pre>
+<p><strong><code class="inline-code">Makefile</code>一键流程</strong>：</p>
+<pre class="code-block"><code># 完整的一键投票流程
+.PHONY: all compile prove deploy vote
+
+CIRCUIT_DIR = circuits
+CONTRACT_DIR = src
+BUILD_DIR = \\\$(CIRCUIT_DIR)/target
+
+all: compile prove deploy
+
+compile:
+	cd \\\$(CIRCUIT_DIR) && nargo compile
+
+prove:
+	cd \\\$(CIRCUIT_DIR) && nargo execute witness
+	bb prove -b \\\$(BUILD_DIR)/private_voting.json \\\\
+	         -w \\\$(BUILD_DIR)/witness.gz \\\\
+	         --scheme ultra_honk --write_vk -o \\\$(BUILD_DIR)
+
+verifier:
+	bb write_solidity_verifier --scheme ultra_honk \\\\
+	    -k \\\$(BUILD_DIR)/vk \\\\
+	    -b \\\$(BUILD_DIR)/private_voting.json \\\\
+	    -o \\\$(CONTRACT_DIR)/UltraVerifier.sol
+
+deploy:
+	forge script script/Deploy.s.sol --rpc-url \\\$(SEPOLIA_RPC) --broadcast
+
+vote:
+	# 调用前端脚本提交投票
+	npx ts-node js-client/src/vote.ts
+</code></pre>
+<hr>
+<h2>13.6 本章小结</h2>
+<p>让我们回顾本章的核心脉络。我们从Noir的设计哲学出发——它让开发者用传统编程思维（Rust语法、函数、断言）表达验证逻辑，将约束系统的生成委托给编译器。这种高抽象层次降低了ZK开发的入门门槛，使有编程经验但密码学零基础的开发者也能在数天内产出可运行的电路。</p>
+<p>随后，我们构建了一个完整的隐私投票系统。这个系统的安全假设建立在数学之上而非信任之上：选民通过Merkle成员证明展示投票权，通过nullifier机制防止重复投票，整个过程在零知识条件下完成——链上合约确认了"这是一张合法选民的票"，却无法反推选民的身份。</p>
+<p>在链上验证环节，我们使用<code class="inline-code">bb write_solidity_verifier</code>将Noir电路自动转换为Solidity验证器，并在业务合约中实现了"验证通过后执行业务"的标准模式。Gas成本分析告诉我们，单证明验证约需200k-300k gas，批量验证可以将单位成本摊销至约50k gas/证明——这为钱包应用的用户体验设计提供了关键数据。</p>
+<p>最后，我们给出了完整的项目结构、部署脚本和一键Makefile，让你能够从<code class="inline-code">nargo new</code>开始，一路走到Sepolia测试网上的真实交易。</p>
+<h3>核心概念回顾</h3>
+<p>| 概念 | 一句话总结 |<br>|------|-----------|<br>| <strong>ACIR</strong> | Noir的中间表示层，让同一电路可对接多种证明后端 |<br>| <strong>UltraHonk</strong> | Aztec的PLONK变体，无需电路特定trusted setup |<br>| <strong>nullifier</strong> | 投票者私有随机数，其哈希用于链上防双投 |<br>| <strong>Merkle成员证明</strong> | 证明"我知道注册表中一个叶子的preimage"而不暴露是哪个叶子 |<br>| <strong>UltraVerifier.sol</strong> | <code class="inline-code">bb</code>自动导出的Solidity合约，封装所有椭圆曲线验证逻辑 |<br>| <strong>公开输入顺序</strong> | Solidity中<code class="inline-code">publicInputs</code>数组顺序必须与Noir中<code class="inline-code">pub</code>参数声明顺序一致 |</p>
+<hr>
+<h2>思考题与练习题</h2>
+<h3>概念理解</h3>
+<ul><li><strong>设计权衡</strong>：本章的隐私投票系统假设了一个"可信注册管理员"负责构建Merkle树并更新根。如果一个恶意管理员将未授权的commitment插入树中，会发生什么？参考MACI的"协调者"模型[^81^]，思考如何在不引入新信任假设的前提下，让选民能够独立验证注册表的完整性。</li>
+<li><strong>安全性分析</strong>：为什么说<code class="inline-code">spentNullifiers</code>映射使用的是<code class="inline-code">nullifierHash</code>而非<code class="inline-code">commitment</code>或选民地址？如果合约记录的是commitment，隐私会在哪个环节泄露？（提示：考虑Merkle树叶子与注册顺序的关系。）</li>
+</ul><h3>动手实践</h3>
+<ul><li><strong>扩展电路</strong>：修改Noir电路，增加一个"投票权重"约束：某些选民（如持有更多治理代币）应该有更高的投票权重，但权重值不应在链上暴露。你需要在电路中如何表达这一约束？提示：考虑使用范围证明（range proof）约束<code class="inline-code">vote_weight ∈ [1, 100]</code>，并将加权后的投票结果隐藏在<code class="inline-code">vote_commitment</code>中。</li>
+<li><strong>完整部署</strong>：按照本章的项目结构，在本地完成以下步骤并提交截图或交易哈希：</li>
+</ul>   - 安装nargo和bb；
+   - 编译并测试<code class="inline-code">private_voting</code>电路；
+   - 导出UltraVerifier.sol；
+   - 使用Foundry在Sepolia测试网部署合约；
+   - 成功提交一笔匿名投票交易。
+<ul><li><strong>Gas优化实验</strong>：使用Foundry的<code class="inline-code">forge test --gas-report</code>测量<code class="inline-code">castVote</code>函数的Gas消耗。尝试修改电路，减少一个<code class="inline-code">TREE_DEPTH</code>层级（从10改为9），重新编译并对比Gas变化。分析约束数量减少对链上验证成本的影响是否符合线性预期。</li></ul>`;
+---
+
+<Layout title="第13章 - 实战II：用Noir与Solidity部署链上ZK" description="ZK学习第13章：实战II：用Noir与Solidity部署链上ZK">
+  <main class="min-h-screen bg-[#0A0A0F]">
+    <section class="py-12 px-4 border-b border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto">
+        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+          <span>←</span> 返回 ZK 学习列表
+        </a>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)]">
+            13
+          </div>
+          <span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">
+            实战项目
+          </span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white">实战II：用Noir与Solidity部署链上ZK</h1>
+      </div>
+    </section>
+
+    <section class="py-8 px-4">
+      <div class="max-w-4xl mx-auto">
+        <article class="prose-zk" set:html={htmlContent} />
+      </div>
+    </section>
+
+    <section class="py-8 px-4 border-t border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto flex justify-between items-center">
+        
+          <a href="/zk-learning/12" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <span>←</span>
+            <div class="text-left">
+              <div class="text-xs text-[#6a6a80]">上一章</div>
+              <div class="text-sm font-medium">实战I：用Circom编写ZK电路</div>
+            </div>
+          </a>
+        
+          <a href="/zk-learning/14" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <div class="text-right">
+              <div class="text-xs text-[#6a6a80]">下一章</div>
+              <div class="text-sm font-medium">进阶与未来：ZK技术前沿</div>
+            </div>
+            <span>→</span>
+          </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style is:global>
+  .prose-zk { color: #9a9ab0; line-height: 1.8; font-size: 0.95rem; }
+  .prose-zk h1 { color: #fff; font-size: 1.8rem; font-weight: 700; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h2 { color: #fff; font-size: 1.4rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h3 { color: #e0e0f0; font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .prose-zk h4 { color: #e0e0f0; font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  .prose-zk h5, .prose-zk h6 { color: #c0c0d0; font-size: 1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+  .prose-zk p { margin: 0.75rem 0; }
+  .prose-zk ul { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .prose-zk li { margin: 0.35rem 0; }
+  .prose-zk li::marker { color: #00d4aa; }
+  .prose-zk blockquote { margin: 1rem 0; padding: 0.75rem 1rem; border-left: 3px solid rgba(0, 212, 170, 0.4); background: rgba(0, 212, 170, 0.03); border-radius: 0 6px 6px 0; color: #b0b0c0; font-style: italic; }
+  .prose-zk hr { border: none; border-top: 1px solid #2a2a3a; margin: 1.5rem 0; }
+  .prose-zk .code-block { background: #0f0f16; border: 1px solid #2a2a3a; border-radius: 8px; padding: 1rem; margin: 1rem 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; color: #c0c0d0; }
+  .prose-zk .inline-code { background: rgba(0, 212, 170, 0.08); color: #00d4aa; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; border: 1px solid rgba(0, 212, 170, 0.15); }
+  .prose-zk strong { color: #e0e0f0; font-weight: 600; }
+  .prose-zk em { color: #b0b0c0; }
+</style>

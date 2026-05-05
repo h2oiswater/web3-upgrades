@@ -1,0 +1,286 @@
+---
+import Layout from '../../layouts/Layout.astro';
+const htmlContent = `<h1>11. 以太坊ZK应用II：隐私与身份——ZK的另一面</h1>
+<h2>11.1 学习目标</h2>
+<p>完成本章学习后，你应该能够：</p>
+<ul><li><strong>准确对比</strong> 扩容型ZK与隐私型ZK在技术目标、公开输入、电路设计上的核心差异，并能向产品经理解释"为什么同一套zk-SNARK技术可以走两条不同的路"。</li>
+<li><strong>完整复述</strong> Tornado Cash的存取款流程：能独立描述 <code class="inline-code">nullifier</code>、<code class="inline-code">secret</code>、<code class="inline-code">commitment</code>、<code class="inline-code">nullifierHash</code> 四个密码学对象的生命周期，以及Merkle树在其中扮演的作用。</li>
+<li><strong>向非技术用户解释</strong> 至少两种ZK身份方案（如zkLogin、World ID）的工作逻辑，理解"用Google账户登录Web3"和"证明你是唯一的人类而不泄露虹膜照片"背后的密码学机制。</li>
+<li><strong>评估</strong> 隐私ZK方案在钱包产品中的集成价值与合规风险：能在"无条件隐私"与"选择性合规隐私"之间做出产品层面的权衡判断。</li>
+</ul><hr>
+<h2>11.2 隐私ZK vs 扩容ZK：同一枚硬币的两面</h2>
+<p>在第10章中，我们深入讨论了zkRollup——用零知识证明将数千笔交易的计算正确性压缩为一枚小巧的证明提交到以太坊主网。那是ZK技术的"扩容"面孔。本章我们将转向它的另一面："隐私"面孔。</p>
+<h3>11.2.1 技术差异对比表</h3>
+<p>你可以把zk-SNARK想象成一把多功能瑞士军刀。同样的刀刃（多项式承诺、配对验证、电路约束），在扩容场景中用来"证明大量交易被正确执行"，在隐私场景中用来"证明我知道某事而不泄露它"。两者的技术栈高度重叠，但设计哲学截然不同。</p>
+<p>| 维度 | 扩容ZK（ZK Rollups） | 隐私ZK（Privacy Applications） |<br>|------|----------------------|--------------------------------|<br>| <strong>核心问题</strong> | "如何证明大量交易被正确执行？" | "如何证明我知道某事而不泄露它？" |<br>| <strong>证明内容</strong> | 状态转换的正确性（validity proof） | 知识的所有权（knowledge of secret） |<br>| <strong>数据可见性</strong> | 交易数据可公开（calldata 或 blob） | 交易/输入数据被隐藏 |<br>| <strong>公开输入</strong> | 旧状态根、新状态根、交易哈希 | Merkle根、nullifierHash、公共参数 |<br>| <strong>私有输入（Witness）</strong> | 交易明细（在rollup中通常为公开） | Secret、nullifier、Merkle path、身份信息 |<br>| <strong>电路复杂度来源</strong> | EVM操作码的算术化、状态读写 | 哈希函数（Pedersen、Poseidon）、Merkle路径验证 |<br>| <strong>用户交互</strong> | 无感知（由sequencer批量证明） | 需本地生成证明（客户端证明） |<br>| <strong>典型项目</strong> | zkSync、StarkNet、Scroll | Tornado Cash、Aztec、zkLogin |<br>| <strong>证明系统偏好</strong> | zk-STARK（无需可信设置）、zk-SNARK | Groth16（小证明、快验证）、Plonk |</p>
+<h3>11.2.2 扩容ZK证明"计算正确"，隐私ZK证明"满足条件而不泄露"</h3>
+<p>用一个类比来强化这种差异。想象你是一名会计师向税务局提交报告。</p>
+<p>在<strong>扩容场景</strong>中，你提交："这是过去一个月1000条交易记录，外加一个ZK证明，证明汇总后的资产负债表正确。"税务局不需要逐条核对——它验证证明就知道汇总数字无误。这里<strong>效率</strong>是核心目标[^83^][^86^]。</p>
+<p>在<strong>隐私场景</strong>中，你提交："我持有有效的税务登记证，已按时缴税，年收入在合法范围内——我提供一个ZK证明，证明上述三件事为真。"税务局验证后确认你没有逃税，但<strong>永远不知道你的具体收入数字、客户名单或银行账号</strong>。这里<strong>隐私</strong>是核心目标。</p>
+<h3>11.2.3 为什么钱包开发者需要关注隐私ZK</h3>
+<p>作为钱包开发者，你可能会问："如果我的主要业务是管理资产和发起交易，为什么需要理解隐私ZK？"</p>
+<p>答案在于<strong>用户需求正在演变</strong>。以太坊是公开账本——任何一笔ERC-20转账的接收方、金额、时间戳都永久可见。当用户用钱包地址注册一个dApp时，该dApp立刻能查询到用户的全部链上历史。隐私ZK提供了一种在不改变公链透明性本质的前提下，让用户重新夺回数据主权的工具[^125^]。</p>
+<p>从工程角度，隐私ZK正从"极客玩具"走向"基础设施"：<br><ul><li><strong>ERC-4337 + ZK</strong>：ZK-Team等项目用ZK隐藏账户抽象中的团队成员地址和支出限额[^39^]。</li><br><li><strong>Paymaster + 隐私</strong>：用户用ERC-20代币支付gas，无需暴露其公共地址[^124^]。</li><br><li><strong>社交恢复 + ZK</strong>：IoTeX提出用Web2社交状态进行社交恢复，zkSNARK证明社交关系而不泄露具体账户[^39^]。</li></ul></p>
+<p>理解隐私ZK，不是选修课，而是钱包产品下一代竞争力的必修课。</p>
+<hr>
+<h2>11.3 Tornado Cash：ZK隐私转账的教科书</h2>
+<h3>11.3.1 类比：密码学洗衣机</h3>
+<p>想象你有一张100美元的钞票，上面用隐形墨水写着你名字的缩写。你想用这张钞票买咖啡，但不想让咖啡店老板知道你从谁那里收到了它。</p>
+<p>在现实世界中，你可以把钞票放进一台"魔法洗衣机"：滚筒里已有成千上万人放入了各自带有标记的钞票，高速旋转后全部混在一起。当你取出100美元时，机器给你一张全新的、没有任何标记的钞票。咖啡店老板无法将它与任何特定存款人关联——因为所有存款人的钞票都参与了混合[^125^]。</p>
+<p>Tornado Cash就是以太坊上的这台"密码学洗衣机"。用户在存款时提交一个密码学"承诺"（commitment），在取款时通过零知识证明来证明自己有权提取——而无需暴露自己对应的是哪个承诺。</p>
+<h3>11.3.2 技术架构：Merkle树存储存款承诺</h3>
+<p>让我们用一张架构图理解资金如何在"存入"和"取出"之间流转：</p>
+<pre class="code-block"><code>┌──────────────────────────────────────────────────────────────────┐
+│                        存款阶段（链上 + 链下）                      │
+│                                                                   │
+│   用户本地生成                      智能合约（Tornado Cash）       │
+│   ┌──────────────┐                 ┌────────────────────────┐     │
+│   │ nullifier    │───┐             │                        │     │
+│   │   (31字节)   │   │             │   ┌─────────────────┐  │     │
+│   ├──────────────┤   │  Pedersen   │   │   Merkle Tree    │  │     │
+│   │ secret       │───┼───哈希─────▶│   │  ┌───┐          │  │     │
+│   │   (31字节)   │   │             │   │  │ C │ commitment │  │     │
+│   └──────────────┘   │             │   │  └───┘  (leaf)   │  │     │
+│          │           │             │   │     │             │  │     │
+│          ▼           │             │   │  ┌──┴──┐          │  │     │
+│   ┌──────────────┐   │             │   │  │ ... │          │  │     │
+│   │  commitment  │◀──┘             │   │  └──┬──┘          │  │     │
+│   │  = Pedersen  │                 │   │     │             │  │     │
+│   │  (nullifier  │                 │   │  ┌──┴──┐          │  │     │
+│   │   + secret)  │                 │   │  │Root │          │  │     │
+│   └──────────────┘                 │   │  └──┬──┘          │  │     │
+│        │                           │   └─────────────────┘  │     │
+│        ▼                           │                        │     │
+│   ┌──────────────┐                 │  根哈希存储在链上        │     │
+│   │   用户保存   │                 │  可被任何人读取          │     │
+│   │  note =      │                 │                        │     │
+│   │  nullifier + │                 │  承诺插入树中，更新根    │     │
+│   │   secret     │                 │                        │     │
+│   └──────────────┘                 └────────────────────────┘     │
+└──────────────────────────────────────────────────────────────────┘
+
+                              时间流逝，更多存款进入...
+
+┌──────────────────────────────────────────────────────────────────┐
+│                        取款阶段（链下证明 → 链上验证）              │
+│                                                                   │
+│   用户本地（链下）                     智能合约（链上）            │
+│   ┌────────────────────┐             ┌────────────────────────┐   │
+│   │ 1. 读取note         │             │                        │   │
+│   │    (nullifier+     │             │   公开输入：            │   │
+│   │     secret)        │             │   - root（Merkle根）   │   │
+│   │ 2. 重建Merkle路径   │             │   - nullifierHash     │   │
+│   │ 3. 生成ZK证明       │             │   - recipient地址    │   │
+│   │    (Groth16, ~1ms) │────────────▶│   - relayer地址（可选）│   │
+│   └────────────────────┘   proof    │                        │   │
+│                            + public │   合约验证：            │   │
+│                              inputs │   1. ZK证明有效？       │   │
+│                                     │   2. nullifierHash     │   │
+│                                     │      未被使用过？      │   │
+│                                     │   3. 发放资金到recipient│   │
+│                                     │                        │   │
+│                                     │   合约不知道：          │   │
+│                                     │   - 哪个commitment被花 │   │
+│                                     │   - nullifier具体值    │   │
+│                                     │   - secret具体值       │   │
+│                                     └────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>四个密码学对象的生命周期</strong>[^126^][^133^]：</p>
+<ul><li><strong>nullifier</strong>：31字节随机数，唯一标识一次存款。其哈希 <code class="inline-code">nullifierHash = Pedersen(nullifier)</code> 在取款时公开提交给合约，合约检查该 <code class="inline-code">nullifierHash</code> 是否已被"花费"过——防止双花。</li>
+<li><strong>secret</strong>：31字节随机数，与 <code class="inline-code">nullifier</code> 一起构成取款凭证。</li>
+<li><strong>commitment</strong>：<code class="inline-code">commitment = Pedersen(nullifier || secret)</code>，用户提交到链上的唯一信息，作为叶子节点插入合约维护的Merkle树。</li>
+<li><strong>note</strong>：用户保存在本地的字符串 <code class="inline-code">note = nullifier + secret</code>，是取款的唯一凭证。</li>
+</ul><p>合约的Merkle树深度为20层，最多支持 \$2^{20} \\approx 100\$ 万叶子。每发生新存款，合约插入新commitment并更新根哈希[^125^]。</p>
+<h3>11.3.3 电路设计：证明"我知道一个叶子对应的秘密，但我不会告诉你哪个叶子"</h3>
+<p>在第12章中，我们已编写了Merkle成员证明电路。Tornado Cash的取款电路就是该电路的增强版——除了验证Merkle包含关系外，还要验证commitment确实由nullifier和secret派生。</p>
+<pre class="code-block"><code>// Tornado Cash Withdraw电路核心逻辑（概念示意）
+
+template Withdraw(levels) {
+    // 公开输入
+    signal input root;           // Merkle树根
+    signal input nullifierHash;  // 防止双花的公开标识
+    signal input recipient;      // 收款地址
+    
+    // 私有输入（witness）
+    signal input nullifier;
+    signal input secret;
+    signal input pathElements[levels];  // 路径兄弟节点
+    signal input pathIndices[levels];   // 路径方向
+    
+    // 约束1：commitment = Pedersen(nullifier || secret)
+    component hasher = PedersenHash();
+    hasher.inputs[0] <== nullifier;
+    hasher.inputs[1] <== secret;
+    signal commitment <== hasher.out;
+    
+    // 约束2：nullifierHash = Pedersen(nullifier)
+    component nfHasher = PedersenHash();
+    nfHasher.inputs[0] <== nullifier;
+    nfHasher.out === nullifierHash;
+    
+    // 约束3：commitment在Merkle树中
+    component tree = MerkleTreeCheck(levels);
+    tree.leaf <== commitment;
+    tree.root <== root;
+    // ... pathElements和pathIndices逐层验证
+    
+    // 核心洞察：公开输入只包含承诺的哈希和树的摘要
+    // 所有能追溯到用户身份的信息都隐藏在witness中
+}
+</code></pre>
+<p><strong>为什么这个设计是教科书级别的？</strong> 公开输入只包含 <strong>承诺的哈希</strong>（<code class="inline-code">nullifierHash</code>）和 <strong>树的摘要</strong>（<code class="inline-code">root</code>），而能追溯到具体用户身份的信息（<code class="inline-code">nullifier</code>、<code class="inline-code">secret</code>、Merkle路径）全部隐藏在witness中。合约确认"有人知道某个尚未被花费的叶子节点的秘密"，但不知道"这个人是谁"、"哪个叶子被花了"。</p>
+<h3>11.3.4 法律争议与Privacy Pool的演进</h3>
+<p>2022年8月，美国财政部OFAC以Tornado Cash被用于洗钱为由将其列入SDN制裁名单，使用率骤降超77%[^55^]。2024年11月，美国第五巡回上诉法院推翻了制裁，裁定不可变智能合约不构成IEEPA下的"财产"，OFAC越权[^80^][^90^]。</p>
+<p>Tornado Cash"无条件隐私"的设计存在一个关键问题：合法用户与犯罪用户共享同一匿名集。当一个普通用户取款时，ta的"匿名背景"中可能混杂着黑客赃款——导致取款被交易所标记为"高风险"。</p>
+<p>为此，Vitalik Buterin与Ameen Soleimani提出 <strong>Privacy Pool</strong> 概念[^81^][^92^]：允许用户做<strong>排除证明</strong>（"我的提款不来自这些地址"）。例如，用户可向交易所证明"我的提款来自排除了OFAC制裁地址的集合"，而无需透露自己在集合中的具体位置。2023年3月，Ameen Soleimani推出了Privacy Pools实现[^92^]，将"全有或全无的匿名"演进为"可编程的合规隐私"。</p>
+<hr>
+<h2>11.4 ZK身份与登录</h2>
+<h3>11.4.1 zkLogin：用Google/Twitter账户零知识登录Web3</h3>
+<p>钱包开发者的噩梦之一是"助记词 onboarding"——用户打开App看到的第一个界面却是"请写下这12个单词"，转化率断崖式下跌。</p>
+<p>Sui生态的 <strong>zkLogin</strong> 方案提供了替代路径：用户用Google、Facebook、Twitter等OAuth账户直接登录Web3，无需管理助记词[^30^][^31^]。关键是：用户的OAuth凭证<strong>不会暴露给链上任何人</strong>。</p>
+<p><strong>类比理解</strong>：想象你要进入一家俱乐部，保安不认识你。你展示一张由银行（OAuth提供商）签名的数字证书，上面写着"此人信用良好"。但你不想暴露银行账户号码或余额。zkLogin中的"零知识翻译官"（zk-SNARK证明生成器）读完后对保安说："持有者确实通过了Google的身份验证，但我不会告诉你ta的Google邮箱是什么。"[^30^]</p>
+<pre class="code-block"><code>┌──────────────────────────────────────────────────────────────────┐
+│                    zkLogin 完整流程（Sui生态）                     │
+│                                                                   │
+│  ┌──────────┐     ┌──────────┐     ┌──────────────────────────┐ │
+│  │  用户    │     │  OAuth   │     │     ZK Prover服务        │ │
+│  │ (浏览器) │────▶│ 提供商   │────▶│  (生成zk-SNARK证明)       │ │
+│  │          │     │Google/   │     │                          │ │
+│  │ 1. 点击  │     │Twitter   │     │  输入：JWT token          │ │
+│  │ "用Google│     │          │     │  输出：π（ZK证明）         │ │
+│  │  登录"   │     │ 2. 签发  │     │                          │ │
+│  │          │     │   JWT    │     │  证明内容：               │ │
+│  │ 4. 获得  │◀────│          │◀────│  "JWT由合法发行者签发，  │ │
+│  │ Sui地址  │     │ 3. JWT  │     │   用户确实拥有该JWT"     │ │
+│  │ (派生自  │     │  返回   │     │                          │ │
+│  │ sub+salt)│     │          │     │  合约看不到JWT内容       │ │
+│  └──────────┘     └──────────┘     └──────────────────────────┘ │
+│       │                                            │              │
+│       │         5. ZK证明 + 公开输入               │              │
+│       └────────────────────────────────────────────┘              │
+│       ▼                                                           │
+│  ┌────────────────────────────────────────────┐                  │
+│  │              Sui链上（智能合约）              │                  │
+│  │  6. 验证ZK证明：证明有效 + issuer合法        │                  │
+│  │  7. 合约只知道"某个经Google认证的用户        │                  │
+│  │     拥有这个Sui地址"，不知道具体邮箱         │                  │
+│  └────────────────────────────────────────────┘                  │
+└──────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>关键机制</strong>[^30^][^31^]：<br><ul><li><strong>JWT</strong>：OAuth提供商签发的身份令牌，包含用户ID（<code class="inline-code">sub</code>）、发行者（<code class="inline-code">iss</code>）、过期时间（<code class="inline-code">exp</code>）。</li><br><li><strong>地址派生</strong>：Sui地址从JWT中的 <code class="inline-code">sub</code> 和 <code class="inline-code">salt</code> 哈希派生，同一Google账户总是对应同一地址。</li><br><li><strong>ZK证明</strong>：prover证明"存在一个由合法发行者签名的JWT，其中的<code class="inline-code">sub</code>和<code class="inline-code">salt</code>哈希等于声明的地址"。证明不泄露JWT内容。</li></ul></p>
+<p><strong>安全教训</strong>[^37^]：2026年Brave Software披露zkLogin的关键架构漏洞，影响超760万笔交易。核心洞见："零知识证明无法修复它们看不到的问题。"攻击者可通过构造畸形JWT、提取浏览器API密钥、注册恶意发行者，在<strong>不破坏任何密码学</strong>的前提下生成有效证明。这对钱包开发者的启示是：ZK层之上的应用层安全同样关键。</p>
+<h3>11.4.2 World ID / Worldcoin：用ZK证明"你是唯一的人类"</h3>
+<p>如果说zkLogin解决的是"如何证明你有某个Web2身份"，Worldcoin解决的是更底层的问题："如何在无身份证扫描件的前提下，证明你是独一无二的人类"。</p>
+<p>Worldcoin的核心硬件是<strong>Orb</strong>球形设备，对用户虹膜扫描生成唯一的 <strong>IrisHash</strong>（单向加密表示）[^34^][^35^]。哈希被提交到全球数据库查重：若从未出现过，用户获得<strong>World ID</strong>凭证——以zk-SNARK形式存储在钱包中[^34^]。使用 <strong>Semaphore协议</strong>[^32^]，用户可匿名投票或发信号，同时证明自己是唯一人类。截至2026年4月，已有超1790万验证用户[^35^]。</p>
+<p><strong>隐私优势</strong>：应用永远看不到虹膜数据或姓名，只看到"这是唯一的人类"。<strong>争议同样存在</strong>[^35^][^36^]：Vitalik批评注册表隐私风险、硬件可访问性和中心化风险；肯尼亚暂停Orb运营，西班牙和葡萄牙关切GDPR合规。</p>
+<h3>11.4.3 zkKYC与选择性披露</h3>
+<p>传统KYC要求用户向每个平台提交护照扫描件和自拍照，每家机构都成为潜在泄露点。ZK-KYC的范式转移是：<strong>从"数据收集"到"证明验证"</strong>[^43^][^52^]。</p>
+<p>用户只向受信任的KYC验证器提交一次原始文件，获得密码学凭证。此后，用户可向任何服务生成ZK证明："我已通过KYC"、"我年满18岁"、"我不在制裁名单上"——而无需暴露出生日期或国籍。</p>
+<p>基本ZK-SNARK KYC证明可压缩至约2KB，在Arbitrum上验证成本低于\$0.01[^52^]。多个证明可组合："发送方通过KYC" + "接收方未被制裁" + "金额低于报告阈值"[^43^]。EU <strong>eIDAS 2.0</strong>明确支持可验证凭证和认证，为ZK身份提供法律框架[^52^]。</p>
+<h3>11.4.4 以太坊Attestation（EAS）：链上凭证的ZK验证</h3>
+<p>以太坊Attestation Station（EAS）提供标准化链上凭证基础设施。任何地址可为其他地址"签发"attestation——如"参与过3轮Gitcoin Grants""活跃DAO贡献者"。</p>
+<p>与ZK结合后，EAS支持<strong>隐私化声誉证明</strong>。用户不需暴露完整attestation历史，而是生成ZK证明："我持有的attestation满足特定条件"（例如"至少获得过5个积极贡献attestation"）。Sismo的ZK Badge[^56^]和Polygon ID[^52^][^54^]都在此路径探索。</p>
+<hr>
+<h2>11.5 ZK投票与治理</h2>
+<h3>11.5.1 MACI：防贿选投票</h3>
+<p>DAO治理的经典困境：投票应透明（可审计），但完全公开可能导致贿选、胁迫和从众效应。</p>
+<p><strong>MACI（Minimum Anti-Collusion Infrastructure）</strong> 是PSE团队开发的ZK投票系统[^81^]。机制类似"不透明信封+搅拌桶"：选民用协调者公钥加密投票并提交链上；协调者在链下解密统计，生成ZK证明"公布结果确实是对所有有效投票的正确统计"；任何人可验证证明，但无法反推单个选民的投票。</p>
+<p>最新版本使用分布式密钥生成（DKG），即使协调者也无法提取个人投票[^81^]。已部署于多轮Gitcoin Grants。限制在于成本：10,000选民一轮的证明生成需大量计算资源，耗时数分钟[^81^]。</p>
+<h3>11.5.2 Snapshot Shielded与zk-POPVOTE</h3>
+<p>Snapshot的<strong>Shielded Voting</strong>在投票期间加密个人投票，仅显示总参与人数[^81^]。投票结束后解密公布结果，消除从众效应和胁迫风险。</p>
+<p><strong>zk-POPVOTE</strong>是Aztec Labs与NounsDAO合作的存储证明投票系统[^89^]，使用Noir语言实现。Noun持有者证明"我持有至少一个Noun"而不透露具体持有哪几个。协议支持秘密投票、匿名参与和延迟结果披露——最终仅显示通过/失败。</p>
+<hr>
+<h2>11.6 新兴方向</h2>
+<h3>11.6.1 ZKML：零知识机器学习</h3>
+<p>ZKML（Zero-Knowledge Machine Learning）允许模型提供者证明"特定输入确实被规定的ML模型处理以产生声明的输出"，<strong>不泄露敏感模型参数、中间计算过程，甚至输入数据本身</strong>[^82^][^85^]。</p>
+<p><strong>工作流程</strong>：客户端提供输入 \$x\$；模型提供者持有模型 \$f_\\theta\$，计算预测 \$\\hat{y} = f_\\theta(x)\$，然后生成证明 \$\\pi\$，证明输出与模型执行一致。\$(x, \\hat{y})\$ 作为公共输入，\$\\theta\$ 嵌入私有witness[^82^]。</p>
+<p>对钱包的远期意义：当用户授权AI交易机器人管理投资组合时，钱包可作为ZKML验证者，确认"买入建议确实来自经过审计的风险评估模型，而非后门指令"。</p>
+<p>性能挑战显著：zkVM开销在100,000倍到1,000,000倍之间[^83^]。但关键洞察是"大计算、小收据"的不对称——AWS在GPU集群上运行一小时生成证明，然后给手机一个50毫秒可验证的密码学收据。</p>
+<h3>11.6.2 合规隐私：监管友好型ZK方案</h3>
+<p>隐私与合规不必是零和博弈。FATF <strong>Travel Rule</strong>要求跨境转账身份验证，传统方案要求暴露完整身份；而ZK合规路径允许用户证明"制裁名单检查已执行"，而不向中继器暴露完整身份[^52^]。</p>
+<p><strong>监管友好型设计模式</strong>[^58^]包括查看密钥（授权审计）、时间锁定隐私（特定期后自动降隐私）、管辖控制（基于地区法规动态调整）。对钱包开发者，这意味着隐私设计需预留"合规开关"——不是让用户在"隐私"和"合规"间二选一，而是通过ZK让两者同时成立。</p>
+<hr>
+<h2>11.7 本章小结与思考题</h2>
+<h3>核心概念回顾</h3>
+<p>本章我们从"ZK的另一面"切入，探讨了零知识证明在隐私和身份领域的应用。核心要点可概括为三条主线：</p>
+<ul><li><strong>隐私ZK与扩容ZK共享同一套密码学基础设施</strong>，但设计目标截然不同。扩容ZK证明"计算正确"，公开所有交易数据；隐私ZK证明"知识拥有"，隐藏所有敏感输入。</li>
+<li><strong>Tornado Cash是隐私ZK的教科书案例</strong>：通过Merkle树存储承诺、Groth16证明成员关系、nullifier机制防止双花，实现链上转账匿名化。后续演进（Privacy Pool）展示了从"无条件隐私"到"选择性合规隐私"的方向。</li>
+<li><strong>ZK身份正在重构"信任"的基础设施</strong>：zkLogin让用户用Web2身份无摩擦进入Web3；World ID用生物识别+ZK解决"唯一人类"问题；zkKYC让合规无需收集原始PII。钱包是这些能力的天然集成点。</li>
+</ul><h3>思考题</h3>
+<p><strong>概念理解题</strong></p>
+<ul><li>Tornado Cash使用 <code class="inline-code">nullifierHash</code> 而非直接公开 <code class="inline-code">nullifier</code> 来防止双花，这带来了什么隐私优势？如果合约直接要求公开 <code class="inline-code">nullifier</code>，攻击者能做什么？</li>
+<li>zkLogin方案中，prover服务"看到"了用户的JWT token内容。设计一个改进架构，使JWT内容连prover服务也无法读取，同时仍能生成有效ZK证明。</li>
+</ul><p><strong>动手实践题</strong></p>
+<ul><li>基于第12章编写的Merkle成员证明电路，扩展一个"隐私空投领取"合约：合约维护Merkle树记录有资格领取的地址承诺，用户通过ZK证明领取，证明"我在树中"但不暴露具体位置。用Solidity编写合约的 <code class="inline-code">claim()</code> 函数框架，说明需验证哪些公开输入。</li>
+<li>Privacy Pool的核心是"排除证明"——用户证明"我的commitment不在黑名单集合S中"。思考如何用集合成员证明的否定来实现：如果一个Merkle树包含所有"合法"commitment，用户证明自己在该树中，但合法集合远小于总集合。描述一种方案，让用户证明"我的commitment属于集合A且不属于集合B"。</li>
+</ul><hr>
+<p><em>本章是理解"ZK隐私应用"全景的概览。如果你希望动手实践一个完整的隐私投票系统，第13章将使用Noir语言从零构建一个可部署的ZK投票合约。</em></p>`;
+---
+
+<Layout title="第11章 - 以太坊ZK应用II：隐私与身份" description="ZK学习第11章：以太坊ZK应用II：隐私与身份">
+  <main class="min-h-screen bg-[#0A0A0F]">
+    <section class="py-12 px-4 border-b border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto">
+        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+          <span>←</span> 返回 ZK 学习列表
+        </a>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)]">
+            11
+          </div>
+          <span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">
+            以太坊应用
+          </span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white">以太坊ZK应用II：隐私与身份</h1>
+      </div>
+    </section>
+
+    <section class="py-8 px-4">
+      <div class="max-w-4xl mx-auto">
+        <article class="prose-zk" set:html={htmlContent} />
+      </div>
+    </section>
+
+    <section class="py-8 px-4 border-t border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto flex justify-between items-center">
+        
+          <a href="/zk-learning/10" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <span>←</span>
+            <div class="text-left">
+              <div class="text-xs text-[#6a6a80]">上一章</div>
+              <div class="text-sm font-medium">以太坊ZK应用I：zkRollup扩容</div>
+            </div>
+          </a>
+        
+          <a href="/zk-learning/12" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <div class="text-right">
+              <div class="text-xs text-[#6a6a80]">下一章</div>
+              <div class="text-sm font-medium">实战I：用Circom编写ZK电路</div>
+            </div>
+            <span>→</span>
+          </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style is:global>
+  .prose-zk { color: #9a9ab0; line-height: 1.8; font-size: 0.95rem; }
+  .prose-zk h1 { color: #fff; font-size: 1.8rem; font-weight: 700; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h2 { color: #fff; font-size: 1.4rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h3 { color: #e0e0f0; font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .prose-zk h4 { color: #e0e0f0; font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  .prose-zk h5, .prose-zk h6 { color: #c0c0d0; font-size: 1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+  .prose-zk p { margin: 0.75rem 0; }
+  .prose-zk ul { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .prose-zk li { margin: 0.35rem 0; }
+  .prose-zk li::marker { color: #00d4aa; }
+  .prose-zk blockquote { margin: 1rem 0; padding: 0.75rem 1rem; border-left: 3px solid rgba(0, 212, 170, 0.4); background: rgba(0, 212, 170, 0.03); border-radius: 0 6px 6px 0; color: #b0b0c0; font-style: italic; }
+  .prose-zk hr { border: none; border-top: 1px solid #2a2a3a; margin: 1.5rem 0; }
+  .prose-zk .code-block { background: #0f0f16; border: 1px solid #2a2a3a; border-radius: 8px; padding: 1rem; margin: 1rem 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; color: #c0c0d0; }
+  .prose-zk .inline-code { background: rgba(0, 212, 170, 0.08); color: #00d4aa; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; border: 1px solid rgba(0, 212, 170, 0.15); }
+  .prose-zk strong { color: #e0e0f0; font-weight: 600; }
+  .prose-zk em { color: #b0b0c0; }
+</style>

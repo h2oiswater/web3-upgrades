@@ -1,0 +1,367 @@
+---
+import Layout from '../../layouts/Layout.astro';
+const htmlContent = `<h1>9. 核心算法III：zk-STARK与透明证明——无需信任的证明</h1>
+<p>在前两章中，我们深入学习了zk-SNARK的两个主要代表：Groth16和PLONK。你现在已经理解了KZG承诺、可信设置、QAP转换这些核心概念。但你也看到了一个反复出现的"痛点"——<strong>可信设置（Trusted Setup）</strong>。无论是一次性的电路特定仪式（Groth16），还是通用的Perpetual Powers of Tau（PLONK），SNARK家族都依赖一个需要被诚实执行的初始化阶段。</p>
+<p>本章要回答的核心问题是：<strong>有没有可能完全跳过可信设置，同时仍然构造出有效的零知识证明？</strong> 答案是zk-STARK。让我们从直觉出发，理解这条"无需信任"的证明路线。</p>
+<hr>
+<h2>9.1 学习目标</h2>
+<p>在本章结束时，你将能够：</p>
+<ul><li><strong>准确描述</strong>zk-STARK与zk-SNARK在可信设置、证明大小、量子安全性和底层数学假设上的四项核心差异。</li>
+<li><strong>用自己的话解释</strong>FRI协议的"折叠"直觉——为什么递归折半多项式次数能够验证低度性。</li>
+<li><strong>评估</strong>STARK的适用场景：在什么业务需求下值得接受更大的证明体积以换取透明性和后量子安全性。</li>
+<li><strong>阅读并理解</strong>一段简单的Cairo程序，能够描述从Cairo代码到STARK证明的完整流程（代码→CASM→执行轨迹→AIR→FRI证明）。</li>
+</ul><hr>
+<h2>9.2 STARK vs SNARK：名字之外的差异</h2>
+<h3>9.2.1 名称拆解：Scalable Transparent Argument of Knowledge</h3>
+<p>让我们先拆解zk-STARK的全称：<strong>Zero-Knowledge Scalable Transparent Argument of Knowledge</strong>。</p>
+<p>| 字母 | 含义 | 教学要点 |<br>|------|------|---------|<br>| <strong>S</strong>calable | 可扩展的 | 验证时间随数据量呈准线性增长，对大规模计算反而有优势[^97^] |<br>| <strong>T</strong>ransparent | 透明的 | 无需可信设置，所有随机性公开可验证[^22^] |<br>| <strong>AR</strong>gument | 论证 | 计算正确性的密码学论证 |<br>| <strong>K</strong>nowledge | 知识 | 证明者不仅声称某事为真，而且"知道"为什么为真 |</p>
+<p>与zk-SNARK的"S<strong>u</strong>ccinct Non-interactive ARgument of Knowledge"相比，最核心的差异就在于那个"T"——<strong>Transparent（透明）</strong>。它意味着STARK的整个证明过程不依赖任何需要被秘密销毁的"毒性废料"（toxic waste），所有参数都可以公开生成、公开检验。</p>
+<h3>9.2.2 类比：公开审计 vs 密封公证</h3>
+<p>想象你需要证明"公司的财务报表是正确的"。</p>
+<p><strong>SNARK的做法像"密封公证"</strong>：在公证开始之前，需要一位受信任的公证员秘密准备一套印章和蜡封工具。公证员必须向你保证："我已经销毁了印章的模具，所以没人能伪造这个印章。"如果公证员撒谎或者模具泄露，任何人都可以伪造一份虚假财报并获得"合法"的公证章。这就是可信设置的直觉——<strong>信任前置，一次性的信任投资换取之后的简洁证明</strong>。</p>
+<p><strong>STARK的做法像"公开透明的审计"</strong>：审计过程完全公开。审计员走进公司，随机抽取账目样本进行核对。每次抽查的结果都写在黑板上让所有人看见。审计不需要任何预先准备的秘密工具，只需要一个公开的、不可预测的随机抽查清单。任何人都可以事后检查："审计员确实在这些随机点上做了核查，没有作弊。"这就是透明的直觉——<strong>无需前置信任，通过公开可验证的随机抽查获得安全性</strong>。</p>
+<h3>9.2.3 核心差异对比表</h3>
+<p>下表汇总了STARK与两种主流SNARK在工程实践中的关键差异。</p>
+<p>| 对比维度 | Groth16 (SNARK) | PLONK (SNARK) | zk-STARK |<br>|---------|----------------|---------------|----------|<br>| <strong>可信设置</strong> | 电路特定，需MPC仪式[^78^] | 通用可更新（Powers of Tau）[^70^] | <strong>无（完全透明）</strong>[^97^] |<br>| <strong>证明大小</strong> | ~192字节（3个椭圆曲线点）[^70^] | ~400-800字节[^70^] | <strong>~50-200KB</strong>[^97^] |<br>| <strong>验证时间</strong> | ~3ms（3次配对）[^70^] | ~5ms（15-20次群运算）[^70^] | ~5-10ms，大数据集下更优[^97^] |<br>| <strong>证明生成速度</strong> | 55ms（M1）[^74^] | 稍慢于Groth16 | 3,810ms（M1），慢约68倍[^74^] |<br>| <strong>量子安全</strong> | 否（基于椭圆曲线配对）[^70^] | 否（基于椭圆曲线配对）[^70^] | <strong>是（仅依赖哈希函数）</strong>[^97^] |<br>| <strong>安全假设</strong> | 双线性配对、Knowledge-of-Exponent | 双线性配对、d-SDH | <strong>抗碰撞哈希函数</strong>[^97^] |<br>| <strong>核心密码学工具</strong> | KZG承诺 + 配对验证 | KZG承诺 + 置换论证 | <strong>FRI + Merkle树 + 哈希</strong>[^115^] |<br>| <strong>链上Gas成本</strong> | ~200K[^95^] | ~300K[^95^] | <strong>~1.5M</strong>[^95^] |<br>| <strong>生产部署</strong> | Zcash、Tornado Cash、Filecoin[^68^] | zkSync、Scroll、Aztec[^70^] | <strong>StarkNet、StarkEx、RISC Zero</strong>[^120^] |</p>
+<p>从上表可以看出一个清晰的<strong>权衡三角形</strong>：SNARK追求"小证明、快验证"，代价是可信设置和椭圆曲线假设；STARK追求"透明、抗量子"，代价是证明体积大一个数量级。没有 universally best 的方案，只有针对不同场景的最优选择[^96^]。</p>
+<p>让我们用一幅ASCII图来直观展示两种证明系统的流程差异：</p>
+<pre class="code-block"><code> zk-SNARK (Groth16)                    zk-STARK
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 
+  ① 可信设置仪式                          ① 公开随机性
+     ├─ 生成秘密参数 (τ, α, β, γ, δ)          ├─ 用公开哈希值作为挑战
+     ├─ 至少一人诚实销毁 → 安全               ├─ 无需信任任何参与者
+     └─ 泄露 = 系统崩溃                      └─ 透明可复现
+            ↓                                    ↓
+  ② 电路编译 (R1CS/QAP)                   ② 程序编译 (Cairo)
+     ├─ 将约束展平为多项式                   ├─ 编译为 Sierra → CASM
+     └─ 生成 witness 向量                   └─ 生成执行轨迹 (Trace)
+            ↓                                    ↓
+  ③ KZG承诺 + 配对验证                    ③ FRI折叠 + Merkle承诺
+     ├─ 在秘密点 s 处求值                   ├─ 低度扩展 (LDE)
+     ├─ 构造 π = (π_a, π_b, π_c)            ├─ 递归折半多项式次数
+     └─ e(π_a,π_b) = e(α,β)·e(input,γ)·e(π_c,δ)  └─ Merkle树根作为承诺
+            ↓                                    ↓
+  ④ 证明：~192 字节                       ④ 证明：~50-200 KB
+     └─ 3个椭圆曲线点                        └─ Merkle路径 + 查询应答
+            ↓                                    ↓
+  ⑤ 验证：~3ms (3次配对)                  ⑤ 验证：~5-10ms (哈希检查)
+     └─ 非常简洁                            └─ 大数据集下反而更快
+ 
+ 安全假设：椭圆曲线配对                      安全假设：抗碰撞哈希
+ 量子安全：否                              量子安全：是
+</code></pre>
+<hr>
+<h2>9.3 STARK的技术栈</h2>
+<p>STARK证明系统的工作流程与SNARK有相似之处——都是将计算转化为多项式然后进行承诺——但关键差异在于每一步使用的工具。让我们从下往上梳理STARK的三层技术栈。</p>
+<h3>9.3.1 算术化：AIR（代数中间表示）</h3>
+<p>回忆一下PLONK的"Plonkish"算术化：我们将计算编码为一个表格（trace table），每一行是一个执行步骤，每一列是一个寄存器或变量。约束是行上的多项式方程，copy constraints确保跨行值的一致性[^146^]。</p>
+<p>STARK使用一种非常类似的思路，称为<strong>AIR（Algebraic Intermediate Representation，代数中间表示）</strong>。区别在于：</p>
+<ul><li><strong>PLONKish</strong>：基于R1CS或自定义门，使用KZG承诺</li>
+<li><strong>AIR</strong>：将执行轨迹编码为多项式，所有约束都是多项式恒等式，在扩展域上验证[^74^]</li>
+</ul><p>你可以把AIR想象成一个"审计日志"：程序执行的每一步都被记录为一行状态。然后，我们通过多项式插值把这些离散的状态行转换成连续的多项式。程序的约束（例如"每一步中，第三个寄存器的值等于前两个寄存器之和"）就转化为这些多项式必须满足的恒等式。</p>
+<p>具体来说，如果程序有 \$w\$ 个寄存器、执行了 \$T\$ 步，我们会得到 \$w\$ 个次数为 \$T\$ 的多项式 \$f_1(x), f_2(x), \\dots, f_w(x)\$，每个多项式在一个称为<strong>轨迹域（trace domain）</strong>的点集上取值为对应寄存器的值。约束则是这些多项式之间的代数关系，例如：</p>
+<p>\$\$f_3(x) - f_1(x) - f_2(x) = 0 \\quad \\text{对所有 } x \\in \\text{trace domain}\$\$</p>
+<p>这个等式在轨迹域的每个点上都成立，意味着多项式 \$f_3(x) - f_1(x) - f_2(x)\$ 在这些点上为零。如果我们能证明这个多项式的次数足够低（与执行步数 \$T\$ 相关），就证明了每一步的约束都被满足。</p>
+<h3>9.3.2 多项式承诺：FRI而非KZG</h3>
+<p>这是STARK与SNARK最根本的分岔点。</p>
+<p><strong>SNARK</strong>使用KZG承诺（Kate-Zaverucha-Goldberg）：证明者发送一个简短的椭圆曲线点作为承诺，验证者通过双线性配对在常数时间内完成验证。代价是需要可信的SRS（结构化参考字符串），且依赖椭圆曲线配对的数学假设[^96^]。</p>
+<p><strong>STARK</strong>使用FRI（Fast Reed-Solomon Interactive Oracle Proof of Proximity，快速里德-所罗门交互式邻近证明）：证明者通过Merkle树的根来承诺一个多项式的求值，验证者通过随机查询和一致性检查来确认多项式的次数确实足够低[^112^][^113^]。</p>
+<p>FRI的核心优势在于：<br><ul><li><strong>透明</strong>：Merkle树的根不需要任何秘密参数</li><br><li><strong>抗量子</strong>：仅依赖抗碰撞哈希函数（如SHA-256或Blake2b），而非椭圆曲线</li><br><li><strong>简单</strong>：验证者只做哈希检查和简单的域运算</li></ul></p>
+<p>代价也明显：FRI证明的大小是 \$O(\\log^2 d)\$，约40-200KB，远大于KZG的48字节[^96^]。</p>
+<h3>9.3.3 交互压缩：Fiat-Shamir启发式</h3>
+<p>原始的FRI协议是<strong>交互式</strong>的：证明者和验证者进行多轮通信，每轮验证者发送一个随机挑战数，证明者据此折叠多项式。但区块链上的证明必须是<strong>非交互式</strong>的——证明者生成一个静态的证明文件，验证者独立验证。</p>
+<p>这里使用的工具是<strong>Fiat-Shamir启发式（Fiat-Shamir Heuristic）</strong>。它的核心思想是：将交互式协议中的验证者随机挑战，替换为对证明者已发送消息的哈希值。由于哈希函数是公开的、确定性的，任何人都可以重新计算出相同的"挑战"序列，从而将多轮交互压缩为单轮非交互证明。</p>
+<p>你可以这样理解：原本需要双方来回传话的"审计对话"，现在变成了证明者自言自语地把所有话一次性说完，但每句话都基于前一句话的哈希值，所以顺序和内容都无法篡改。任何事后审查的人都可以按照同样的哈希规则"复现"整个对话过程。</p>
+<hr>
+<h2>9.4 FRI协议直觉</h2>
+<p>FRI是STARK的"心脏"。理解FRI的直觉，你就理解了STARK为什么既能透明又能有效。本节我们先建立生活化类比，再给出核心机制的形式化描述。</p>
+<h3>9.4.1 类比：不断对折的折纸游戏</h3>
+<p>想象你有一张写满数字的长纸条，上面的数字其实是一个多项式 \$f(x)\$ 在许多点上的取值。我想让你相信：这个多项式的次数（degree）不超过 \$d\$，比如 \$d=8\$。但直接检查所有点太费功夫了。</p>
+<p>FRI的做法像一场"折纸验证"游戏：</p>
+<ul><li>你把纸条对折，把位置 \$x\$ 和位置 \$-x\$ 的两个数字合并成一个新数字。</li>
+<li>折完之后，新纸条长度减半。如果原多项式次数 \$\\leq 2d\$，折后的新多项式次数 \$\\leq d\$。</li>
+<li>我随机抽查几个对折后的点，确认你确实按照规则折了。</li>
+<li>我们重复这个过程：\$2d \\to d \\to d/2 \\to \\dots \\to 1\$。</li>
+<li>最终，当次数降到1（线性多项式），直接验证它是否真的是线性的就够了。</li>
+</ul><p>每一轮"对折"都减小了问题规模，同时保留了"低度性"这一关键属性。如果你试图用一个高次多项式冒充低次多项式，在足够多的对折轮数和随机抽查下，作弊被发现概率趋近于1。</p>
+<p>这就是FRI的核心直觉——<strong>多项式版的二分搜索</strong>，每次折半直到问题变得平凡[^112^]。</p>
+<h3>9.4.2 核心数学思想：Schwartz-Zippel引理</h3>
+<p>在理解折叠之前，我们需要一个关键的数学工具：<strong>Schwartz-Zippel引理</strong>。它说的是：</p>
+<blockquote>如果两个次数不超过 \$d\$ 的多项式 \$P(x)\$ 和 \$Q(x)\$ 在一个足够大的域上，在某一个随机点 \$r\$ 处取值相等，那么它们在所有点处都相等的概率非常高。具体来说，如果 \$P \\neq Q\$，则 \$P(r) = Q(r)\$ 的概率最多为 \$d/|F|\$，其中 \$|F|\$ 是域的大小。</blockquote>
+<p>换句话说：<strong>"在足够多的点上相等的多项式，几乎必然就是同一个多项式。"</strong>[^108^]</p>
+<p>这个引理是FRI（以及所有多项式承诺方案）的数学基石。它告诉我们：我们不需要检查多项式在所有点上的取值——只需抽查少量随机点，就能以压倒性概率确认多项式的身份。</p>
+<h3>9.4.3 折叠（Folding）：将\$2d\$次多项式折为\$d\$次</h3>
+<p>现在来看折叠的具体操作。假设我们有一个次数 \$\\leq 2d\$ 的多项式 \$f(x)\$，定义在域 \$F\$ 上。我们想将其"压缩"为一个次数 \$\\leq d\$ 的多项式 \$f'(y)\$，定义在一个更小的域上。</p>
+<p>关键观察：任何多项式都可以唯一地分解为"偶部"和"奇部"：</p>
+<p>\$\$f(x) = f_{\\text{even}}(x^2) + x \\cdot f_{\\text{odd}}(x^2)\$\$</p>
+<p>其中 \$f_{\\text{even}}\$ 和 \$f_{\\text{odd}}\$ 都是次数 \$\\leq d\$ 的多项式。验证者发送一个随机挑战数 \$r\$，证明者构造折叠后的多项式：</p>
+<p>\$\$f'(x^2) = f_{\\text{even}}(x^2) + r \\cdot f_{\\text{odd}}(x^2)\$\$</p>
+<p>更具体地，利用 \$f(x)\$ 和 \$f(-x)\$ 的值，折叠公式可以写成[^112^]：</p>
+<p>\$\$f'(x^2) = \\frac{f(x) + f(-x)}{2} + r \\cdot \\frac{f(x) - f(-x)}{2x}\$\$</p>
+<p>让我们用ASCII图展示这个折叠过程：</p>
+<pre class="code-block"><code>FRI折叠过程：从f(x)到f'(x²)
+
+原始多项式 f(x)，次数 ≤ 2d，定义域大小 = 2N
+
+      f(x) 在 2N 个点上的取值
+      ├─ x₁    x₂    x₃    ...    x_{2N}
+      └─ f(x₁) f(x₂) f(x₃) ...    f(x_{2N})
+                 ↓
+         Merkle树承诺（根哈希公开）
+                 ↓
+    验证者发送随机挑战 r
+                 ↓
+   将点配对：(x, -x) 成对处理
+   
+   偶部：f_even(x²) = (f(x) + f(-x))/2
+   奇部：f_odd(x²)  = (f(x) - f(-x))/(2x)
+                 ↓
+   折叠：f'(x²) = f_even(x²) + r·f_odd(x²)
+                 ↓
+   新多项式 f'(y)，次数 ≤ d，定义域大小 = N
+   
+   ←────────────────────────────→
+   重复 log₂(2N) 轮，直到次数降到常数
+</code></pre>
+<p>每轮折叠后，定义域大小减半、多项式次数减半。经过 \$\\log_2 N\$ 轮后，多项式变成常数（0次），验证者直接检查即可。这个递归结构是FRI效率的来源。</p>
+<h3>9.4.4 查询与一致性：捕获作弊的概率</h3>
+<p>折叠本身并不能阻止作弊——一个恶意证明者完全可以伪造折叠后的多项式。FRI的安全机制来自<strong>查询（Query）阶段</strong>。</p>
+<p>在每一轮折叠后，验证者随机选择一个"索引"（一个域中的点），要求证明者打开该点及其对应配对点在<strong>所有轮次</strong>的Merkle树路径。验证者检查：</p>
+<ul><li>Merkle路径是否正确（哈希链一致）</li>
+<li>折叠公式是否在每一轮都成立</li>
+<li>最终的多项式确实是低次的</li>
+</ul><p>由于Merkle树是绑定的（binding），证明者一旦承诺了多项式的求值，就无法事后篡改。如果原始多项式的次数高于声称的次数，那么在随机查询下，折叠过程中的不一致将以极高概率暴露。</p>
+<p>查询的数量决定了安全级别。例如，80次查询可以提供约 \$2^{-80}\$ 的作弊概率——在密码学意义上是安全的。</p>
+<hr>
+<h2>9.5 STARK的权衡</h2>
+<h3>9.5.1 优势：透明、抗量子、仅依赖哈希</h3>
+<p><strong>无可信设置</strong>是STARK最引人注目的特性。这意味着：</p>
+<ul><li>没有"毒性废料"需要销毁，不存在因仪式参与者作弊而导致系统崩溃的风险</li>
+<li>不需要组织昂贵且复杂的MPC仪式</li>
+<li>任何人都可以独立生成和验证证明，无需信任任何第三方</li>
+</ul><p><strong>后量子安全性</strong>是STARK的第二重保障。量子计算机上的Shor算法可以高效破解椭圆曲线离散对数问题，从而摧毁基于配对的SNARK。但STARK只依赖哈希函数的抗碰撞性，而哈希函数（如SHA-256）目前被认为是抗量子的——即使是量子计算机，也只能提供平方级的加速（Grover算法），无法从根本上破解[^97^]。</p>
+<p><strong>仅依赖哈希</strong>还带来了工程上的好处：哈希运算在几乎所有硬件上都高度优化，从智能手机到FPGA到ASIC都有高效的实现。相比之下，椭圆曲线配对是更 specialized 的运算，硬件支持有限。</p>
+<h3>9.5.2 劣势：证明体积大、验证慢、计算成本高</h3>
+<p>STARK的代价主要体现在三个维度。</p>
+<p><strong>证明大小</strong>：原始STARK证明约50-200KB，而Groth16仅192字节。这意味着在以太坊主网上，STARK证明的calldata成本显著更高——约1.5M gas vs 200K gas[^95^]。不过值得注意的是，新一代的Circle STARK（M31域）和DEEP-FRI优化已经将证明压缩了50-80%[^97^]。</p>
+<p><strong>证明生成速度</strong>：STARK的证明生成比Groth16慢约68倍（M1上3.8秒 vs 55毫秒）[^74^]。对于需要频繁生成证明的场景（如高频交易），这个差距可能是决定性的。</p>
+<p><strong>链上验证成本</strong>：更高的gas成本意味着在以太坊主网上直接验证STARK证明的经济性较差。这也是StarkNet等L2方案选择"在L2上验证、在L1上最终确认"架构的重要原因。</p>
+<h3>9.5.3 适用场景</h3>
+<p>基于以上权衡，STARK特别适合以下场景：</p>
+<p>| 场景 | 为什么STARK合适 |<br>|------|----------------|<br>| <strong>长期安全的金融基础设施</strong> | 量子威胁是真实存在的长期风险，STARK提供"面向未来"的安全性 |<br>| <strong>监管敏感的机构应用</strong> | 无需解释可信设置的复杂性，"透明"更容易获得合规认可 |<br>| <strong>高价值低频操作</strong> | 证明生成慢可以接受，换取更强的安全假设 |<br>| <strong>硬件受限环境</strong> | 哈希在移动端/浏览器/WebAssembly上执行效率优于椭圆曲线[^96^] |<br>| <strong>递归证明链</strong> | STARK原生支持递归，Plonky2等系统将FRI与递归结合，用于zkEVM |</p>
+<hr>
+<h2>9.6 实战：用Cairo/Stone探索STARK</h2>
+<h3>9.6.1 StarkNet的Cairo语言简介</h3>
+<p>Cairo是StarkWare专门为STARK优化的编程语言，语法受Rust启发，但设计目标是<strong>"可证明的通用计算"</strong>。在Cairo中编写的每一行代码，原则上都可以被STARK证明系统验证其正确执行。</p>
+<p>Cairo有几个关键特性值得钱包开发者了解：</p>
+<ul><li><strong> felt252 是原生类型</strong>：Cairo的基础数值类型是 <code class="inline-code">felt252</code>，一个252位的有限域元素（field element）。这与Solidity的256位无符号整数有本质不同——<code class="inline-code">felt252</code>的算术是在模一个大素数下进行的，不是普通的整数运算[^334^]。</li>
+<li><strong>溢出保护</strong>：对于需要边界检查的场景，Cairo提供 <code class="inline-code">u8</code>、<code class="inline-code">u128</code>、<code class="inline-code">u256</code> 等有界整数类型，溢出会自动触发panic[^335^]。</li>
+<li><strong>Sierra中间表示</strong>：Cairo编译器先将代码编译为Sierra IR，再转为CASM（Cairo Assembly），确保所有可执行的程序都是可证明的[^324^]。</li>
+</ul><h3>9.6.2 编写简单STARK程序并理解证明流程</h3>
+<p>让我们看一个经典的斐波那契程序，这是 <code class="inline-code">scarb new</code> 创建新项目时的默认模板[^339^]：</p>
+<pre class="code-block"><code>// 文件: src/lib.cairo
+// 这是一个可证明的斐波那契计算程序
+// 编译后可通过 Stone/S-two 证明器生成 STARK 证明
+
+// main函数是可执行入口，返回 felt252 类型
+fn main() -> felt252 {
+    fib(16)  // 计算第16个斐波那契数
+}
+
+// fib函数使用迭代方式计算斐波那契数
+// 参数 n: felt252 表示迭代次数
+// 返回值: 第 n 个斐波那契数
+fn fib(mut n: felt252) -> felt252 {
+    let mut a: felt252 = 0;  // F(0) = 0
+    let mut b: felt252 = 1;  // F(1) = 1
+    
+    // Cairo 的 while 循环，条件是 n != 0
+    while n != 0 {
+        n = n - 1;           // 迭代计数减一
+        let temp = b;        // 暂存 b 的旧值
+        b = a + b;           // 计算下一个斐波那契数
+        a = temp;            // a 取 b 的旧值
+    };
+    
+    a  // 返回最终结果
+}
+
+// 测试模块：验证 fib(16) == 987
+#[cfg(test)]
+mod tests {
+    use super::fib;
+
+    #[test]
+    fn it_works() {
+        assert(fib(16) == 987, 'it works!');
+    }
+}
+</code></pre>
+<p>从这段Cairo代码到STARK证明的完整流程如下：</p>
+<pre class="code-block"><code>Cairo程序 → STARK证明的完整流水线
+
+┌─────────────────┐
+│  1. 编写Cairo代码  │  ← 开发者用Cairo写业务逻辑（如fib函数）
+│   (lib.cairo)   │
+└────────┬────────┘
+         ↓ 编译
+┌─────────────────┐
+│  2. Sierra IR   │  ← 中间表示，确保所有程序都可证明
+└────────┬────────┘
+         ↓ 编译
+┌─────────────────┐
+│  3. CASM代码    │  ← Cairo Assembly，类似低级虚拟机指令
+└────────┬────────┘
+         ↓ 执行
+┌─────────────────┐
+│  4. 生成执行轨迹   │  ← 每一步指令后的寄存器状态快照
+│    (Trace)      │     宽度=寄存器数，高度=指令步数
+└────────┬────────┘
+         ↓ 算术化
+┌─────────────────┐
+│  5. AIR约束系统   │  ← 将轨迹编码为多项式，建立约束方程
+│  (多项式恒等式)  │
+└────────┬────────┘
+         ↓ 低度扩展+Merkle承诺
+┌─────────────────┐
+│  6. FRI折叠证明   │  ← 递归折叠多项式，生成Merkle证明路径
+└────────┬────────┘
+         ↓ 序列化
+┌─────────────────┐
+│  7. STARK证明文件 │  ← 包含所有查询应答和Merkle路径（50-200KB）
+└─────────────────┘
+</code></pre>
+<h3>9.6.3 使用Scarb和Stone/S-two生成证明</h3>
+<p>现代StarkWare工具链已经大幅简化了证明生成。使用Scarb（Cairo的构建工具）和S-two（下一代证明器），证明一个Cairo程序只需要一行命令[^317^]：</p>
+<pre class="code-block"><code># 安装 Scarb (Cairo 构建工具)
+# 参考: https://docs.swmansion.com/scarb/
+
+# 创建新项目（自带斐波那契模板）
+scarb new hello_stark
+
+# 进入项目目录
+cd hello_stark
+
+# 执行程序并生成 STARK 证明
+# --execute 先运行程序获取执行轨迹
+# --arguments-file 可传入外部参数（本例不需要）
+scarb prove --execute --arguments-file args.json
+
+# 输出示例:
+# ┌─────────────────────────────────────┐
+# │  Proving successful                 │
+# │  Proof size: ~85 KB                 │
+# │  Proving time: ~2.1 seconds         │
+# │  Verification: valid                │
+# └─────────────────────────────────────┘
+</code></pre>
+<p>如果你想使用更底层的Stone证明器（C++实现，已在StarkEx和StarkNet生产环境中验证超过1万亿美元交易量[^320^]），流程稍有不同：</p>
+<pre class="code-block"><code># 1. 用 Cairo 工具链将 Cairo0 编译为 CASM
+cairo-compile fib.cairo --output fib_compiled.json
+
+# 2. 运行 CASM 生成执行轨迹
+cairo-run --program fib_compiled.json --trace_file fib_trace.bin
+
+# 3. 用 Stone Prover 证明轨迹
+./cpu_air_prover \\\\
+    --in_file fib_trace.bin \\\\
+    --out_file fib_proof.json \\\\
+    --prover_config_file prover_config.json
+
+# 4. 用 Stone Verifier 验证证明
+./cpu_air_verifier --in_file fib_proof.json
+# 输出: Proof verified successfully
+</code></pre>
+<h3>9.6.4 与SNARK工具链的对比体验</h3>
+<p>从开发者体验角度对比：</p>
+<p>| 维度 | SNARK (Circom + snarkjs) | STARK (Cairo + Scarb) |<br>|------|-------------------------|----------------------|<br>| <strong>编程语言</strong> | 电路DSL（声明式约束） | 通用编程语言（命令式执行） |<br>| <strong>思维模型</strong> | "写出约束，然后找满足约束的witness" | "写正常程序，系统自动证明执行正确" |<br>| <strong>可信设置</strong> | 需要Phase 1/Phase 2仪式 | 完全不需要 |<br>| <strong>证明生成</strong> | <code class="inline-code">snarkjs groth16 fullprove</code> | <code class="inline-code">scarb prove --execute</code> |<br>| <strong>调试体验</strong> |  witness 不匹配时难以定位 | 可以像普通程序一样单步调试 |<br>| <strong>学习曲线</strong> | 需要理解R1CS/约束/witness概念 | 有Rust基础即可快速上手 |</p>
+<p>对于钱包开发者来说，Cairo的"写正常程序"体验可能比Circom的"写约束电路"更直观——你只需要关心业务逻辑是否正确，而不需要手动将逻辑转换为代数约束。</p>
+<hr>
+<h2>9.7 本章小结</h2>
+<p>本章我们沿着"从直觉到形式化"的路径，系统学习了zk-STARK的核心机制：</p>
+<ul><li><strong>STARK的本质优势是透明（Transparent）</strong>：通过公开可验证的随机性（Fiat-Shamir哈希链）取代可信设置，消除了"毒性废料"这一系统性风险点[^22^]。</li>
+<li><strong>FRI是STARK的心脏</strong>：通过递归折叠将多项式次数不断减半，配合Merkle树承诺和随机查询，以极高的概率验证多项式的低度性[^112^][^113^]。类比于"折纸游戏"，每一轮折半都让问题规模缩小，同时保留可验证性。</li>
+<li><strong>STARK vs SNARK是安全假设与证明体积的权衡</strong>：STARK用50-200KB的证明体积和约68倍的证明生成延迟，换取了无可信设置、抗量子、仅依赖哈希函数的三大优势[^74^][^97^]。</li>
+<li><strong>Cairo + Stone/S-two 提供了生产级的STARK工具链</strong>：Cairo语言让开发者用接近Rust的语法编写可证明程序，Scarb和Stone处理从编译到证明的完整流水线[^317^][^320^]。</li>
+<li><strong>没有 universally best 的证明系统</strong>：如果你的钱包应用需要最小链上验证成本，SNARK（Groth16/PLONK）仍然是最优选择；如果你面向的是长期安全、监管敏感或后量子场景，STARK提供了不可替代的信任模型[^96^]。</li>
+</ul><hr>
+<h2>9.8 思考题与练习题</h2>
+<h3>概念理解题</h3>
+<ul><li><strong>可信设置的替代成本</strong>：假设你是一个钱包产品的技术负责人，需要在Groth16和STARK之间做选型。请列出至少三个具体的业务场景，分别说明哪种方案更合适，并解释你的理由。（提示：考虑证明频率、链上成本、安全需求寿命、监管环境。）</li>
+<li><strong>FRI折叠的数学直觉</strong>：假设证明者声称一个次数 \$\\leq 4\$ 的多项式 \$f(x)\$ 满足某约束。在FRI中，经过两轮折叠后，验证者最终检查的是什么？为什么原始多项式次数如果实际是8而不是4，作弊会在查询阶段以高概率暴露？请用你自己的话（不需要公式）向一位产品经理解释这个过程。</li>
+</ul><h3>动手实践题</h3>
+<ul><li><strong>运行Cairo斐波那契程序</strong>：安装Scarb（https://docs.swmansion.com/scarb/），创建一个新项目 <code class="inline-code">scarb new fib_stark</code>，将本章9.6.2节的斐波那契代码复制到 <code class="inline-code">src/lib.cairo</code> 中。执行 <code class="inline-code">scarb run</code> 和 <code class="inline-code">scarb test</code>，确认输出为987。然后尝试修改 <code class="inline-code">main()</code> 中的参数（如改为 <code class="inline-code">fib(20)</code>），重新运行并观察计算结果的变化。</li>
+<li><strong>STARK vs SNARK选型分析</strong>：假设你正在设计一个跨链钱包的批量转账功能，需要向以太坊主网提交"100笔转账全部有效"的证明。请基于下表数据，计算并比较使用Groth16和STARK的总链上成本（假设每笔证明的Gas费为50 gwei）：</li>
+</ul>   - Groth16：证明大小192字节，验证Gas ~200K
+   - STARK：证明大小68KB，验证Gas ~1.5M
+   
+   进一步思考：在什么情况下，即使STARK的Gas成本更高，你仍然会选择它？`;
+---
+
+<Layout title="第09章 - 核心算法III：zk-STARK与透明证明" description="ZK学习第09章：核心算法III：zk-STARK与透明证明">
+  <main class="min-h-screen bg-[#0A0A0F]">
+    <section class="py-12 px-4 border-b border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto">
+        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+          <span>←</span> 返回 ZK 学习列表
+        </a>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)]">
+            09
+          </div>
+          <span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">
+            核心算法
+          </span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white">核心算法III：zk-STARK与透明证明</h1>
+      </div>
+    </section>
+
+    <section class="py-8 px-4">
+      <div class="max-w-4xl mx-auto">
+        <article class="prose-zk" set:html={htmlContent} />
+      </div>
+    </section>
+
+    <section class="py-8 px-4 border-t border-[#2a2a3a]">
+      <div class="max-w-4xl mx-auto flex justify-between items-center">
+        
+          <a href="/zk-learning/08" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <span>←</span>
+            <div class="text-left">
+              <div class="text-xs text-[#6a6a80]">上一章</div>
+              <div class="text-sm font-medium">核心算法II：PLONK与通用可信设置</div>
+            </div>
+          </a>
+        
+          <a href="/zk-learning/10" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+            <div class="text-right">
+              <div class="text-xs text-[#6a6a80]">下一章</div>
+              <div class="text-sm font-medium">以太坊ZK应用I：zkRollup扩容</div>
+            </div>
+            <span>→</span>
+          </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style is:global>
+  .prose-zk { color: #9a9ab0; line-height: 1.8; font-size: 0.95rem; }
+  .prose-zk h1 { color: #fff; font-size: 1.8rem; font-weight: 700; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h2 { color: #fff; font-size: 1.4rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #2a2a3a; }
+  .prose-zk h3 { color: #e0e0f0; font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .prose-zk h4 { color: #e0e0f0; font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+  .prose-zk h5, .prose-zk h6 { color: #c0c0d0; font-size: 1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+  .prose-zk p { margin: 0.75rem 0; }
+  .prose-zk ul { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .prose-zk li { margin: 0.35rem 0; }
+  .prose-zk li::marker { color: #00d4aa; }
+  .prose-zk blockquote { margin: 1rem 0; padding: 0.75rem 1rem; border-left: 3px solid rgba(0, 212, 170, 0.4); background: rgba(0, 212, 170, 0.03); border-radius: 0 6px 6px 0; color: #b0b0c0; font-style: italic; }
+  .prose-zk hr { border: none; border-top: 1px solid #2a2a3a; margin: 1.5rem 0; }
+  .prose-zk .code-block { background: #0f0f16; border: 1px solid #2a2a3a; border-radius: 8px; padding: 1rem; margin: 1rem 0; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; color: #c0c0d0; }
+  .prose-zk .inline-code { background: rgba(0, 212, 170, 0.08); color: #00d4aa; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; border: 1px solid rgba(0, 212, 170, 0.15); }
+  .prose-zk strong { color: #e0e0f0; font-weight: 600; }
+  .prose-zk em { color: #b0b0c0; }
+</style>
