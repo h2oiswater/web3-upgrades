@@ -1,0 +1,451 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const chapters = [
+  {
+    id: 1, num: "01", title: "导论：走进零知识证明的世界", icon: "🔐",
+    category: "intro", categoryLabel: "导论",
+    desc: "通过阿里巴巴洞穴、数独游戏、密封试卷三个经典类比，建立零知识证明的直觉认知。回顾从1985年Goldwasser-Micali-Rackoff提出概念到2026年zkRollup爆发的历史脉络。",
+    goals: ["理解ZK三要素", "掌握经典类比", "了解历史里程碑"],
+    concepts: ["完整性", "可靠性", "零知识性", "zk-SNARK", "zk-STARK"],
+    summary: "本章是全书入口。零知识证明的精髓在于'证明我知道X，但不告诉你X是什么'。通过三个生活化类比建立直觉后，你将理解ZK在区块链中的两大使命：扩容（用ZK证明替代重新执行）和隐私（在公开账本上进行私密交易）。",
+    sections: [
+      { title: "1.1 什么是零知识证明", items: ["定义：证明者向验证者证明某个陈述为真，且不泄露任何额外信息", "核心三要素：完整性、可靠性、零知识性", "类比一：阿里巴巴的洞穴", "类比二：数独游戏", "类比三：密封试卷"] },
+      { title: "1.2 ZK的历史与里程碑", items: ["1985年：Goldwasser-Micali-Rackoff提出概念", "2013-2016年：zk-SNARKs走向实用化（Zcash、Groth16）", "2018-2020年：zk-STARKs透明度革命、PLONK通用可信设置", "2021-2026年：zkRollup爆发、zkEVM竞赛、证明成本下降90%+"] },
+      { title: "1.3 ZK在区块链中的两大使命", items: ["扩容使命：链下计算、链上验证", "隐私使命：公开账本上的私密交易和身份验证"] },
+      { title: "1.4 学习路径预览", items: ["四阶段路线图：数学筑基→电路转化→算法理解→应用实战", "预计学习时间：12-16周"] }
+    ]
+  },
+  {
+    id: 2, num: "02", title: "数学基础I：模运算与有限域", icon: "➗",
+    category: "math", categoryLabel: "数学基础",
+    desc: "从时钟算术的直觉出发，掌握模运算的代数规则。理解有限域的构造和运算性质，并用Python实现有限域上的加减乘除。",
+    goals: ["理解模运算直觉", "掌握有限域性质", "实现Fp运算代码"],
+    concepts: ["模运算", "同余", "有限域Fp", "素域", "扩展域", "逆元"],
+    summary: "有限域是所有ZK运算的'舞台'。就像棋盘游戏有固定规则，有限域Fp确保了所有运算结果都在可控范围内，不会发生数值爆炸。时钟算术（7+8=3在12小时制下）是最直观的模运算类比。",
+    sections: [
+      { title: "2.1 模运算：循环世界中的算术", items: ["类比：时钟算术（7+8=3）", "形式化定义：a ≡ b (mod n)", "代数性质：封闭性、结合律、交换律、分配律", "ZK中的应用：防止数值爆炸"] },
+      { title: "2.2 有限域（Finite Field）", items: ["类比：严格规则的棋盘游戏", "域的四条公理", "素域Fp：模p的最简单有限域", "素数的魔法：逆元存在的保证"] },
+      { title: "2.3 扩展域与塔式构造", items: ["从Fp到Fpⁿ：用多项式构造更大的域", "类比：给基础颜色添加调色维度"] },
+      { title: "2.4 实战：Python实现有限域", items: ["实现素域Fp的加减乘除", "扩展域元素的表示和运算", "与galois库对比"] }
+    ]
+  },
+  {
+    id: 3, num: "03", title: "数学基础II：群、环、域", icon: "🔁",
+    category: "math", categoryLabel: "数学基础",
+    desc: "从魔方操作群到整数环，掌握抽象代数的核心结构。理解循环群、生成元、阶的概念，为椭圆曲线群结构做准备。",
+    goals: ["理解群环域定义", "掌握循环群结构", "探索有限域乘法群"],
+    concepts: ["群", "环", "域", "循环群", "生成元", "阶", "拉格朗日定理"],
+    summary: "群论是描述'对称'的数学语言。魔方的一次旋转是群元素，连续两次旋转是群运算。有限域的所有非零元素构成乘法循环群——这是椭圆曲线密码学的根基。",
+    sections: [
+      { title: "3.1 群（Group）：对称的本质", items: ["类比：魔方操作群", "四条公理：封闭性、结合律、单位元、逆元", "交换群 vs 非交换群", "循环群与生成元", "生成元和阶：群的DNA和大小"] },
+      { title: "3.2 环（Ring）：两种运算的和谐", items: ["类比：整数集合Z", "定义：加法群 + 乘法半群 + 分配律", "多项式环：ZK中最常用的环"] },
+      { title: "3.3 域（Field）：完备结构", items: ["类比：有理数Q", "域 = 加法交换群 + 乘法交换群 + 分配律", "有限域乘法群是循环群"] },
+      { title: "3.4 拉格朗日定理与推论", items: ["子群的阶整除母群的阶", "在ZK中的应用：确保群元素的阶适合电路约束"] },
+      { title: "3.5 实战：Python探索群结构", items: ["实现循环群验证公理", "寻找生成元", "计算元素的阶", "探索有限域乘法群"] }
+    ]
+  },
+  {
+    id: 4, num: "04", title: "数学基础III：椭圆曲线与双线性配对", icon: "📈",
+    category: "math", categoryLabel: "数学基础",
+    desc: "从过山车轨道的几何直觉出发，理解椭圆曲线在有限域上的密码学应用。掌握双线性配对的核心概念——ZK安全性的基石。",
+    goals: ["理解椭圆曲线群结构", "掌握ECDLP问题", "理解双线性配对"],
+    concepts: ["椭圆曲线", "点加法", "标量乘法", "ECDLP", "配对", "BN254", "BLS12-381"],
+    summary: "椭圆曲线是几何与代数的美丽交汇。y² = x³ + ax + b这条简单的曲线，在有限域上构成了一个加法群。双线性配对像一种'乘法显微镜'，能把指数运算'降维'到线性——这是zk-SNARKs验证的核心数学工具。",
+    sections: [
+      { title: "4.1 椭圆曲线的几何起源", items: ["类比：过山车轨道 y² = x³ + ax + b", "Weierstrass方程与光滑曲线", "点加法规则：弦切律", "无穷远点作为单位元"] },
+      { title: "4.2 椭圆曲线构成加法群", items: ["点加法形成合法群结构", "标量乘法：重复的点加法", "椭圆曲线离散对数问题（ECDLP）"] },
+      { title: "4.3 有限域上的椭圆曲线", items: ["从实数域到Fp", "常用曲线：secp256k1、BN254、BLS12-381", "BN254的嵌入度优势"] },
+      { title: "4.4 双线性配对", items: ["类比：配对像'乘法显微镜'", "形式定义：e: G₁ × G₂ → G_T", "配对的三群结构", "Miller算法直觉"] },
+      { title: "4.5 实战：Python探索椭圆曲线", items: ["有限域上的点加法实现", "标量乘法", "使用py_ecc验证"] }
+    ]
+  },
+  {
+    id: 5, num: "05", title: "数学基础IV：多项式、插值与FFT", icon: "📊",
+    category: "math", categoryLabel: "数学基础",
+    desc: "理解多项式在ZK中的核心地位。掌握拉格朗日插值和FFT/NTT，这是连接数学基础与ZK算法的桥梁。",
+    goals: ["理解多项式在ZK中的地位", "掌握拉格朗日插值", "理解FFT/NTT加速"],
+    concepts: ["多项式", "拉格朗日插值", "FFT", "NTT", "多项式承诺", "KZG"],
+    summary: "多项式是ZK证明的'通用语言'。验证大量约束 = 验证多项式在特定点取值为零。拉格朗日插值让我们能从n+1个点唯一重构n次多项式，而FFT将多项式运算从O(n²)加速到O(n log n)。",
+    sections: [
+      { title: "5.1 为什么ZK选择了多项式", items: ["类比：多项式像'指纹'", "核心洞察：验证约束 = 验证多项式零点", "多项式的优势"] },
+      { title: "5.2 多项式基础运算", items: ["系数视角的加减乘除", "根与因式分解", "多项式次数：ZK中的'复杂度'"] },
+      { title: "5.3 拉格朗日插值", items: ["类比：用几根柱子重建栅栏", "基的构造", "从n+1个点唯一确定n次多项式", "在ZK中的应用"] },
+      { title: "5.4 快速傅里叶变换（FFT）", items: ["类比：批量处理", "O(n²) → O(n log n)", "蝶形运算图示", "数论变换（NTT）"] },
+      { title: "5.5 多项式承诺的直觉", items: ["承诺是什么：先'封印'后'揭示'", "KZG承诺的直觉"] },
+      { title: "5.6 实战：Python多项式运算", items: ["多项式加减乘", "拉格朗日插值实现", "NumPy FFT/NTT对比"] }
+    ]
+  },
+  {
+    id: 6, num: "06", title: "电路基础：从程序到约束系统", icon: "⚡",
+    category: "circuit", categoryLabel: "电路基础",
+    desc: "理解算术电路的概念和构造方法。掌握R1CS约束系统和QAP转化，这是将'计算'转化为'可证明数学问题'的桥梁。",
+    goals: ["理解算术电路", "掌握R1CS", "理解QAP转化", "了解Plonkish"],
+    concepts: ["算术电路", "门", "线", "R1CS", "QAP", "Plonkish", "置换论证"],
+    summary: "电路是将程序转化为ZK可证明形式的翻译器。就像把C语言编译成汇编，电路编译器把高级程序转化为只有乘法和加法的约束系统。R1CS是'每行一个方程'的表格，QAP则是'把表格列变成曲线'的升华。",
+    sections: [
+      { title: "6.1 什么是算术电路", items: ["类比：只允许乘加的特殊编程语言", "门、线、输入/输出", "循环展开与条件判断转化", "为什么ZK需要电路"] },
+      { title: "6.2 R1CS：一阶约束系统", items: ["类比：每行一个方程的表格", "形式化：A·B=C", "从程序到R1CS示例：x³+x+5=35", "约束数量：复杂度指标"] },
+      { title: "6.3 QAP：从向量到多项式", items: ["类比：把表格列变成曲线", "核心转化：M个约束→M个多项式", "目标多项式t(x)", "QAP可满足性条件"] },
+      { title: "6.4 Plonkish约束系统", items: ["类比：Excel表格", "自定义门和置换论证", "Plonkish在Halo2中的应用"] },
+      { title: "6.5 实战：第一个Circom电路", items: ["Circom语法：signal、component、template", "编写x³+x+5=35电路", "编译、生成witness、约束输出"] }
+    ]
+  },
+  {
+    id: 7, num: "07", title: "核心算法I：zk-SNARK与Groth16", icon: "🎯",
+    category: "algo", categoryLabel: "核心算法",
+    desc: "掌握最经典的SNARK实现——Groth16。理解可信设置、CRS、证明生成和验证的完整流程，并用SnarkJS完成全流程实战。",
+    goals: ["理解SNARK工作流程", "掌握Groth16三阶段", "理解可信设置风险"],
+    concepts: ["zk-SNARK", "Groth16", "可信设置", "CRS", "证明", "验证", "配对"],
+    summary: "Groth16是zk-SNARKs的黄金标准。证明只有约200字节，验证仅需3次配对运算（毫秒级）。代价是每个新电路都需要一次可信设置——像'铸造一枚只能开一次的模具'。",
+    sections: [
+      { title: "7.1 zk-SNARK全景概览", items: ["名称拆解", "类比：把厚书压缩成邮票", "三部曲：Setup→Prove→Verify", "SNARK家族谱系"] },
+      { title: "7.2 Groth16算法详解", items: ["输入输出定义", "可信设置：铸造一次性模具", "结构化参考字符串CRS", "证明生成：~200字节", "验证：3次配对运算", "优缺点"] },
+      { title: "7.3 可信设置仪式", items: ["类比：多人共同封印宝盒", "Phase 1（Powers of Tau）+ Phase 2", "著名仪式：Zcash放射性衰变", "攻破后果"] },
+      { title: "7.4 实战：SnarkJS全流程", items: ["Circom编译到R1CS", "Powers of Tau可信设置", "生成证明并导出Solidity验证器", "JavaScript验证证明"] }
+    ]
+  },
+  {
+    id: 8, num: "08", title: "核心算法II：PLONK与通用可信设置", icon: "🔑",
+    category: "algo", categoryLabel: "核心算法",
+    desc: "理解PLONK如何解决Groth16的每电路可信设置问题。掌握KZG多项式承诺，以及PLONK的Round 1-5证明流程。",
+    goals: ["理解PLONK动机", "掌握KZG承诺", "理解PLONK证明流程"],
+    concepts: ["PLONK", "通用可信设置", "KZG承诺", "零测试", "Fiat-Shamir", "TurboPLONK"],
+    summary: "PLONK像'一把万能钥匙'——预配置一个最大电路规模的参数后，可以支持任意不超过该规模的电路。KZG承诺让验证者能'抽查'多项式在任意点的值，而不需要看到完整多项式。",
+    sections: [
+      { title: "8.1 PLONK的诞生动机", items: ["Groth16痛点：每电路新Setup", "类比：万能钥匙", "通用可信设置概念"] },
+      { title: "8.2 PLONK的电路表示", items: ["门约束", "拷贝约束/置换论证", "从电路到多项式"] },
+      { title: "8.3 PLONK证明流程", items: ["Round 1-5逐步构建", "零测试", "Fiat-Shamir启发式"] },
+      { title: "8.4 KZG多项式承诺详解", items: ["类比：把书压缩到印章", "基于配对的承诺", "打开证明", "批量打开"] },
+      { title: "8.5 PLONK变体与演进", items: ["TurboPLONK、UltraPLONK", "Plonky2：PLONK+FRI"] },
+      { title: "8.6 实战：Noir电路", items: ["Noir语法速览", "PLONK兼容电路", "生成并验证证明"] }
+    ]
+  },
+  {
+    id: 9, num: "09", title: "核心算法III：zk-STARK与透明证明", icon: "🛡️",
+    category: "algo", categoryLabel: "核心算法",
+    desc: "理解zk-STARK——无需可信设置、抗量子的替代路线。掌握FRI协议的'折纸游戏'直觉，以及STARK与SNARK的核心差异。",
+    goals: ["理解STARK vs SNARK", "掌握FRI直觉", "理解透明证明权衡"],
+    concepts: ["zk-STARK", "FRI", "AIR", "透明证明", "抗量子", "哈希承诺"],
+    summary: "STARK像'公开透明的审计'，SNARK像'密封的公证'。STARK无需可信设置、抗量子、仅依赖哈希——但证明较大（50-100KB vs 200字节）。FRI协议像'不断对折的折纸游戏'，每次将多项式次数减半验证。",
+    sections: [
+      { title: "9.1 STARK vs SNARK", items: ["名称拆解：Scalable Transparent Argument", "核心差异对比表", "可信设置、证明大小、验证时间、量子安全性"] },
+      { title: "9.2 STARK技术栈", items: ["算术化：AIR", "多项式承诺：FRI而非KZG", "Fiat-Shamir交互压缩"] },
+      { title: "9.3 FRI协议直觉", items: ["类比：不断对折的折纸", "核心思想：多点相等→多项式相等", "折叠：2d次→d次", "查询与一致性"] },
+      { title: "9.4 STARK权衡", items: ["优势：无可信设置、抗量子", "劣势：证明较大、验证较慢", "适用场景"] },
+      { title: "9.5 实战：Cairo/Stone", items: ["StarkNet的Cairo语言", "简单STARK程序", "与SNARK工具链对比"] }
+    ]
+  },
+  {
+    id: 10, num: "10", title: "以太坊ZK应用I：zkRollup扩容", icon: "🚀",
+    category: "app", categoryLabel: "以太坊应用",
+    desc: "深入理解zkRollup架构和zkEVM分类。对比zkSync、Scroll、StarkNet、Polygon等主流方案的技术取舍和2025-2026最新动态。",
+    goals: ["理解zkRollup架构", "掌握zkEVM分类", "对比主流方案"],
+    concepts: ["zkRollup", "zkEVM", "排序器", "证明器", "数据可用性", "Blob", "EIP-4844"],
+    summary: "zkRollup是以太坊扩容的主力军，2026年TVL合计超$9.6B。Vitalik的zkEVM分类（Type 1-4）像'兼容性的光谱'——从像素级复制到神似。zkSync Era领跑Type 4，Scroll追求Type 2字节码等价。",
+    sections: [
+      { title: "10.1 为什么需要ZK扩容", items: ["L1瓶颈：15 TPS", "Rollup核心思想", "ZK vs Optimistic Rollup"] },
+      { title: "10.2 zkRollup架构解剖", items: ["四大组件：排序器/证明器/L1合约/桥", "数据可用性（DA）", "证明生成流水线"] },
+      { title: "10.3 zkEVM分类", items: ["类比：兼容性光谱", "Type 1：Taiko（完全等价）", "Type 2：Scroll/Linea（字节码等价）", "Type 3：早期Polygon", "Type 4：zkSync Era（最高吞吐）", "分类对比表"] },
+      { title: "10.4 主流方案深度对比", items: ["zkSync Era：Boojum升级、账户抽象", "Scroll：开源电路、PSE合作", "StarkNet：Cairo VM、STARK", "Polygon：CDK、AggLayer", "2025-2026动态"] },
+      { title: "10.5 钱包开发者集成要点", items: ["多链账户管理", "跨Rollup消息传递", "UX差异：最终性/提现/费用"] }
+    ]
+  },
+  {
+    id: 11, num: "11", title: "以太坊ZK应用II：隐私与身份", icon: "👤",
+    category: "app", categoryLabel: "以太坊应用",
+    desc: "探索ZK在隐私保护中的独特价值。理解Tornado Cash的技术原理、zkLogin身份验证、以及ZK投票和ZKML等新兴方向。",
+    goals: ["理解隐私ZK价值", "掌握Tornado Cash原理", "了解ZK身份应用"],
+    concepts: ["隐私ZK", "Tornado Cash", "zkLogin", "World ID", "zkKYC", "ZKML", "MACI"],
+    summary: "扩容ZK证明'计算正确'，隐私ZK证明'满足条件而不泄露'。Tornado Cash是隐私ZK的教科书——用Merkle树+ZK证明实现'密码学洗衣机'。zkLogin让你能用Google账户零知识登录Web3。",
+    sections: [
+      { title: "11.1 隐私ZK vs 扩容ZK", items: ["技术差异对比表", "证明内容、公开输入、隐私级别", "钱包开发者为何关注"] },
+      { title: "11.2 Tornado Cash", items: ["类比：密码学洗衣机", "Merkle树+ZK证明", "电路设计", "Privacy Pools演进"] },
+      { title: "11.3 ZK身份与登录", items: ["zkLogin：Google/Twitter登录Web3", "World ID：证明unique人类", "zkKYC：选择性披露", "EAS链上凭证"] },
+      { title: "11.4 ZK投票与治理", items: ["MACI：防贿选投票", "Snapshot Shielded：隐私DAO投票"] },
+      { title: "11.5 新兴方向", items: ["ZKML：验证AI推理", "合规隐私：监管友好方案"] }
+    ]
+  },
+  {
+    id: 12, num: "12", title: "实战I：用Circom编写ZK电路", icon: "⚒️",
+    category: "prac", categoryLabel: "实战项目",
+    desc: "从环境搭建到三个完整项目：范围证明、Merkle成员证明、简单计算证明。掌握Circom开发全流程和安全注意事项。",
+    goals: ["掌握Circom完整流程", "独立编写ZK电路", "理解安全漏洞"],
+    concepts: ["Circom", "SnarkJS", "范围证明", "Merkle证明", "欠约束", "Circomspect"],
+    summary: "本章是你第一个ZK电路的实战。范围证明教你证明一个数在区间内而不泄露值；Merkle证明教你在不泄露叶子的情况下证明成员身份——这正是Tornado Cash的核心电路。",
+    sections: [
+      { title: "12.1 开发环境搭建", items: ["安装Circom编译器和SnarkJS", "项目结构规划"] },
+      { title: "12.2 项目一：范围证明", items: ["需求：证明数在0-100之间", "电路：二进制分解约束", "完整Circom代码", "编译→witness→证明→验证"] },
+      { title: "12.3 项目二：Merkle成员证明", items: ["需求：不泄露叶子证明成员", "电路：Poseidon哈希链", "完整代码", "链上Merkle根验证"] },
+      { title: "12.4 项目三：简单计算证明", items: ["需求：证明正确执行计算", "电路：乘法加法约束组合"] },
+      { title: "12.5 安全注意事项", items: ["欠约束风险", "信号与变量区分", "审计工具：Circomspect、Picus"] }
+    ]
+  },
+  {
+    id: 13, num: "13", title: "实战II：用Noir与Solidity部署链上ZK", icon: "🔗",
+    category: "prac", categoryLabel: "实战项目",
+    desc: "构建端到端的ZK应用原型：用Noir编写隐私投票电路，生成Solidity验证合约，部署到Sepolia测试网。",
+    goals: ["掌握Noir语言", "理解链上验证", "构建端到端应用"],
+    concepts: ["Noir", "nargo", "barretenberg", "Solidity验证器", "Sepolia", "Gas成本"],
+    summary: "从电路到链上验证的完整旅程。Noir是Rust风格的ZK语言，抽象层次比Circom更高。你将构建一个隐私投票系统：用户匿名投票，系统验证投票有效并计票。",
+    sections: [
+      { title: "13.1 Noir简介与环境", items: ["Noir设计哲学", "安装nargo和barretenberg", "Noir vs Circom选择指南"] },
+      { title: "13.2 项目：隐私投票系统", items: ["需求分析", "Noir电路：验证投票权+匿名凭证", "完整Noir代码", "生成证明和验证密钥"] },
+      { title: "13.3 Solidity验证合约", items: ["验证合约架构", "Groth16验证器集成", "PLONK验证器集成", "Gas成本分析：~200k-250k"] },
+      { title: "13.4 部署到测试网", items: ["选择Sepolia+zkRollup测试网", "部署流程", "前端集成", "项目仓库结构"] }
+    ]
+  },
+  {
+    id: 14, num: "14", title: "进阶与未来：ZK技术前沿", icon: "🔮",
+    category: "prac", categoryLabel: "进阶",
+    desc: "展望ZK技术的最新前沿：递归证明、硬件加速、ZKML、ERC-4337+ZK，以及持续学习的资源地图。",
+    goals: ["了解前沿方向", "建立持续学习路径", "掌握资源索引"],
+    concepts: ["递归证明", "Halo2", "硬件加速", "ZKML", "ZK协处理器", "ERC-4337"],
+    summary: "ZK技术仍在飞速演进。递归证明让'证明这个证明是正确的'成为可能；GPU/FPGA/ASIC正在将证明成本再降10倍；ZKML让AI推理可验证；ERC-4337+ZK正在重塑钱包体验。",
+    sections: [
+      { title: "14.1 递归证明", items: ["类比：证明的证明", "Halo与Halo2", "应用：轻客户端、证明聚合"] },
+      { title: "14.2 硬件加速", items: ["GPU/FPGA/ASIC角色", "证明成本指数级下降"] },
+      { title: "14.3 ZKML与ZK协处理器", items: ["Risc0、Jolt、EZKL", "链下计算+链上验证"] },
+      { title: "14.4 账户抽象与ZK", items: ["ERC-4337 + ZK", "社交恢复、隐私交易、批量操作", "对钱包开发者的启示"] },
+      { title: "14.5 持续学习资源地图", items: ["核心社区：0xPARC、PSE、ZK Hack", "关键会议：ZK Summit、zkDay", "推荐书单和论文路径"] },
+      { title: "14.6 全教材回顾", items: ["数学筑基→电路转化→算法理解→应用实战", "从Frontier到Fusaka，从模运算到zkRollup"] }
+    ]
+  }
+];
+
+const categories = [
+  { id: 'all', label: '全部' },
+  { id: 'math', label: '数学基础' },
+  { id: 'circuit', label: '电路基础' },
+  { id: 'algo', label: '核心算法' },
+  { id: 'app', label: '以太坊应用' },
+  { id: 'prac', label: '实战项目' },
+];
+
+const roadmapSteps = [
+  { num: 1, title: '数学筑基（第1-5章，4-6周）', desc: '模运算→群环域→椭圆曲线→多项式FFT。建立密码学数学直觉。' },
+  { num: 2, title: '电路转化（第6章，1-2周）', desc: 'R1CS→QAP→Plonkish。理解如何把程序转化为约束系统。' },
+  { num: 3, title: '算法理解（第7-9章，3-4周）', desc: 'Groth16→PLONK→STARK。掌握三大证明系统的工作流和权衡。' },
+  { num: 4, title: '应用实战（第10-13章，3-4周）', desc: 'zkRollup对比→隐私应用→Circom实战→Noir+Solidity部署。' },
+  { num: 5, title: '前沿进阶（第14章，持续）', desc: '递归证明、ZKML、硬件加速。加入0xPARC、PSE社区持续学习。' },
+];
+---
+
+<Layout title="ZK 学习" description="零知识证明系统学习指南 - 从数学基础到链上实战，14章渐进式课程">
+  <main class="min-h-screen bg-[#0A0A0F]">
+    <!-- Hero -->
+    <section class="relative py-20 px-4 text-center overflow-hidden bg-[#0A0A0F]">
+      <div class="relative z-10 max-w-3xl mx-auto">
+        <div class="w-16 h-16 mx-auto mb-6 rounded-xl bg-[#16161e] border border-[#2a2a3a] flex items-center justify-center text-2xl font-bold text-[#00d4aa]">
+          ZK
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4 text-white">零知识证明学习指南</h1>
+        <p class="text-lg text-[#9a9ab0] max-w-xl mx-auto">从数学基础到链上实战，14 章渐进式课程带你掌握零知识证明的核心原理与应用开发</p>
+        
+        <div class="flex justify-center gap-8 mt-10">
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white">14</div>
+            <div class="text-sm text-[#6a6a80]">系统章节</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white">5</div>
+            <div class="text-sm text-[#6a6a80]">学习阶段</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white">12-16</div>
+            <div class="text-sm text-[#6a6a80]">建议周数</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="max-w-6xl mx-auto px-4 mb-8">
+      <div class="flex flex-wrap justify-center gap-2" id="zk-filters">
+        {categories.map((cat, idx) => (
+          <button 
+            class={`zk-filter-btn px-4 py-2 text-sm rounded-full border transition-all ${idx === 0 ? 'bg-[rgba(0,212,170,0.15)] text-[#00d4aa] border-[rgba(0,212,170,0.3)]' : 'bg-[#16161e] text-[#6a6a80] border-[#2a2a3a] hover:border-[#3a3a4a] hover:text-[#9a9ab0]'}`}
+            data-filter={cat.id}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+    </section>
+
+    <!-- Chapter Cards -->
+    <section class="max-w-6xl mx-auto px-4 pb-12">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="zk-grid">
+        {chapters.map((chapter, idx) => (
+          <div 
+            class="zk-card block p-6 rounded-xl border border-[#2a2a3a] bg-[#16161e] hover:bg-[#1c1c26] transition-all hover:-translate-y-1 cursor-pointer"
+            data-category={chapter.category}
+            data-id={chapter.id}
+            style={`animation: fadeInUp 0.5s ease forwards; animation-delay: ${idx * 0.05}s; opacity: 0;`}
+          >
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)]">
+                {chapter.num}
+              </div>
+              <h3 class="text-lg font-bold text-white">{chapter.title}</h3>
+            </div>
+            <p class="text-sm text-[#9a9ab0] mb-4 leading-relaxed">{chapter.desc}</p>
+            <div class="mb-3">
+              <div class="text-xs text-[#6a6a80] mb-1.5 uppercase tracking-wider font-semibold">学习目标</div>
+              <div class="flex flex-wrap gap-1.5">
+                {chapter.goals.map(g => (
+                  <span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">{g}</span>
+                ))}
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              {chapter.concepts.map(c => (
+                <span class="px-2.5 py-1 text-xs rounded-full bg-[#0f0f16] text-[#6a6a80] border border-[#2a2a3a]">{c}</span>
+              ))}
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#2a2a3a] flex gap-4 text-xs text-[#6a6a80]">
+              <span>{chapter.sections.length} 节</span>
+              <span>{chapter.concepts.length} 核心概念</span>
+              <span class="text-[#00d4aa]">{chapter.categoryLabel}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Roadmap -->
+    <section class="max-w-4xl mx-auto px-4 pb-20">
+      <div class="p-6 rounded-xl border border-[#2a2a3a] bg-[#16161e]">
+        <h3 class="text-xl font-bold text-white mb-6">📍 学习路线图</h3>
+        {roadmapSteps.map(step => (
+          <div class="flex gap-4 mb-4 pb-4 border-b border-[#2a2a3a] last:mb-0 last:pb-0 last:border-b-0">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-[#00d4aa] bg-[rgba(0,212,170,0.1)] border border-[rgba(0,212,170,0.2)] flex-shrink-0">
+              {step.num}
+            </div>
+            <div>
+              <div class="text-sm font-semibold text-white mb-0.5">{step.title}</div>
+              <div class="text-xs text-[#6a6a80]">{step.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <div id="zk-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);">
+    <div class="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-[#2a2a3a] bg-[#16161e] shadow-2xl">
+      <div class="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-[#2a2a3a] bg-[#16161e]">
+        <div id="modal-title" class="text-xl font-bold text-white"></div>
+        <button onclick="closeZKModal()" class="w-8 h-8 rounded-full bg-[#0f0f16] border border-[#2a2a3a] text-[#6a6a80] hover:text-white hover:border-[#3a3a4a] transition-all flex items-center justify-center text-lg">
+          ×
+        </button>
+      </div>
+      <div id="modal-body" class="p-6"></div>
+    </div>
+  </div>
+</Layout>
+
+<script is:inline define:vars={{ chapters }}>
+  // Filter logic
+  const filterBtns = document.querySelectorAll('.zk-filter-btn');
+  const cards = document.querySelectorAll('.zk-card');
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => {
+        b.classList.remove('bg-[rgba(0,212,170,0.15)]', 'text-[#00d4aa]', 'border-[rgba(0,212,170,0.3)]');
+        b.classList.add('bg-[#16161e]', 'text-[#6a6a80]', 'border-[#2a2a3a]');
+      });
+      btn.classList.remove('bg-[#16161e]', 'text-[#6a6a80]', 'border-[#2a2a3a]');
+      btn.classList.add('bg-[rgba(0,212,170,0.15)]', 'text-[#00d4aa]', 'border-[rgba(0,212,170,0.3)]');
+
+      const filter = btn.dataset.filter;
+      cards.forEach(card => {
+        if (filter === 'all' || card.dataset.category === filter) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+
+  // Modal logic
+  const modal = document.getElementById('zk-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const modalBody = document.getElementById('modal-body');
+
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const id = parseInt(card.dataset.id);
+      const chapter = chapters.find(c => c.id === id);
+      if (!chapter) return;
+
+      modalTitle.innerHTML = `<span class="inline-block px-2.5 py-1 rounded text-sm font-mono bg-[rgba(0,212,170,0.1)] text-[#00d4aa] border border-[rgba(0,212,170,0.2)] mr-2">第${chapter.num}章</span>${chapter.title}`;
+      
+      const sectionsHtml = chapter.sections.map(s => `
+        <div class="mb-5">
+          <h4 class="text-sm font-semibold text-white mb-2">${s.title}</h4>
+          <ul class="list-disc list-inside text-sm text-[#9a9ab0] leading-relaxed space-y-1">
+            ${s.items.map(i => `<li>${i}</li>`).join('')}
+          </ul>
+        </div>
+      `).join('');
+
+      modalBody.innerHTML = `
+        <div class="mb-6">
+          <div class="text-xs uppercase tracking-wider text-[#6a6a80] font-semibold mb-2">📝 章节简介</div>
+          <p class="text-sm text-[#9a9ab0] leading-relaxed">${chapter.desc}</p>
+        </div>
+        <div class="mb-6 p-4 rounded-lg border border-[rgba(0,212,170,0.15)] bg-[rgba(0,212,170,0.05)]">
+          <div class="text-xs uppercase tracking-wider text-[#00d4aa] font-semibold mb-2">💡 核心洞察</div>
+          <p class="text-sm text-[#9a9ab0] leading-relaxed">${chapter.summary}</p>
+        </div>
+        <div class="mb-6">
+          <div class="text-xs uppercase tracking-wider text-[#6a6a80] font-semibold mb-2">🎯 学习目标</div>
+          <div class="flex flex-wrap gap-2">
+            ${chapter.goals.map(g => `<span class="px-2.5 py-1 text-xs rounded-full bg-[rgba(0,212,170,0.08)] text-[#00d4aa] border border-[rgba(0,212,170,0.15)]">${g}</span>`).join('')}
+          </div>
+        </div>
+        <div class="mb-6">
+          <div class="text-xs uppercase tracking-wider text-[#6a6a80] font-semibold mb-2">📚 章节结构（${chapter.sections.length}节）</div>
+          ${sectionsHtml}
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-wider text-[#6a6a80] font-semibold mb-2">🏷️ 核心概念</div>
+          <div class="flex flex-wrap gap-2">
+            ${chapter.concepts.map(c => `<span class="px-2.5 py-1 text-xs rounded-full bg-[#0f0f16] text-[#6a6a80] border border-[#2a2a3a]">${c}</span>`).join('')}
+          </div>
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  function closeZKModal() {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+  }
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeZKModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('flex')) {
+      closeZKModal();
+    }
+  });
+</script>
+
+<style is:global>
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
