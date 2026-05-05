@@ -1,0 +1,16 @@
+{
+  "id": "zk-learning",
+  "name": "ZK Learning",
+  "nameZh": "ZK 学习",
+  "icon": "🔐",
+  "description": "Zero Knowledge Proof learning guide",
+  "descriptionZh": "零知识证明系统学习指南",
+  "website": "https://github.com/privacy-scaling-explorations",
+  "active": true,
+  "sortOrder": 3,
+  "hasContent": true,
+  "hasOriginal": false,
+  "hasAiIntroduce": false,
+  "contentLang": "zh",
+  "zhContentAvailable": true
+}
