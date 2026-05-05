@@ -1,6 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 
+const baseUrl = import.meta.env.BASE_URL;
+
 const chapters = [
   { id: 1, num: "01", title: "导论：走进零知识证明的世界", icon: "🔐", category: "intro", categoryLabel: "导论", desc: "通过阿里巴巴洞穴、数独游戏、密封试卷三个经典类比，建立零知识证明的直觉认知。回顾从1985年Goldwasser-Micali-Rackoff提出概念到2026年zkRollup爆发的历史脉络。", goals: ["理解ZK三要素", "掌握经典类比", "了解历史里程碑"], concepts: ["完整性", "可靠性", "零知识性", "zk-SNARK", "zk-STARK"] },
   { id: 2, num: "02", title: "数学基础I：模运算与有限域", icon: "➗", category: "math", categoryLabel: "数学基础", desc: "从时钟算术的直觉出发，掌握模运算的代数规则。理解有限域的构造和运算性质，并用Python实现有限域上的加减乘除。", goals: ["理解模运算直觉", "掌握有限域性质", "实现Fp运算代码"], concepts: ["模运算", "同余", "有限域Fp", "素域", "扩展域", "逆元"] },
@@ -73,7 +75,7 @@ const roadmapSteps = [
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="zk-grid">
         {chapters.map((chapter, idx) => (
           <a 
-            href={`/zk-learning/${String(chapter.id).padStart(2, '0')}/`}
+            href={`${baseUrl}zk-learning/${String(chapter.id).padStart(2, '0')}/`}
             class="zk-card block p-6 rounded-xl border border-[#2a2a3a] bg-[#16161e] hover:bg-[#1c1c26] transition-all hover:-translate-y-1"
             data-category={chapter.category}
             style={`animation: fadeInUp 0.5s ease forwards; animation-delay: ${idx * 0.05}s; opacity: 0;`}
