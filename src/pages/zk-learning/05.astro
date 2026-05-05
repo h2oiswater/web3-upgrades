@@ -1,6 +1,6 @@
 ---
-const baseUrl = import.meta.env.BASE_URL;
 import Layout from '../../layouts/Layout.astro';
+const baseUrl = import.meta.env.BASE_URL;
 const htmlContent = `<h1>5. 数学基础IV：多项式、插值与FFT——ZK证明的核心语言</h1>
 <hr>
 <h2>学习目标</h2>
@@ -43,9 +43,13 @@ const htmlContent = `<h1>5. 数学基础IV：多项式、插值与FFT——ZK证
 <p>这就是为什么"验证单点"就能以极高置信度确认整个多项式——就像DNA鉴定，两个不同个体的DNA恰好匹配的概率微乎其微。</p>
 <h3>5.2.3 次数（Degree）：ZK中"复杂度"的度量</h3>
 <p>多项式的<strong>次数</strong>（degree，记作 \$\\deg(p)\$）是最高非零项的指数。在ZK中：</p>
-<ul><li>次数 \$</li></ul>ightarrow\$ 证明的大小和计算量
-<ul><li>乘法门数量 \$</li></ul>ightarrow\$ 电路的约束数 \$ightarrow\$ 多项式的次数
-<ul><li>FFT的加速效果 \$</li></ul>ightarrow\$ 次数越高越显著（\$O(n^2)\$ 与 \$O(n \\log n)\$ 的差距随 \$n\$ 增大）
+<ul><li>次数 \$</li></ul>
+ightarrow\$ 证明的大小和计算量
+<ul><li>乘法门数量 \$</li></ul>
+ightarrow\$ 电路的约束数 \$
+ightarrow\$ 多项式的次数
+<ul><li>FFT的加速效果 \$</li></ul>
+ightarrow\$ 次数越高越显著（\$O(n^2)\$ 与 \$O(n \\log n)\$ 的差距随 \$n\$ 增大）
 <p>在STARK中，执行轨迹被编码为多项式后，证明系统的核心任务之一就是证明"这个多项式的次数没有超过声明值"——这通过FRI（Fast Reed-Solomon IOP）递归折叠来实现[^112^]。</p>
 <hr>
 <h2>5.3 拉格朗日插值：从点集重构多项式</h2>
@@ -484,7 +488,7 @@ print("| ZK中的应用  | 无（不适用于密码学） | Groth16/PLONK/STARK�
   <main class="min-h-screen bg-[#0A0A0F]">
     <section class="py-12 px-4 border-b border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto">
-        <a href="${baseUrl}zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+        <a href={`${baseUrl}zk-learning/`} class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
           <span>←</span> 返回 ZK 学习列表
         </a>
         <div class="flex items-center gap-3 mb-4">
@@ -508,7 +512,7 @@ print("| ZK中的应用  | 无（不适用于密码学） | Groth16/PLONK/STARK�
     <section class="py-8 px-4 border-t border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto flex justify-between items-center">
         
-          <a href="${baseUrl}zk-learning/04/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href={`${baseUrl}zk-learning/04/`} class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <span>←</span>
             <div class="text-left">
               <div class="text-xs text-[#6a6a80]">上一章</div>
@@ -516,7 +520,7 @@ print("| ZK中的应用  | 无（不适用于密码学） | Groth16/PLONK/STARK�
             </div>
           </a>
         
-          <a href="${baseUrl}zk-learning/06/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href={`${baseUrl}zk-learning/06/`} class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <div class="text-right">
               <div class="text-xs text-[#6a6a80]">下一章</div>
               <div class="text-sm font-medium">电路基础：从程序到约束系统</div>

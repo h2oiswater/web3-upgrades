@@ -1,6 +1,6 @@
 ---
-const baseUrl = import.meta.env.BASE_URL;
 import Layout from '../../layouts/Layout.astro';
+const baseUrl = import.meta.env.BASE_URL;
 const htmlContent = `<h1>14. 进阶与未来：ZK技术的前沿</h1>
 <p>恭喜你，走到这里，你已经完成了从零到一的ZK系统学习之旅。从有限域里的加减乘除，到椭圆曲线上的离散对数难题；从R1CS约束系统的第一行代码，到Groth16、PLONK、STARK三大证明系统的完整构造；从zkRollup的扩容逻辑，到隐私投票的电路实现——你已经搭建了一座坚实的ZK知识大厦。</p>
 <p>但密码学是一座永不停工的城市。当我们站在第14章的门口回望，那些曾在前几章里显得陌生的概念——QAP的Lagrange插值、FRI的多项式折叠、PLONK的Permutation Argument——如今已是你思维工具箱里的常备工具。而在这些基础之上，ZK技术正在以前所未有的速度向前演进。本章将带你一窥这些前沿方向：递归证明如何让"证明的证明"成为可能，硬件加速如何让证明成本断崖式下降，ZKML如何让AI推理可验证，以及账户抽象与ZK的融合将如何重塑钱包的未来形态。</p>
@@ -246,7 +246,7 @@ const htmlContent = `<h1>14. 进阶与未来：ZK技术的前沿</h1>
   <main class="min-h-screen bg-[#0A0A0F]">
     <section class="py-12 px-4 border-b border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto">
-        <a href="${baseUrl}zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+        <a href={`${baseUrl}zk-learning/`} class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
           <span>←</span> 返回 ZK 学习列表
         </a>
         <div class="flex items-center gap-3 mb-4">
@@ -270,7 +270,7 @@ const htmlContent = `<h1>14. 进阶与未来：ZK技术的前沿</h1>
     <section class="py-8 px-4 border-t border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto flex justify-between items-center">
         
-          <a href="${baseUrl}zk-learning/13/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href={`${baseUrl}zk-learning/13/`} class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <span>←</span>
             <div class="text-left">
               <div class="text-xs text-[#6a6a80]">上一章</div>

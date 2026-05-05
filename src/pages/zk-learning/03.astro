@@ -1,6 +1,6 @@
 ---
-const baseUrl = import.meta.env.BASE_URL;
 import Layout from '../../layouts/Layout.astro';
+const baseUrl = import.meta.env.BASE_URL;
 const htmlContent = `<h1>第3章 数学基础II：群、环、域——对称与结构的代数语言</h1>
 <blockquote><strong>前置知识</strong>：本章直接建立在第2章的基础上。你已经熟悉了模运算、有限域 \$F_p\$ 以及"模 \$p\$ 下每个非零元都有逆元"这一事实。本章将把这些具体的计算经验提升到抽象的代数结构视角，让你看清：为什么有限域能支撑ZK系统的全部运算，以及接下来椭圆曲线点加法为什么能定义一个群。</blockquote>
 <hr>
@@ -322,7 +322,7 @@ if __name__ == "__main__":
   <main class="min-h-screen bg-[#0A0A0F]">
     <section class="py-12 px-4 border-b border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto">
-        <a href="${baseUrl}zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+        <a href={`${baseUrl}zk-learning/`} class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
           <span>←</span> 返回 ZK 学习列表
         </a>
         <div class="flex items-center gap-3 mb-4">
@@ -346,7 +346,7 @@ if __name__ == "__main__":
     <section class="py-8 px-4 border-t border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto flex justify-between items-center">
         
-          <a href="${baseUrl}zk-learning/02/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href={`${baseUrl}zk-learning/02/`} class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <span>←</span>
             <div class="text-left">
               <div class="text-xs text-[#6a6a80]">上一章</div>
@@ -354,7 +354,7 @@ if __name__ == "__main__":
             </div>
           </a>
         
-          <a href="${baseUrl}zk-learning/04/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href={`${baseUrl}zk-learning/04/`} class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <div class="text-right">
               <div class="text-xs text-[#6a6a80]">下一章</div>
               <div class="text-sm font-medium">数学基础III：椭圆曲线与双线性配对</div>

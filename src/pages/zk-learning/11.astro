@@ -1,6 +1,6 @@
 ---
-const baseUrl = import.meta.env.BASE_URL;
 import Layout from '../../layouts/Layout.astro';
+const baseUrl = import.meta.env.BASE_URL;
 const htmlContent = `<h1>11. 以太坊ZK应用II：隐私与身份——ZK的另一面</h1>
 <h2>11.1 学习目标</h2>
 <p>完成本章学习后，你应该能够：</p>
@@ -223,7 +223,7 @@ template Withdraw(levels) {
   <main class="min-h-screen bg-[#0A0A0F]">
     <section class="py-12 px-4 border-b border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto">
-        <a href="${baseUrl}zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+        <a href={`${baseUrl}zk-learning/`} class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
           <span>←</span> 返回 ZK 学习列表
         </a>
         <div class="flex items-center gap-3 mb-4">
@@ -247,7 +247,7 @@ template Withdraw(levels) {
     <section class="py-8 px-4 border-t border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto flex justify-between items-center">
         
-          <a href="${baseUrl}zk-learning/10/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href={`${baseUrl}zk-learning/10/`} class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <span>←</span>
             <div class="text-left">
               <div class="text-xs text-[#6a6a80]">上一章</div>
@@ -255,7 +255,7 @@ template Withdraw(levels) {
             </div>
           </a>
         
-          <a href="${baseUrl}zk-learning/12/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href={`${baseUrl}zk-learning/12/`} class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <div class="text-right">
               <div class="text-xs text-[#6a6a80]">下一章</div>
               <div class="text-sm font-medium">实战I：用Circom编写ZK电路</div>
