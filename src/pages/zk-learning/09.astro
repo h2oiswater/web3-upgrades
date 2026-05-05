@@ -1,4 +1,5 @@
 ---
+const baseUrl = import.meta.env.BASE_URL;
 import Layout from '../../layouts/Layout.astro';
 const htmlContent = `<h1>9. 核心算法III：zk-STARK与透明证明——无需信任的证明</h1>
 <p>在前两章中，我们深入学习了zk-SNARK的两个主要代表：Groth16和PLONK。你现在已经理解了KZG承诺、可信设置、QAP转换这些核心概念。但你也看到了一个反复出现的"痛点"——<strong>可信设置（Trusted Setup）</strong>。无论是一次性的电路特定仪式（Groth16），还是通用的Perpetual Powers of Tau（PLONK），SNARK家族都依赖一个需要被诚实执行的初始化阶段。</p>
@@ -303,7 +304,7 @@ cairo-run --program fib_compiled.json --trace_file fib_trace.bin
   <main class="min-h-screen bg-[#0A0A0F]">
     <section class="py-12 px-4 border-b border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto">
-        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+        <a href="${baseUrl}zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
           <span>←</span> 返回 ZK 学习列表
         </a>
         <div class="flex items-center gap-3 mb-4">
@@ -327,7 +328,7 @@ cairo-run --program fib_compiled.json --trace_file fib_trace.bin
     <section class="py-8 px-4 border-t border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto flex justify-between items-center">
         
-          <a href="/zk-learning/08/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href="${baseUrl}zk-learning/08/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <span>←</span>
             <div class="text-left">
               <div class="text-xs text-[#6a6a80]">上一章</div>
@@ -335,7 +336,7 @@ cairo-run --program fib_compiled.json --trace_file fib_trace.bin
             </div>
           </a>
         
-          <a href="/zk-learning/10/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href="${baseUrl}zk-learning/10/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <div class="text-right">
               <div class="text-xs text-[#6a6a80]">下一章</div>
               <div class="text-sm font-medium">以太坊ZK应用I：zkRollup扩容</div>

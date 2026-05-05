@@ -1,4 +1,5 @@
 ---
+const baseUrl = import.meta.env.BASE_URL;
 import Layout from '../../layouts/Layout.astro';
 const htmlContent = `<h1>第8章 核心算法II：PLONK与通用可信设置——一把钥匙开多把锁</h1>
 <blockquote>本章难度：★★★★☆（进阶）  </blockquote>
@@ -372,7 +373,7 @@ bb write_solidity_verifier \\\\
   <main class="min-h-screen bg-[#0A0A0F]">
     <section class="py-12 px-4 border-b border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto">
-        <a href="/zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
+        <a href="${baseUrl}zk-learning/" class="inline-flex items-center gap-2 text-sm text-[#6a6a80] hover:text-[#00d4aa] transition-colors mb-6">
           <span>←</span> 返回 ZK 学习列表
         </a>
         <div class="flex items-center gap-3 mb-4">
@@ -396,7 +397,7 @@ bb write_solidity_verifier \\\\
     <section class="py-8 px-4 border-t border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto flex justify-between items-center">
         
-          <a href="/zk-learning/07/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href="${baseUrl}zk-learning/07/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <span>←</span>
             <div class="text-left">
               <div class="text-xs text-[#6a6a80]">上一章</div>
@@ -404,7 +405,7 @@ bb write_solidity_verifier \\\\
             </div>
           </a>
         
-          <a href="/zk-learning/09/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
+          <a href="${baseUrl}zk-learning/09/" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <div class="text-right">
               <div class="text-xs text-[#6a6a80]">下一章</div>
               <div class="text-sm font-medium">核心算法III：zk-STARK与透明证明</div>
