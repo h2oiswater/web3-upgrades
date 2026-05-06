@@ -20,6 +20,61 @@ const { title, description = 'Web3 Upgrades Knowledge Base' } = Astro.props;
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- MathJax for rendering LaTeX math formulas -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js"></script>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  
+  <style>
+    /* Citation tooltip styling */
+    .citation-ref {
+      color: #00d4aa;
+      cursor: pointer;
+      font-size: 0.75em;
+      vertical-align: super;
+      text-decoration: none;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .citation-ref:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    /* ZK Learning Table Styles */
+    .zk-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; border: 1px solid #2a2a3a; border-radius: 8px; overflow: hidden; }
+    .zk-table thead { background: rgba(0, 212, 170, 0.08); }
+    .zk-table th { padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #00d4aa; border-bottom: 1px solid #2a2a3a; font-size: 0.85rem; }
+    .zk-table td { padding: 0.6rem 1rem; color: #9a9ab0; border-bottom: 1px solid #1a1a2a; }
+    .zk-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+    .zk-table tbody tr:last-child td { border-bottom: none; }
+  </style>
+  
+  <script>
+    // Process [^XX^] citation references after page load
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.prose-zk, article').forEach(function(el) {
+        if (!el.dataset.citationsProcessed) {
+          el.innerHTML = el.innerHTML.replace(/\[\^(\d+)\^\]/g, function(match, num) {
+            return '<span class="citation-ref" title="引用 #' + num + '">[' + num + ']</span>';
+          });
+          el.dataset.citationsProcessed = 'true';
+        }
+      });
+    });
+  </script>
 </head>
 <body class="min-h-screen antialiased bg-primary text-white">
   <slot />

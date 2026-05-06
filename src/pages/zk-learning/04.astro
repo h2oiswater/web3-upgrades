@@ -130,7 +130,40 @@ const htmlContent = `<h1>第4章 数学基础III：椭圆曲线与双线性配�
 <p>你可以看到，在有限域上，曲线变成了一组精确落在格点上的离散点。虽然看起来与实数域截然不同，但代数结构——群的四条公理——依然完全成立。这是数学中"形式超过直觉"的一个绝佳例子：几何直觉帮助我们理解规则，但有限域上的严格证明来自纯代数推导[^199^]。</p>
 <h3>4.4.2 常用曲线参数一览</h3>
 <p>并非所有椭圆曲线都适合密码学。在实际应用中，密码学家们精心选择了几组标准参数，平衡了安全性与计算效率。下表列出了 Web3 开发者最常遇到的三条曲线：</p>
-<p>| 曲线名称 | 域大小 \$p\$（位） | 标量域 \$r\$（位） | 主要用途 | 是否为配对友好 |<br>|---------|-----------------|----------------|---------|--------------|<br>| <strong>secp256k1</strong> | 256 | 256 | 比特币、以太坊签名（ECDSA）[^231^] | 否 |<br>| <strong>BN254</strong>（Barreto-Naehrig） | 254 | 254 | zk-SNARK（Groth16、Plonk）、以太坊预编译[^201^][^218^] | 是 |<br>| <strong>BLS12-381</strong> | 381 | 255 | Zcash、以太坊2.0签名、现代ZK系统[^215^][^218^] | 是 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>曲线名称</th>
+      <th>域大小 \$p\$（位）</th>
+      <th>标量域 \$r\$（位）</th>
+      <th>主要用途</th>
+      <th>是否为配对友好</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>secp256k1</strong></td>
+      <td>256</td>
+      <td>256</td>
+      <td>比特币、以太坊签名（ECDSA）[^231^]</td>
+      <td>否</td>
+    </tr>
+    <tr>
+      <td><strong>BN254</strong>（Barreto-Naehrig）</td>
+      <td>254</td>
+      <td>254</td>
+      <td>zk-SNARK（Groth16、Plonk）、以太坊预编译[^201^][^218^]</td>
+      <td>是</td>
+    </tr>
+    <tr>
+      <td><strong>BLS12-381</strong></td>
+      <td>381</td>
+      <td>255</td>
+      <td>Zcash、以太坊2.0签名、现代ZK系统[^215^][^218^]</td>
+      <td>是</td>
+    </tr>
+  </tbody>
+</table>
 <p><strong>secp256k1</strong> 是比特币和以太坊交易签名的曲线。它的方程是 \$y^2 = x^3 + 7\$（即 \$a=0, b=7\$），经过大量密码分析，被认为在没有配对的场景下非常安全。但 secp256k1 <strong>不是配对友好曲线</strong>，所以不能直接用于需要配对的 zk-SNARK 系统。</p>
 <p><strong>BN254</strong> 和 <strong>BLS12-381</strong> 是专为配对设计的曲线，被称为<strong>配对友好曲线</strong>（pairing-friendly curves）。它们的名字中隐藏着密码学构造的秘密：</p>
 <ul><li>BN254 中的 "BN" 来自 Barreto 和 Naehrig 两位密码学家的姓氏，"254" 表示域的位长度。</li>

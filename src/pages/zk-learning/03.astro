@@ -29,7 +29,48 @@ const htmlContent = `<h1>第3章 数学基础II：群、环、域——对称与
 <p>从程序员的视角，你可以把群理解为编程中的<strong>类型系统</strong>：群规定了"在这个集合内能做哪些操作，以及操作必须遵守的约束"[^203^]。就像你不能对字符串做整数除法一样，群以外的"非法操作"在群的世界里是没有定义的。</p>
 <h3>3.2.3 交换群 vs 非交换群</h3>
 <blockquote><strong>定义（交换群 / 阿贝尔群，Abelian Group）</strong>：如果群 \$(G, \\cdot)\$ 还满足交换律 \$a \\cdot b = b \\cdot a\$，则称其为交换群或阿贝尔群（以数学家阿贝尔命名）。</blockquote>
-<p>| 群 | 运算 | 是否交换 | 直观原因 |<br>|----|------|----------|----------|<br>| \$(\\mathbb{Z}, +)\$ | 整数加法 | <strong>是</strong> | \$3+5=5+3\$ 天经地义 |<br>| \$(\\mathbb{Z}_p, +)\$ | 模 \$p\$ 加法 | <strong>是</strong> | 继承整数加法的交换性 |<br>| \$(\\mathbb{Z}_p^*, \\times)\$ | 模 \$p\$ 乘法（非零元） | <strong>是</strong> | 整数乘法本就交换 |<br>| 魔方操作群 | 操作复合 | <strong>否</strong> | 旋转顺序影响最终状态 |<br>| 椭圆曲线点群 | 点加法 | <strong>是</strong> | 几何构造天然对称[^186^] |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>群</th>
+      <th>运算</th>
+      <th>是否交换</th>
+      <th>直观原因</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>\$(\\mathbb{Z}, +)\$</td>
+      <td>整数加法</td>
+      <td><strong>是</strong></td>
+      <td>\$3+5=5+3\$ 天经地义</td>
+    </tr>
+    <tr>
+      <td>\$(\\mathbb{Z}_p, +)\$</td>
+      <td>模 \$p\$ 加法</td>
+      <td><strong>是</strong></td>
+      <td>继承整数加法的交换性</td>
+    </tr>
+    <tr>
+      <td>\$(\\mathbb{Z}_p^*, \\times)\$</td>
+      <td>模 \$p\$ 乘法（非零元）</td>
+      <td><strong>是</strong></td>
+      <td>整数乘法本就交换</td>
+    </tr>
+    <tr>
+      <td>魔方操作群</td>
+      <td>操作复合</td>
+      <td><strong>否</strong></td>
+      <td>旋转顺序影响最终状态</td>
+    </tr>
+    <tr>
+      <td>椭圆曲线点群</td>
+      <td>点加法</td>
+      <td><strong>是</strong></td>
+      <td>几何构造天然对称[^186^]</td>
+    </tr>
+  </tbody>
+</table>
 <p>在ZK密码学中，我们遇到的群<strong>几乎都是阿贝尔群</strong>。椭圆曲线上的点配备"点加法"后形成阿贝尔群[^186^][^189^]：封闭性、结合律、单位元（无穷远点）、逆元都存在，且满足交换律。这正是下一章我们将深入探讨的对象。</p>
 <h3>3.2.4 循环群（Cyclic Group）：由一个元素"生成"的整个群</h3>
 <blockquote><strong>定义（循环群）</strong>：如果一个群 \$G\$ 中存在某个元素 \$g\$，使得 \$G\$ 中的每个元素都可以表示为 \$g\$ 的幂（对加法群则是倍数），则称 \$G\$ 为<strong>循环群</strong>，\$g\$ 为群的<strong>生成元</strong>（Generator）。</blockquote>
@@ -85,7 +126,66 @@ const htmlContent = `<h1>第3章 数学基础II：群、环、域——对称与
 <blockquote>如果乘法还满足交换律，称为<strong>交换环</strong>；如果有乘法单位元 \$1\$，称为<strong>含幺环</strong>。</blockquote>
 <p>环的六条公理可以这样记：加法四条（群的公理）+ 乘法两条（封闭、结合）+ 分配律连接两者。</p>
 <p><strong>关键例子对照表：</strong></p>
-<p>| 结构 | 加法 | 减法 | 乘法 | 除法 | 是否环 | 是否域 |<br>|------|------|------|------|------|--------|--------|<br>| \$\\mathbb{Z}\$（整数） | ✓ | ✓ | ✓ | ✗ | <strong>交换环</strong> | ✗ |<br>| \$\\mathbb{Z}_n\$（模 \$n\$ 整数） | ✓ | ✓ | ✓ | 仅当 \$n\$ 为素数 | 交换环 | 当且仅当 \$n\$ 为素数 |<br>| \$\\mathbb{Q}\$（有理数） | ✓ | ✓ | ✓ | ✓（非零元） | 环 | <strong>域</strong> |<br>| \$\\mathbb{R}\$（实数） | ✓ | ✓ | ✓ | ✓（非零元） | 环 | <strong>域</strong> |<br>| \$F_p\$（素域，第2章） | ✓ | ✓ | ✓ | ✓（非零元） | 环 | <strong>域</strong> |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>结构</th>
+      <th>加法</th>
+      <th>减法</th>
+      <th>乘法</th>
+      <th>除法</th>
+      <th>是否环</th>
+      <th>是否域</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>\$\\mathbb{Z}\$（整数）</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✗</td>
+      <td><strong>交换环</strong></td>
+      <td>✗</td>
+    </tr>
+    <tr>
+      <td>\$\\mathbb{Z}_n\$（模 \$n\$ 整数）</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>仅当 \$n\$ 为素数</td>
+      <td>交换环</td>
+      <td>当且仅当 \$n\$ 为素数</td>
+    </tr>
+    <tr>
+      <td>\$\\mathbb{Q}\$（有理数）</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓（非零元）</td>
+      <td>环</td>
+      <td><strong>域</strong></td>
+    </tr>
+    <tr>
+      <td>\$\\mathbb{R}\$（实数）</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓（非零元）</td>
+      <td>环</td>
+      <td><strong>域</strong></td>
+    </tr>
+    <tr>
+      <td>\$F_p\$（素域，第2章）</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓（非零元）</td>
+      <td>环</td>
+      <td><strong>域</strong></td>
+    </tr>
+  </tbody>
+</table>
 <p>注意第2章的核心结论——\$F_p\$ 是域而非仅仅是环——正是因为<strong>每个非零元都有乘法逆元</strong>。</p>
 <h3>3.3.3 多项式环：ZK中最常用的环结构</h3>
 <blockquote><strong>定义（多项式环）</strong>：设 \$R\$ 是一个环，系数取自 \$R\$ 的所有多项式 \$f(x) = a_0 + a_1x + \\cdots + a_nx^n\$ 的集合，配备多项式加法和乘法，构成<strong>多项式环</strong> \$R[x]\$。</blockquote>

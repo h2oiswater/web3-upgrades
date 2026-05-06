@@ -415,7 +415,32 @@ y <-- x * x + 3;
 </code></pre>
 <p><code class="inline-code"><--</code>运算符只赋值不创建约束[^270^]。如果后续没有其他约束限制<code class="inline-code">y</code>，攻击者可以给<code class="inline-code">y</code>传入任意值，而验证者无法察觉。学术研究表明，约70%的真实电路可以通过自动化工具检测出欠约束问题，但实际项目中仍有大量漏洞因此产生[^244^]。</p>
 <p><strong>三个项目的安全自检</strong>：</p>
-<p>| 项目 | 欠约束风险点 | 本例中的防护措施 |<br>|------|-------------|-----------------|<br>| 范围证明 | <code class="inline-code">Num2Bits</code>内部位信号未约束 | 复用circomlib的成熟模板，位约束内置 |<br>| Merkle证明 | <code class="inline-code">pathIndices</code>未约束为非二进制 | 显式添加<code class="inline-code">p*(p-1)=0</code>约束 |<br>| 计算证明 | 中间信号<code class="inline-code">sum</code>未约束 | 使用<code class="inline-code"><==</code>确保赋值+约束同时完成 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>项目</th>
+      <th>欠约束风险点</th>
+      <th>本例中的防护措施</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>范围证明</td>
+      <td><code class="inline-code">Num2Bits</code>内部位信号未约束</td>
+      <td>复用circomlib的成熟模板，位约束内置</td>
+    </tr>
+    <tr>
+      <td>Merkle证明</td>
+      <td><code class="inline-code">pathIndices</code>未约束为非二进制</td>
+      <td>显式添加<code class="inline-code">p*(p-1)=0</code>约束</td>
+    </tr>
+    <tr>
+      <td>计算证明</td>
+      <td>中间信号<code class="inline-code">sum</code>未约束</td>
+      <td>使用<code class="inline-code"><==</code>确保赋值+约束同时完成</td>
+    </tr>
+  </tbody>
+</table>
 <h3>12.6.2 信号与变量的区分：约束vs非约束</h3>
 <p>这是Circom初学者最容易混淆的概念。你可以把电路想象成一块印刷电路板（PCB）：</p>
 <ul><li><strong>信号（signal）</strong>是PCB上的铜导线——它们连接各个元件（约束），流过它们的电信号（值）会被电路的物理结构所限制。在ZK中，信号的值进入witness，受R1CS约束[^268^]。</li>
@@ -437,7 +462,36 @@ temp <== a * b;   // temp的值在witness生成时根据a,b动态确定，且受
 </code></pre>
 <h3>12.6.3 审计工具介绍：Circomspect、Picus</h3>
 <p>手动审查每个信号是否被正确约束是枯燥且容易出错的。好在社区已经开发了几款自动化审计工具[^308^]：</p>
-<p>| 工具 | 类型 | 检测能力 | 使用场景 |<br>|------|------|---------|---------|<br>| <strong>Circomspect</strong> | 静态分析器 / Linter | 欠约束信号、未使用信号、危险运算符<code class="inline-code"><--</code> | 开发阶段集成到CI/CD |<br>| <strong>Picus</strong> | 自动唯一性验证器 | 验证电路是否对每个输出都有唯一的witness | 审计前批量检测 |<br>| <strong>ecne</strong> | R1CS约束引擎 | 检查R1CS约束系统的健全性 | 底层约束分析 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>工具</th>
+      <th>类型</th>
+      <th>检测能力</th>
+      <th>使用场景</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Circomspect</strong></td>
+      <td>静态分析器 / Linter</td>
+      <td>欠约束信号、未使用信号、危险运算符<code class="inline-code"><--</code></td>
+      <td>开发阶段集成到CI/CD</td>
+    </tr>
+    <tr>
+      <td><strong>Picus</strong></td>
+      <td>自动唯一性验证器</td>
+      <td>验证电路是否对每个输出都有唯一的witness</td>
+      <td>审计前批量检测</td>
+    </tr>
+    <tr>
+      <td><strong>ecne</strong></td>
+      <td>R1CS约束引擎</td>
+      <td>检查R1CS约束系统的健全性</td>
+      <td>底层约束分析</td>
+    </tr>
+  </tbody>
+</table>
 <p><strong>使用Circomspect检查你的电路</strong>：</p>
 <pre class="code-block"><code># 安装（需要Rust环境）
 cargo install circomspect

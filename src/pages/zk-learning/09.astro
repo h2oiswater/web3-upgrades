@@ -15,7 +15,37 @@ const htmlContent = `<h1>9. 核心算法III：zk-STARK与透明证明——无�
 <h2>9.2 STARK vs SNARK：名字之外的差异</h2>
 <h3>9.2.1 名称拆解：Scalable Transparent Argument of Knowledge</h3>
 <p>让我们先拆解zk-STARK的全称：<strong>Zero-Knowledge Scalable Transparent Argument of Knowledge</strong>。</p>
-<p>| 字母 | 含义 | 教学要点 |<br>|------|------|---------|<br>| <strong>S</strong>calable | 可扩展的 | 验证时间随数据量呈准线性增长，对大规模计算反而有优势[^97^] |<br>| <strong>T</strong>ransparent | 透明的 | 无需可信设置，所有随机性公开可验证[^22^] |<br>| <strong>AR</strong>gument | 论证 | 计算正确性的密码学论证 |<br>| <strong>K</strong>nowledge | 知识 | 证明者不仅声称某事为真，而且"知道"为什么为真 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>字母</th>
+      <th>含义</th>
+      <th>教学要点</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>S</strong>calable</td>
+      <td>可扩展的</td>
+      <td>验证时间随数据量呈准线性增长，对大规模计算反而有优势[^97^]</td>
+    </tr>
+    <tr>
+      <td><strong>T</strong>ransparent</td>
+      <td>透明的</td>
+      <td>无需可信设置，所有随机性公开可验证[^22^]</td>
+    </tr>
+    <tr>
+      <td><strong>AR</strong>gument</td>
+      <td>论证</td>
+      <td>计算正确性的密码学论证</td>
+    </tr>
+    <tr>
+      <td><strong>K</strong>nowledge</td>
+      <td>知识</td>
+      <td>证明者不仅声称某事为真，而且"知道"为什么为真</td>
+    </tr>
+  </tbody>
+</table>
 <p>与zk-SNARK的"S<strong>u</strong>ccinct Non-interactive ARgument of Knowledge"相比，最核心的差异就在于那个"T"——<strong>Transparent（透明）</strong>。它意味着STARK的整个证明过程不依赖任何需要被秘密销毁的"毒性废料"（toxic waste），所有参数都可以公开生成、公开检验。</p>
 <h3>9.2.2 类比：公开审计 vs 密封公证</h3>
 <p>想象你需要证明"公司的财务报表是正确的"。</p>
@@ -23,7 +53,72 @@ const htmlContent = `<h1>9. 核心算法III：zk-STARK与透明证明——无�
 <p><strong>STARK的做法像"公开透明的审计"</strong>：审计过程完全公开。审计员走进公司，随机抽取账目样本进行核对。每次抽查的结果都写在黑板上让所有人看见。审计不需要任何预先准备的秘密工具，只需要一个公开的、不可预测的随机抽查清单。任何人都可以事后检查："审计员确实在这些随机点上做了核查，没有作弊。"这就是透明的直觉——<strong>无需前置信任，通过公开可验证的随机抽查获得安全性</strong>。</p>
 <h3>9.2.3 核心差异对比表</h3>
 <p>下表汇总了STARK与两种主流SNARK在工程实践中的关键差异。</p>
-<p>| 对比维度 | Groth16 (SNARK) | PLONK (SNARK) | zk-STARK |<br>|---------|----------------|---------------|----------|<br>| <strong>可信设置</strong> | 电路特定，需MPC仪式[^78^] | 通用可更新（Powers of Tau）[^70^] | <strong>无（完全透明）</strong>[^97^] |<br>| <strong>证明大小</strong> | ~192字节（3个椭圆曲线点）[^70^] | ~400-800字节[^70^] | <strong>~50-200KB</strong>[^97^] |<br>| <strong>验证时间</strong> | ~3ms（3次配对）[^70^] | ~5ms（15-20次群运算）[^70^] | ~5-10ms，大数据集下更优[^97^] |<br>| <strong>证明生成速度</strong> | 55ms（M1）[^74^] | 稍慢于Groth16 | 3,810ms（M1），慢约68倍[^74^] |<br>| <strong>量子安全</strong> | 否（基于椭圆曲线配对）[^70^] | 否（基于椭圆曲线配对）[^70^] | <strong>是（仅依赖哈希函数）</strong>[^97^] |<br>| <strong>安全假设</strong> | 双线性配对、Knowledge-of-Exponent | 双线性配对、d-SDH | <strong>抗碰撞哈希函数</strong>[^97^] |<br>| <strong>核心密码学工具</strong> | KZG承诺 + 配对验证 | KZG承诺 + 置换论证 | <strong>FRI + Merkle树 + 哈希</strong>[^115^] |<br>| <strong>链上Gas成本</strong> | ~200K[^95^] | ~300K[^95^] | <strong>~1.5M</strong>[^95^] |<br>| <strong>生产部署</strong> | Zcash、Tornado Cash、Filecoin[^68^] | zkSync、Scroll、Aztec[^70^] | <strong>StarkNet、StarkEx、RISC Zero</strong>[^120^] |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>对比维度</th>
+      <th>Groth16 (SNARK)</th>
+      <th>PLONK (SNARK)</th>
+      <th>zk-STARK</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>可信设置</strong></td>
+      <td>电路特定，需MPC仪式[^78^]</td>
+      <td>通用可更新（Powers of Tau）[^70^]</td>
+      <td><strong>无（完全透明）</strong>[^97^]</td>
+    </tr>
+    <tr>
+      <td><strong>证明大小</strong></td>
+      <td>~192字节（3个椭圆曲线点）[^70^]</td>
+      <td>~400-800字节[^70^]</td>
+      <td><strong>~50-200KB</strong>[^97^]</td>
+    </tr>
+    <tr>
+      <td><strong>验证时间</strong></td>
+      <td>~3ms（3次配对）[^70^]</td>
+      <td>~5ms（15-20次群运算）[^70^]</td>
+      <td>~5-10ms，大数据集下更优[^97^]</td>
+    </tr>
+    <tr>
+      <td><strong>证明生成速度</strong></td>
+      <td>55ms（M1）[^74^]</td>
+      <td>稍慢于Groth16</td>
+      <td>3,810ms（M1），慢约68倍[^74^]</td>
+    </tr>
+    <tr>
+      <td><strong>量子安全</strong></td>
+      <td>否（基于椭圆曲线配对）[^70^]</td>
+      <td>否（基于椭圆曲线配对）[^70^]</td>
+      <td><strong>是（仅依赖哈希函数）</strong>[^97^]</td>
+    </tr>
+    <tr>
+      <td><strong>安全假设</strong></td>
+      <td>双线性配对、Knowledge-of-Exponent</td>
+      <td>双线性配对、d-SDH</td>
+      <td><strong>抗碰撞哈希函数</strong>[^97^]</td>
+    </tr>
+    <tr>
+      <td><strong>核心密码学工具</strong></td>
+      <td>KZG承诺 + 配对验证</td>
+      <td>KZG承诺 + 置换论证</td>
+      <td><strong>FRI + Merkle树 + 哈希</strong>[^115^]</td>
+    </tr>
+    <tr>
+      <td><strong>链上Gas成本</strong></td>
+      <td>~200K[^95^]</td>
+      <td>~300K[^95^]</td>
+      <td><strong>~1.5M</strong>[^95^]</td>
+    </tr>
+    <tr>
+      <td><strong>生产部署</strong></td>
+      <td>Zcash、Tornado Cash、Filecoin[^68^]</td>
+      <td>zkSync、Scroll、Aztec[^70^]</td>
+      <td><strong>StarkNet、StarkEx、RISC Zero</strong>[^120^]</td>
+    </tr>
+  </tbody>
+</table>
 <p>从上表可以看出一个清晰的<strong>权衡三角形</strong>：SNARK追求"小证明、快验证"，代价是可信设置和椭圆曲线假设；STARK追求"透明、抗量子"，代价是证明体积大一个数量级。没有 universally best 的方案，只有针对不同场景的最优选择[^96^]。</p>
 <p>让我们用一幅ASCII图来直观展示两种证明系统的流程差异：</p>
 <pre class="code-block"><code> zk-SNARK (Groth16)                    zk-STARK
@@ -150,7 +245,36 @@ const htmlContent = `<h1>9. 核心算法III：zk-STARK与透明证明——无�
 <p><strong>链上验证成本</strong>：更高的gas成本意味着在以太坊主网上直接验证STARK证明的经济性较差。这也是StarkNet等L2方案选择"在L2上验证、在L1上最终确认"架构的重要原因。</p>
 <h3>9.5.3 适用场景</h3>
 <p>基于以上权衡，STARK特别适合以下场景：</p>
-<p>| 场景 | 为什么STARK合适 |<br>|------|----------------|<br>| <strong>长期安全的金融基础设施</strong> | 量子威胁是真实存在的长期风险，STARK提供"面向未来"的安全性 |<br>| <strong>监管敏感的机构应用</strong> | 无需解释可信设置的复杂性，"透明"更容易获得合规认可 |<br>| <strong>高价值低频操作</strong> | 证明生成慢可以接受，换取更强的安全假设 |<br>| <strong>硬件受限环境</strong> | 哈希在移动端/浏览器/WebAssembly上执行效率优于椭圆曲线[^96^] |<br>| <strong>递归证明链</strong> | STARK原生支持递归，Plonky2等系统将FRI与递归结合，用于zkEVM |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>场景</th>
+      <th>为什么STARK合适</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>长期安全的金融基础设施</strong></td>
+      <td>量子威胁是真实存在的长期风险，STARK提供"面向未来"的安全性</td>
+    </tr>
+    <tr>
+      <td><strong>监管敏感的机构应用</strong></td>
+      <td>无需解释可信设置的复杂性，"透明"更容易获得合规认可</td>
+    </tr>
+    <tr>
+      <td><strong>高价值低频操作</strong></td>
+      <td>证明生成慢可以接受，换取更强的安全假设</td>
+    </tr>
+    <tr>
+      <td><strong>硬件受限环境</strong></td>
+      <td>哈希在移动端/浏览器/WebAssembly上执行效率优于椭圆曲线[^96^]</td>
+    </tr>
+    <tr>
+      <td><strong>递归证明链</strong></td>
+      <td>STARK原生支持递归，Plonky2等系统将FRI与递归结合，用于zkEVM</td>
+    </tr>
+  </tbody>
+</table>
 <hr>
 <h2>9.6 实战：用Cairo/Stone探索STARK</h2>
 <h3>9.6.1 StarkNet的Cairo语言简介</h3>
@@ -276,7 +400,47 @@ cairo-run --program fib_compiled.json --trace_file fib_trace.bin
 </code></pre>
 <h3>9.6.4 与SNARK工具链的对比体验</h3>
 <p>从开发者体验角度对比：</p>
-<p>| 维度 | SNARK (Circom + snarkjs) | STARK (Cairo + Scarb) |<br>|------|-------------------------|----------------------|<br>| <strong>编程语言</strong> | 电路DSL（声明式约束） | 通用编程语言（命令式执行） |<br>| <strong>思维模型</strong> | "写出约束，然后找满足约束的witness" | "写正常程序，系统自动证明执行正确" |<br>| <strong>可信设置</strong> | 需要Phase 1/Phase 2仪式 | 完全不需要 |<br>| <strong>证明生成</strong> | <code class="inline-code">snarkjs groth16 fullprove</code> | <code class="inline-code">scarb prove --execute</code> |<br>| <strong>调试体验</strong> |  witness 不匹配时难以定位 | 可以像普通程序一样单步调试 |<br>| <strong>学习曲线</strong> | 需要理解R1CS/约束/witness概念 | 有Rust基础即可快速上手 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>维度</th>
+      <th>SNARK (Circom + snarkjs)</th>
+      <th>STARK (Cairo + Scarb)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>编程语言</strong></td>
+      <td>电路DSL（声明式约束）</td>
+      <td>通用编程语言（命令式执行）</td>
+    </tr>
+    <tr>
+      <td><strong>思维模型</strong></td>
+      <td>"写出约束，然后找满足约束的witness"</td>
+      <td>"写正常程序，系统自动证明执行正确"</td>
+    </tr>
+    <tr>
+      <td><strong>可信设置</strong></td>
+      <td>需要Phase 1/Phase 2仪式</td>
+      <td>完全不需要</td>
+    </tr>
+    <tr>
+      <td><strong>证明生成</strong></td>
+      <td><code class="inline-code">snarkjs groth16 fullprove</code></td>
+      <td><code class="inline-code">scarb prove --execute</code></td>
+    </tr>
+    <tr>
+      <td><strong>调试体验</strong></td>
+      <td>witness 不匹配时难以定位</td>
+      <td>可以像普通程序一样单步调试</td>
+    </tr>
+    <tr>
+      <td><strong>学习曲线</strong></td>
+      <td>需要理解R1CS/约束/witness概念</td>
+      <td>有Rust基础即可快速上手</td>
+    </tr>
+  </tbody>
+</table>
 <p>对于钱包开发者来说，Cairo的"写正常程序"体验可能比Circom的"写约束电路"更直观——你只需要关心业务逻辑是否正确，而不需要手动将逻辑转换为代数约束。</p>
 <hr>
 <h2>9.7 本章小结</h2>

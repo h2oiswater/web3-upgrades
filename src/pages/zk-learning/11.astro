@@ -13,7 +13,62 @@ const htmlContent = `<h1>11. 以太坊ZK应用II：隐私与身份——ZK的另
 <p>在第10章中，我们深入讨论了zkRollup——用零知识证明将数千笔交易的计算正确性压缩为一枚小巧的证明提交到以太坊主网。那是ZK技术的"扩容"面孔。本章我们将转向它的另一面："隐私"面孔。</p>
 <h3>11.2.1 技术差异对比表</h3>
 <p>你可以把zk-SNARK想象成一把多功能瑞士军刀。同样的刀刃（多项式承诺、配对验证、电路约束），在扩容场景中用来"证明大量交易被正确执行"，在隐私场景中用来"证明我知道某事而不泄露它"。两者的技术栈高度重叠，但设计哲学截然不同。</p>
-<p>| 维度 | 扩容ZK（ZK Rollups） | 隐私ZK（Privacy Applications） |<br>|------|----------------------|--------------------------------|<br>| <strong>核心问题</strong> | "如何证明大量交易被正确执行？" | "如何证明我知道某事而不泄露它？" |<br>| <strong>证明内容</strong> | 状态转换的正确性（validity proof） | 知识的所有权（knowledge of secret） |<br>| <strong>数据可见性</strong> | 交易数据可公开（calldata 或 blob） | 交易/输入数据被隐藏 |<br>| <strong>公开输入</strong> | 旧状态根、新状态根、交易哈希 | Merkle根、nullifierHash、公共参数 |<br>| <strong>私有输入（Witness）</strong> | 交易明细（在rollup中通常为公开） | Secret、nullifier、Merkle path、身份信息 |<br>| <strong>电路复杂度来源</strong> | EVM操作码的算术化、状态读写 | 哈希函数（Pedersen、Poseidon）、Merkle路径验证 |<br>| <strong>用户交互</strong> | 无感知（由sequencer批量证明） | 需本地生成证明（客户端证明） |<br>| <strong>典型项目</strong> | zkSync、StarkNet、Scroll | Tornado Cash、Aztec、zkLogin |<br>| <strong>证明系统偏好</strong> | zk-STARK（无需可信设置）、zk-SNARK | Groth16（小证明、快验证）、Plonk |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>维度</th>
+      <th>扩容ZK（ZK Rollups）</th>
+      <th>隐私ZK（Privacy Applications）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>核心问题</strong></td>
+      <td>"如何证明大量交易被正确执行？"</td>
+      <td>"如何证明我知道某事而不泄露它？"</td>
+    </tr>
+    <tr>
+      <td><strong>证明内容</strong></td>
+      <td>状态转换的正确性（validity proof）</td>
+      <td>知识的所有权（knowledge of secret）</td>
+    </tr>
+    <tr>
+      <td><strong>数据可见性</strong></td>
+      <td>交易数据可公开（calldata 或 blob）</td>
+      <td>交易/输入数据被隐藏</td>
+    </tr>
+    <tr>
+      <td><strong>公开输入</strong></td>
+      <td>旧状态根、新状态根、交易哈希</td>
+      <td>Merkle根、nullifierHash、公共参数</td>
+    </tr>
+    <tr>
+      <td><strong>私有输入（Witness）</strong></td>
+      <td>交易明细（在rollup中通常为公开）</td>
+      <td>Secret、nullifier、Merkle path、身份信息</td>
+    </tr>
+    <tr>
+      <td><strong>电路复杂度来源</strong></td>
+      <td>EVM操作码的算术化、状态读写</td>
+      <td>哈希函数（Pedersen、Poseidon）、Merkle路径验证</td>
+    </tr>
+    <tr>
+      <td><strong>用户交互</strong></td>
+      <td>无感知（由sequencer批量证明）</td>
+      <td>需本地生成证明（客户端证明）</td>
+    </tr>
+    <tr>
+      <td><strong>典型项目</strong></td>
+      <td>zkSync、StarkNet、Scroll</td>
+      <td>Tornado Cash、Aztec、zkLogin</td>
+    </tr>
+    <tr>
+      <td><strong>证明系统偏好</strong></td>
+      <td>zk-STARK（无需可信设置）、zk-SNARK</td>
+      <td>Groth16（小证明、快验证）、Plonk</td>
+    </tr>
+  </tbody>
+</table>
 <h3>11.2.2 扩容ZK证明"计算正确"，隐私ZK证明"满足条件而不泄露"</h3>
 <p>用一个类比来强化这种差异。想象你是一名会计师向税务局提交报告。</p>
 <p>在<strong>扩容场景</strong>中，你提交："这是过去一个月1000条交易记录，外加一个ZK证明，证明汇总后的资产负债表正确。"税务局不需要逐条核对——它验证证明就知道汇总数字无误。这里<strong>效率</strong>是核心目标[^83^][^86^]。</p>

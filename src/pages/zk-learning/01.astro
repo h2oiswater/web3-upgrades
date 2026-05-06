@@ -59,7 +59,66 @@ const htmlContent = `<h1>第一章 导论：走进零知识证明的世界</h1>
 <p>2022年，Vitalik Buterin 提出了<strong>zkEVM四类型分类框架</strong>（Type 1到Type 4），系统性地梳理了EVM兼容性与证明效率之间的权衡[^26^]。Scroll（Type 2）、zkSync Era（Type 4）、Linea（Type 2）、StarkNet（非EVM）等项目展开激烈竞争。</p>
 <p>2024–2025年是ZK技术的<strong>成本拐点</strong>。EIP-4844引入的Blob数据通道使ZK Rollup交易费用降低约80%[^182^]；同时，证明生成成本在一年内下降了<strong>90%以上</strong>——从\$0.05–0.10/笔降至\$0.02/笔甚至更低，证明延迟从16分钟压缩到16秒[^238^]。2025年，Scroll成为<strong>首个达到Stage 1去中心化阶段</strong>的ZK Rollup[^163^]，StarkNet则部署了新一代<strong>S-two证明器</strong>，利用Circle STARK和M31小素数域将证明速度提升一个数量级[^213^]。</p>
 <h3>历史里程碑总表</h3>
-<p>| 年份 | 里程碑 | 核心贡献 | 解决的关键问题 |<br>|:---:|--------|---------|-------------|<br>| 1985 | Goldwasser-Micali-Rackoff论文 | 首次形式化定义零知识证明和知识复杂度[^68^] | "证明而不泄露"是否理论上可行 |<br>| 2013 | Pinocchio协议 | 首次实用化zk-SNARK，288字节证明[^121^] | 从理论到工程可行的跨越 |<br>| 2016 | Groth16 + Zcash上线 | 192字节最小证明；首个大规模ZK隐私币[^70^] | 证明极致压缩 + 真实隐私应用 |<br>| 2018 | zk-STARK发表 | 完全透明、无需可信设置、量子安全[^22^] | 消除可信设置的信任假设 |<br>| 2019 | PLONK协议 | 通用可信设置 + Plonkish算术化[^70^] | 一次设置支持任意电路 |<br>| 2022 | Vitalik zkEVM分类 | Type 1–4框架明确兼容性与效率权衡[^26^] | 为zkRollup设计提供坐标系 |<br>| 2024–2025 | EIP-4844 + 证明成本骤降 | Blob通道 + 证明成本降90%+[^238^] | ZK Rollup经济可行性成熟 |<br>| 2025–2026 | Scroll Stage 1 + S-two | 首个去中心化ZK Rollup；Circle STARK量产[^163^] | 去中心化与高性能兼得 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>年份</th>
+      <th>里程碑</th>
+      <th>核心贡献</th>
+      <th>解决的关键问题</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1985</td>
+      <td>Goldwasser-Micali-Rackoff论文</td>
+      <td>首次形式化定义零知识证明和知识复杂度[^68^]</td>
+      <td>"证明而不泄露"是否理论上可行</td>
+    </tr>
+    <tr>
+      <td>2013</td>
+      <td>Pinocchio协议</td>
+      <td>首次实用化zk-SNARK，288字节证明[^121^]</td>
+      <td>从理论到工程可行的跨越</td>
+    </tr>
+    <tr>
+      <td>2016</td>
+      <td>Groth16 + Zcash上线</td>
+      <td>192字节最小证明；首个大规模ZK隐私币[^70^]</td>
+      <td>证明极致压缩 + 真实隐私应用</td>
+    </tr>
+    <tr>
+      <td>2018</td>
+      <td>zk-STARK发表</td>
+      <td>完全透明、无需可信设置、量子安全[^22^]</td>
+      <td>消除可信设置的信任假设</td>
+    </tr>
+    <tr>
+      <td>2019</td>
+      <td>PLONK协议</td>
+      <td>通用可信设置 + Plonkish算术化[^70^]</td>
+      <td>一次设置支持任意电路</td>
+    </tr>
+    <tr>
+      <td>2022</td>
+      <td>Vitalik zkEVM分类</td>
+      <td>Type 1–4框架明确兼容性与效率权衡[^26^]</td>
+      <td>为zkRollup设计提供坐标系</td>
+    </tr>
+    <tr>
+      <td>2024–2025</td>
+      <td>EIP-4844 + 证明成本骤降</td>
+      <td>Blob通道 + 证明成本降90%+[^238^]</td>
+      <td>ZK Rollup经济可行性成熟</td>
+    </tr>
+    <tr>
+      <td>2025–2026</td>
+      <td>Scroll Stage 1 + S-two</td>
+      <td>首个去中心化ZK Rollup；Circle STARK量产[^163^]</td>
+      <td>去中心化与高性能兼得</td>
+    </tr>
+  </tbody>
+</table>
 <hr>
 <h2>1.3 ZK在区块链中的两大使命</h2>
 <p>在区块链语境下，零知识证明承担着两项截然不同但同样关键的使命。理解它们的区别，将帮助你判断何时应该将ZK集成到你的钱包产品中。</p>
@@ -167,7 +226,32 @@ print(clock_add(10, 5))  # 输出: 3
    - 记录你的证明文件大小（应该是极小的，可能只有几百字节）和验证耗时
    - <strong>思考题</strong>：如果你将输入从 <code class="inline-code">a=3, b=11</code> 改为 <code class="inline-code">a=3, b=12</code>，验证会失败吗？为什么？
 <ul><li><strong>调研与对比</strong>：选择两个当前活跃的ZK Rollup项目（如Scroll和StarkNet），查阅它们的官方文档，完成以下对比表：</li>
-</ul><p>| 对比维度 | 项目A | 项目B |<br>|---------|-------|-------|<br>| 证明系统（SNARK/STARK/其他） | | |<br>| 是否需要可信设置 | | |<br>| 当前交易费用范围 | | |<br>| 取款到L1的等待时间 | | |<br>| 对钱包开发者最友好的集成方式 | | |</p>
+</ul><table class="zk-table">
+  <thead>
+    <tr>
+      <th>对比维度</th>
+      <th>项目A</th>
+      <th>项目B</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>证明系统（SNARK/STARK/其他）</td>
+    </tr>
+    <tr>
+      <td>是否需要可信设置</td>
+    </tr>
+    <tr>
+      <td>当前交易费用范围</td>
+    </tr>
+    <tr>
+      <td>取款到L1的等待时间</td>
+    </tr>
+    <tr>
+      <td>对钱包开发者最友好的集成方式</td>
+    </tr>
+  </tbody>
+</table>
 <blockquote><strong>提示</strong>：可以从L2BEAT网站[^163^]和各项目文档获取最新数据。</blockquote>
 <hr>
 <p><em>本章为全书导论，第2章将从"时钟算术"开始，带你进入模运算与有限域的世界。</em></p>`;

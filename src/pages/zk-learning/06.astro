@@ -197,7 +197,37 @@ out   = sym_2 + 5      ← 加法门（线性组合），且 out = 35
 <p>\$\$<br>q_M \\cdot w_L \\cdot w_R + q_L \\cdot w_L + q_R \\cdot w_R + q_O \\cdot w_O + q_C = 0<br>\$\$</p>
 <p>其中：<br><ul><li>\$w_L, w_R, w_O\$ 是某一行（某个计算步骤）的左输入、右输入和输出（相当于Excel中三个单元格的值）。</li><br><li>\$q_M, q_L, q_R, q_O, q_C\$ 是<strong>选择子（Selector）</strong>，由电路设计者预设，决定这一行执行什么类型的运算。</li></ul></p>
 <p>通过设置不同的选择子，这一行可以变成：</p>
-<p>| 选择子组合 | 门类型 | 等效约束 |<br>|-----------|--------|---------|<br>| \$q_M=1\$, 其余=0 | 乘法门 | \$w_L \\cdot w_R = w_O\$ |<br>| \$q_L=1, q_O=-1\$ | 加法门 | \$w_L = w_O\$ |<br>| \$q_L=1, q_R=1, q_O=-1\$ | 加法门 | \$w_L + w_R = w_O\$ |<br>| \$q_L=-1, q_C=c\$ | 常数门 | \$w_L = c\$ |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>选择子组合</th>
+      <th>门类型</th>
+      <th>等效约束</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>\$q_M=1\$, 其余=0</td>
+      <td>乘法门</td>
+      <td>\$w_L \\cdot w_R = w_O\$</td>
+    </tr>
+    <tr>
+      <td>\$q_L=1, q_O=-1\$</td>
+      <td>加法门</td>
+      <td>\$w_L = w_O\$</td>
+    </tr>
+    <tr>
+      <td>\$q_L=1, q_R=1, q_O=-1\$</td>
+      <td>加法门</td>
+      <td>\$w_L + w_R = w_O\$</td>
+    </tr>
+    <tr>
+      <td>\$q_L=-1, q_C=c\$</td>
+      <td>常数门</td>
+      <td>\$w_L = c\$</td>
+    </tr>
+  </tbody>
+</table>
 <p>这仅仅是开始。<strong>自定义门（Custom Gates）</strong> 允许定义更复杂的行内运算，例如 \$w_O = w_L^5\$（用于高效实现Poseidon哈希）或 \$w_O = w_L \\cdot w_R + w_L\$（用于椭圆曲线点加法的特定步骤）[^70^]。这些自定义门通过引入额外的选择子多项式来激活，使得Plonkish的表达能力远超R1CS的固定乘法-加法模式。</p>
 <h3>6.5.3 置换论证：确保“线的一致性”</h3>
 <p>在电子表格中，同一个变量可能出现在多个不同的行和列中。例如，第1行的输出 \$w_O\$ 可能等于第3行的左输入 \$w_L\$。在R1CS中，这种“线相等”关系通过 witness 向量的共享位置隐式保证。但在Plonkish的表格结构中，同一个变量可能分散在不同的单元格中，需要显式约束它们取值相同。</p>

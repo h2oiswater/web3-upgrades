@@ -18,7 +18,27 @@ const htmlContent = `<h1>第13章 实战II：用Noir与Solidity部署链上ZK应
 </ul><p>Noir由Aztec团队开发，采用Rust风格语法，核心抽象层是ACIR（Abstract Circuit Intermediate Representation）。ACIR作为中间表示层，让Noir可以对接多种证明后端（Barretenberg、Marlin、Groth16等），实现"一次编写，多处证明"的backend-agnostic架构。[^242^]</p>
 <h3>13.2.2 安装nargo和barretenberg后端</h3>
 <p>让我们把开发环境搭建起来。你需要两个核心组件：</p>
-<p>| 组件 | 作用 | 类比 |<br>|------|------|------|<br>| <strong>nargo</strong> | Noir的包管理器和编译器 | 类似Rust的cargo，管理依赖、编译项目、运行测试 |<br>| <strong>barretenberg (<code class="inline-code">bb</code>)</strong> | Aztec的C++证明后端 | 类似Node.js的V8引擎，负责把编译后的电路实际转换为证明 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>组件</th>
+      <th>作用</th>
+      <th>类比</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>nargo</strong></td>
+      <td>Noir的包管理器和编译器</td>
+      <td>类似Rust的cargo，管理依赖、编译项目、运行测试</td>
+    </tr>
+    <tr>
+      <td><strong>barretenberg (<code class="inline-code">bb</code>)</strong></td>
+      <td>Aztec的C++证明后端</td>
+      <td>类似Node.js的V8引擎，负责把编译后的电路实际转换为证明</td>
+    </tr>
+  </tbody>
+</table>
 <p><strong>安装命令</strong>[^230^][^240^]：</p>
 <pre class="code-block"><code># 步骤1：安装nargo（Noir编译器）
 curl -L https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash
@@ -58,7 +78,57 @@ bb verify -p ./target/proof -k ./target/vk   # 本地验证证明
 </code></pre>
 <h3>13.2.3 Noir vs Circom：何时选择哪个</h3>
 <p>你可能在第12章已经学习了Circom，自然会问："我该用哪一个？"答案取决于你想控制什么、隐藏什么。</p>
-<p>| 维度 | Circom | Noir |<br>|------|--------|------|<br>| <strong>抽象层次</strong> | 低（手动管理信号与约束） | 高（写逻辑，约束自动生成） |<br>| <strong>学习曲线</strong> | 陡峭（需理解R1CS、信号语义） | 平缓（Rust开发者可立即上手） |<br>| <strong>代码风格</strong> | DSL，类硬件描述语言 | Rust风格，传统编程思维 |<br>| <strong>证明系统</strong> | Groth16/PLONK/FFLONK（通过snarkjs） | UltraHonk/MegaHonk（通过barretenberg） |<br>| <strong>Trusted Setup</strong> | Groth16需要电路特定设置 | UltraHonk不需要 |<br>| <strong>标准库</strong> | circomlib（丰富成熟） | noir标准库（快速增长） |<br>| <strong>LLM友好度</strong> | 低（信号/约束概念特殊） | 高（Rust风格与训练数据匹配）[^263^] |<br>| <strong>典型场景</strong> | 生产级优化、自定义约束 | 快速原型、隐私合约开发 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>维度</th>
+      <th>Circom</th>
+      <th>Noir</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>抽象层次</strong></td>
+      <td>低（手动管理信号与约束）</td>
+      <td>高（写逻辑，约束自动生成）</td>
+    </tr>
+    <tr>
+      <td><strong>学习曲线</strong></td>
+      <td>陡峭（需理解R1CS、信号语义）</td>
+      <td>平缓（Rust开发者可立即上手）</td>
+    </tr>
+    <tr>
+      <td><strong>代码风格</strong></td>
+      <td>DSL，类硬件描述语言</td>
+      <td>Rust风格，传统编程思维</td>
+    </tr>
+    <tr>
+      <td><strong>证明系统</strong></td>
+      <td>Groth16/PLONK/FFLONK（通过snarkjs）</td>
+      <td>UltraHonk/MegaHonk（通过barretenberg）</td>
+    </tr>
+    <tr>
+      <td><strong>Trusted Setup</strong></td>
+      <td>Groth16需要电路特定设置</td>
+      <td>UltraHonk不需要</td>
+    </tr>
+    <tr>
+      <td><strong>标准库</strong></td>
+      <td>circomlib（丰富成熟）</td>
+      <td>noir标准库（快速增长）</td>
+    </tr>
+    <tr>
+      <td><strong>LLM友好度</strong></td>
+      <td>低（信号/约束概念特殊）</td>
+      <td>高（Rust风格与训练数据匹配）[^263^]</td>
+    </tr>
+    <tr>
+      <td><strong>典型场景</strong></td>
+      <td>生产级优化、自定义约束</td>
+      <td>快速原型、隐私合约开发</td>
+    </tr>
+  </tbody>
+</table>
 <p><strong>选择建议</strong>：<br><ul><li>如果你是Rust/TypeScript开发者，希望<strong>两周内产出可运行Demo</strong> → 选Noir。</li><br><li>如果你需要<strong>极致优化约束数量</strong>（例如每条约束都影响用户体验的移动端证明） → 选Circom。</li><br><li>如果你在为Aztec生态或隐私L2开发 → 必须选Noir，因为它是Aztec合约的原生语言[^248^]。</li></ul></p>
 <hr>
 <h2>13.3 项目：隐私投票系统</h2>
@@ -404,14 +474,69 @@ contract PrivateVoting {
 <li><strong>证明与身份解耦</strong>：<code class="inline-code">castVote</code>可以被任何地址调用，因为验证的是ZK证明而非调用者地址。这正是隐私的精髓：行为和身份的分离。</li>
 </ul><h3>13.4.4 Gas成本分析</h3>
 <p>将ZK验证搬到链上是有成本的。理解这些成本对于设计用户体验至关重要。</p>
-<p>| 操作 | Gas成本 | 说明 |<br>|------|---------|------|<br>| <strong>单证明UltraHonk验证</strong> | ~200k - 300k | 主要成本来自KZG点评估预编译(0x0A)和配对检查 |<br>| <strong>存储nullifier (SSTORE)</strong> | ~20k (首次) / ~5k (后续) | 写入新状态的字节 |<br>| <strong>Groth16单证明验证</strong> | ~200k - 250k | ECPAIRING预编译(0x08)占约181k[^199^] |<br>| <strong>Groth16批量验证 (16个)</strong> | ~48k / 证明 | 摊销后成本大幅下降[^199^] |<br>| <strong>普通ERC-20转账</strong> | ~65k | 基准参考 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>操作</th>
+      <th>Gas成本</th>
+      <th>说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>单证明UltraHonk验证</strong></td>
+      <td>~200k - 300k</td>
+      <td>主要成本来自KZG点评估预编译(0x0A)和配对检查</td>
+    </tr>
+    <tr>
+      <td><strong>存储nullifier (SSTORE)</strong></td>
+      <td>~20k (首次) / ~5k (后续)</td>
+      <td>写入新状态的字节</td>
+    </tr>
+    <tr>
+      <td><strong>Groth16单证明验证</strong></td>
+      <td>~200k - 250k</td>
+      <td>ECPAIRING预编译(0x08)占约181k[^199^]</td>
+    </tr>
+    <tr>
+      <td><strong>Groth16批量验证 (16个)</strong></td>
+      <td>~48k / 证明</td>
+      <td>摊销后成本大幅下降[^199^]</td>
+    </tr>
+    <tr>
+      <td><strong>普通ERC-20转账</strong></td>
+      <td>~65k</td>
+      <td>基准参考</td>
+    </tr>
+  </tbody>
+</table>
 <p>单证明验证的Gas有一个"硬下限"——因为椭圆曲线配对预编译的固有计算成本，即使极致优化也无法将Groth16单证明降到100k gas以下[^199^]。如果你的应用需要高频验证，<strong>批量验证（Batch Verification）</strong>是最佳策略：一次验证多个证明，将配对运算的固定成本摊销到多个用户身上。</p>
 <blockquote><strong>前端UX启示</strong>：在钱包应用中，应为用户预留约250k gas limit用于ZK投票操作，并在界面中提示"本次交易包含零知识证明验证，Gas略高于普通转账"。</blockquote>
 <hr>
 <h2>13.5 部署到测试网</h2>
 <h3>13.5.1 选择测试网络</h3>
 <p>我们建议同时在两条链上测试：</p>
-<p>| 测试网 | 用途 | 为什么 |<br>|--------|------|--------|<br>| <strong>Sepolia</strong> | 验证Solidity合约逻辑 | 最稳定的以太坊PoS测试网，工具链最成熟 |<br>| <strong>目标L2测试网</strong>（如Scroll Sepolia / zkSync Sepolia） | 测试L2上的验证成本 | L2 gas费更低，是隐私应用的实际部署目标 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>测试网</th>
+      <th>用途</th>
+      <th>为什么</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Sepolia</strong></td>
+      <td>验证Solidity合约逻辑</td>
+      <td>最稳定的以太坊PoS测试网，工具链最成熟</td>
+    </tr>
+    <tr>
+      <td><strong>目标L2测试网</strong>（如Scroll Sepolia / zkSync Sepolia）</td>
+      <td>测试L2上的验证成本</td>
+      <td>L2 gas费更低，是隐私应用的实际部署目标</td>
+    </tr>
+  </tbody>
+</table>
 <h3>13.5.2 部署流程：合约部署 + 前端集成 + 证明生成流水线</h3>
 <p>完整的端到端流程如下：</p>
 <pre class="code-block"><code>Step 1: 编译与导出
@@ -530,7 +655,40 @@ vote:
 <p>在链上验证环节，我们使用<code class="inline-code">bb write_solidity_verifier</code>将Noir电路自动转换为Solidity验证器，并在业务合约中实现了"验证通过后执行业务"的标准模式。Gas成本分析告诉我们，单证明验证约需200k-300k gas，批量验证可以将单位成本摊销至约50k gas/证明——这为钱包应用的用户体验设计提供了关键数据。</p>
 <p>最后，我们给出了完整的项目结构、部署脚本和一键Makefile，让你能够从<code class="inline-code">nargo new</code>开始，一路走到Sepolia测试网上的真实交易。</p>
 <h3>核心概念回顾</h3>
-<p>| 概念 | 一句话总结 |<br>|------|-----------|<br>| <strong>ACIR</strong> | Noir的中间表示层，让同一电路可对接多种证明后端 |<br>| <strong>UltraHonk</strong> | Aztec的PLONK变体，无需电路特定trusted setup |<br>| <strong>nullifier</strong> | 投票者私有随机数，其哈希用于链上防双投 |<br>| <strong>Merkle成员证明</strong> | 证明"我知道注册表中一个叶子的preimage"而不暴露是哪个叶子 |<br>| <strong>UltraVerifier.sol</strong> | <code class="inline-code">bb</code>自动导出的Solidity合约，封装所有椭圆曲线验证逻辑 |<br>| <strong>公开输入顺序</strong> | Solidity中<code class="inline-code">publicInputs</code>数组顺序必须与Noir中<code class="inline-code">pub</code>参数声明顺序一致 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>概念</th>
+      <th>一句话总结</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>ACIR</strong></td>
+      <td>Noir的中间表示层，让同一电路可对接多种证明后端</td>
+    </tr>
+    <tr>
+      <td><strong>UltraHonk</strong></td>
+      <td>Aztec的PLONK变体，无需电路特定trusted setup</td>
+    </tr>
+    <tr>
+      <td><strong>nullifier</strong></td>
+      <td>投票者私有随机数，其哈希用于链上防双投</td>
+    </tr>
+    <tr>
+      <td><strong>Merkle成员证明</strong></td>
+      <td>证明"我知道注册表中一个叶子的preimage"而不暴露是哪个叶子</td>
+    </tr>
+    <tr>
+      <td><strong>UltraVerifier.sol</strong></td>
+      <td><code class="inline-code">bb</code>自动导出的Solidity合约，封装所有椭圆曲线验证逻辑</td>
+    </tr>
+    <tr>
+      <td><strong>公开输入顺序</strong></td>
+      <td>Solidity中<code class="inline-code">publicInputs</code>数组顺序必须与Noir中<code class="inline-code">pub</code>参数声明顺序一致</td>
+    </tr>
+  </tbody>
+</table>
 <hr>
 <h2>思考题与练习题</h2>
 <h3>概念理解</h3>

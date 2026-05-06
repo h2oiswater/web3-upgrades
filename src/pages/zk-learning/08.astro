@@ -38,7 +38,45 @@ const htmlContent = `<h1>第8章 核心算法II：PLONK与通用可信设置—�
 <p>在第6章我们已经初步接触了Plonkish约束系统。现在让我们深入理解它的工作机制。</p>
 <p>Groth16使用R1CS（Rank-1 Constraint System），每个约束只能表达一个乘法关系：\$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$。所有加法必须通过线性组合"免费"折叠到\$A\$、\$B\$、\$C\$向量中 [^123^]。</p>
 <p>PLONK则将计算表示为一张<strong>执行轨迹表（Trace Table）</strong>，就像一张电子表格：</p>
-<p>| 行（门索引） | \$w_L\$（左输入） | \$w_R\$（右输入） | \$w_O\$（输出） | \$q_L\$ | \$q_R\$ | \$q_M\$ | \$q_O\$ | \$q_C\$ |<br>|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|<br>| 0 | \$a\$ | \$b\$ | \$c\$ | 0 | 0 | 1 | -1 | 0 |<br>| 1 | \$d\$ | \$e\$ | \$f\$ | 1 | 1 | 0 | 0 | -5 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>行（门索引）</th>
+      <th>\$w_L\$（左输入）</th>
+      <th>\$w_R\$（右输入）</th>
+      <th>\$w_O\$（输出）</th>
+      <th>\$q_L\$</th>
+      <th>\$q_R\$</th>
+      <th>\$q_M\$</th>
+      <th>\$q_O\$</th>
+      <th>\$q_C\$</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>\$a\$</td>
+      <td>\$b\$</td>
+      <td>\$c\$</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>-1</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>\$d\$</td>
+      <td>\$e\$</td>
+      <td>\$f\$</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>-5</td>
+    </tr>
+  </tbody>
+</table>
 <p>每一行对应一个<strong>门（Gate）</strong>，各列存储了不同的信号和选择器系数。核心的门约束方程为 [^155^][^146^]：</p>
 <p>\$\$q_M \\cdot w_L \\cdot w_R + q_L \\cdot w_L + q_R \\cdot w_R + q_O \\cdot w_O + q_C = 0\$\$</p>
 <p>这里：<br><ul><li>\$w_L, w_R, w_O\$ 是该门的左输入、右输入和输出信号（即witness值）。</li><br><li>\$q_L, q_R, q_M, q_O, q_C\$ 是<strong>选择器（Selector）</strong>，它们是这个门的"类型标签"。</li></ul></p>
@@ -211,7 +249,42 @@ const htmlContent = `<h1>第8章 核心算法II：PLONK与通用可信设置—�
 <p><strong>UltraPLONK</strong> = TurboPLONK + <strong>查找表（Lookup Tables, via Plookup）</strong> [^70^]。</p>
 <p>查找表允许prover证明"某个witness值存在于一个预定义的表中"。这对以下场景极其高效：<br><ul><li>位运算（AND、OR、XOR）：无需逐位分解，直接查表</li><br><li>字节替换（S-Box）：AES、SHA-256中的关键操作</li><br><li>范围证明：证明一个数在 \$[0, 2^{32})\$ 内</li></ul></p>
 <p>实证数据表明，UltraPLONK的查找表可以将SHA-256电路从约25,000个R1CS约束压缩到约3,000–5,000个PLONK门 [^70^]——<strong>5倍的效率提升</strong>。</p>
-<p>| 特性 | PLONK | TurboPLONK | UltraPLONK |<br>|:---|:---|:---|:---|<br>| 门约束 | 固定算术形式 | 自定义低次多项式 | 自定义 + 查找表 |<br>| SHA-256约束数 | ~25,000 | ~15,000 | ~3,000–5,000 |<br>| 典型应用 | 通用电路 | 特定优化电路 | zkEVM、哈希密集电路 |<br>| 生产部署 | zkSync早期 | 自定义场景 | Aztec、Scroll |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>特性</th>
+      <th>PLONK</th>
+      <th>TurboPLONK</th>
+      <th>UltraPLONK</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>门约束</td>
+      <td>固定算术形式</td>
+      <td>自定义低次多项式</td>
+      <td>自定义 + 查找表</td>
+    </tr>
+    <tr>
+      <td>SHA-256约束数</td>
+      <td>~25,000</td>
+      <td>~15,000</td>
+      <td>~3,000–5,000</td>
+    </tr>
+    <tr>
+      <td>典型应用</td>
+      <td>通用电路</td>
+      <td>特定优化电路</td>
+      <td>zkEVM、哈希密集电路</td>
+    </tr>
+    <tr>
+      <td>生产部署</td>
+      <td>zkSync早期</td>
+      <td>自定义场景</td>
+      <td>Aztec、Scroll</td>
+    </tr>
+  </tbody>
+</table>
 <h3>8.5.2 Plonky2：PLONK + FRI，递归证明的先锋</h3>
 <p><strong>Plonky2</strong>由Polygon Zero团队开发，是一个引人注目的混合架构。它用PLONK的算术化方式表达电路，但用<strong>FRI（Fast Reed-Solomon IOP of Proximity）</strong>作为多项式承诺方案，替代KZG [^112^]。</p>
 <p>这意味着：<br><ul><li><strong>无可信设置</strong>：FRI基于哈希函数而非椭圆曲线配对，完全透明</li><br><li><strong>原生递归支持</strong>：FRI的验证过程主要是哈希检查和少量域运算，可以很容易地编码为一个PLONKish电路——然后递归地生成"验证验证过程的证明"</li><br><li><strong>证明较大</strong>：FRI的证明大小为 \$O(\\log^2 d)\$，约40–200KB，远大于KZG版本的48字节 [^96^]</li></ul></p>
