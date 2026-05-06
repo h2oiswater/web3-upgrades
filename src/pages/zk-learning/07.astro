@@ -402,7 +402,7 @@ verifyGroth16Proof();
 
     <section class="py-8 px-4">
       <div class="max-w-4xl mx-auto">
-        <article class="prose-zk" set:html={htmlContent} />
+        <article class="prose-zk" set:html={htmlContent.replace(/[^(d+)^]/g, '<span class="citation-ref" title="引用 #$1">[$1]</span>')} />
       </div>
     </section>
 
