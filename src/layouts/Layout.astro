@@ -32,35 +32,11 @@ const { title, description = 'Web3 Upgrades Knowledge Base' } = Astro.props;
       },
       options: {
         skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      startup: {
-        pageReady: () => {
-          return MathJax.startup.defaultPageReady().then(() => {
-            console.log('MathJax ready');
-          });
-        }
       }
     };
   </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js"></script>
-  <script>
-    // Fallback: ensure MathJax typesets after DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-      if (window.MathJax && window.MathJax.typesetPromise) {
-        window.MathJax.typesetPromise();
-      } else {
-        // If MathJax hasn't loaded yet, wait for it
-        var checkMathJax = setInterval(function() {
-          if (window.MathJax && window.MathJax.typesetPromise) {
-            clearInterval(checkMathJax);
-            window.MathJax.typesetPromise();
-          }
-        }, 100);
-        // Give up after 10 seconds
-        setTimeout(function() { clearInterval(checkMathJax); }, 10000);
-      }
-    });
-  </script>
+  <!-- Use defer (not async) to ensure DOM is ready when MathJax runs -->
+  <script id="MathJax-script" defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js"></script>
   
   <style>
     /* ZK Learning Table Styles */
