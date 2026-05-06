@@ -181,7 +181,47 @@ const htmlContent = `<h1>第一章 导论：走进零知识证明的世界</h1>
 <h2>1.4 学习路径预览</h2>
 <p>本书共14章，按照"从直觉到形式化、从数学到代码"的原则设计。以下是四阶段路线图：</p>
 <h3>四阶段路线图</h3>
-<p>| 阶段 | 章节范围 | 核心主题 | 前置知识 | 预计时间 |<br>|:---:|---------|---------|---------|:-------:|<br>| <strong>一、数学筑基</strong> | 第2–5章 | 模运算与有限域、群/环/域、椭圆曲线、双线性配对 | 高中数学 + Python基础 | 4–5周 |<br>| <strong>二、电路转化</strong> | 第6–8章 | 算术电路、R1CS、QAP、多项式承诺、KZG | 阶段一 + 线性代数入门 | 3–4周 |<br>| <strong>三、算法理解</strong> | 第9–11章 | Groth16、PLONK、zk-STARK/FRI、证明系统选型 | 阶段二 + 多项式基础 | 4–5周 |<br>| <strong>四、应用实战</strong> | 第12–14章 | Circom/Noir电路开发、钱包集成ZK、安全审计 | 阶段三 + Solidity基础 | 3–4周 |</p>
+<table class="zk-table">
+  <thead>
+    <tr>
+      <th>阶段</th>
+      <th>章节范围</th>
+      <th>核心主题</th>
+      <th>前置知识</th>
+      <th>预计时间</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>一、数学筑基</strong></td>
+      <td>第2–5章</td>
+      <td>模运算与有限域、群/环/域、椭圆曲线、双线性配对</td>
+      <td>高中数学 + Python基础</td>
+      <td>4–5周</td>
+    </tr>
+    <tr>
+      <td><strong>二、电路转化</strong></td>
+      <td>第6–8章</td>
+      <td>算术电路、R1CS、QAP、多项式承诺、KZG</td>
+      <td>阶段一 + 线性代数入门</td>
+      <td>3–4周</td>
+    </tr>
+    <tr>
+      <td><strong>三、算法理解</strong></td>
+      <td>第9–11章</td>
+      <td>Groth16、PLONK、zk-STARK/FRI、证明系统选型</td>
+      <td>阶段二 + 多项式基础</td>
+      <td>4–5周</td>
+    </tr>
+    <tr>
+      <td><strong>四、应用实战</strong></td>
+      <td>第12–14章</td>
+      <td>Circom/Noir电路开发、钱包集成ZK、安全审计</td>
+      <td>阶段三 + Solidity基础</td>
+      <td>3–4周</td>
+    </tr>
+  </tbody>
+</table>
 <h3>阶段一：数学筑基（第2–5章）</h3>
 <p>你可能在担心："我没有数论基础，能看懂吗？"本书的核心理念是<strong>代码先行</strong>。每一章的数学概念都会配备可直接运行的Python代码。例如，学习有限域时，你不是先看抽象定义，而是先运行一段"时钟算术"代码：</p>
 <pre class="code-block"><code># 模运算的直觉：12小时制时钟

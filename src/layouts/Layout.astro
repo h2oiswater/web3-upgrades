@@ -22,7 +22,6 @@ const { title, description = 'Web3 Upgrades Knowledge Base' } = Astro.props;
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- MathJax for rendering LaTeX math formulas -->
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js"></script>
   <script>
     window.MathJax = {
@@ -47,18 +46,6 @@ const { title, description = 'Web3 Upgrades Knowledge Base' } = Astro.props;
     .zk-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
     .zk-table tbody tr:last-child td { border-bottom: none; }
   </style>
-  
-  <script>
-    // Remove [^XX^] citation reference markers from ZK learning content
-    document.addEventListener('DOMContentLoaded', function() {
-      document.querySelectorAll('.prose-zk, article').forEach(function(el) {
-        if (!el.dataset.citationsProcessed) {
-          el.innerHTML = el.innerHTML.replace(/\[\^(\d+)\^\]/g, '');
-          el.dataset.citationsProcessed = 'true';
-        }
-      });
-    });
-  </script>
 </head>
 <body class="min-h-screen antialiased bg-primary text-white">
   <slot />
