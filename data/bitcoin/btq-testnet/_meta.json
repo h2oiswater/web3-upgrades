@@ -1,0 +1,21 @@
+{
+  "id": "btq-testnet",
+  "name": "BTQ Quantum-Protected Testnet",
+  "nameZh": "BTQ 抗量子测试网",
+  "date": "2026",
+  "type": [
+    "security",
+    "major"
+  ],
+  "icon": "⚛️",
+  "summary": "BTQ Technologies launched the first operational Bitcoin testnet implementing BIP-360 (P2MR). Features 5 Dilithium post-quantum signature opcodes, SegWit v2 (bc1z) addresses, 64 MiB blocks, restored SegWit discount, and end-to-end CLI wallet tools. 50+ miners, 100K+ blocks mined. Mainnet targeted for Q2 2026.",
+  "summaryZh": "BTQ Technologies 发布了首个实现 BIP-360（P2MR）的比特币测试网。包含 5 个 Dilithium 后量子签名操作码、SegWit v2（bc1z）地址、64 MiB 区块、恢复 SegWit 折扣和端到端 CLI 钱包工具。已有 50+ 矿工加入，挖出 100,000+ 区块。主网目标 2026 Q2 启动。",
+  "sortOrder": 14,
+  "chainId": "bitcoin",
+  "status": "in_progress",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "btq-v030",
+  "name": "BTQ Testnet v0.3.0",
+  "nameZh": "BTQ 测试网 v0.3.0",
+  "chainId": "bitcoin",
+  "upgradeId": "btq-testnet",
+  "sortOrder": 1,
+  "type": "bip",
+  "impact": "high",
+  "category": "后量子密码学",
+  "summary": "BTQ testnet v0.3.0 is the first operational implementation of BIP-360 (P2MR). It introduces 5 Dilithium post-quantum signature opcodes, SegWit v2 (bc1z) addresses, 64 MiB blocks, restored SegWit discount, and end-to-end CLI wallet tools.",
+  "summaryZh": "BTQ 测试网 v0.3.0 是 BIP-360（P2MR）的首个 operational 实现。引入 5 个 Dilithium 后量子签名操作码、SegWit v2（bc1z）地址、64 MiB 区块、恢复 SegWit 折扣和端到端 CLI 钱包工具。",
+  "hasContent": true,
+  "hasOriginal": true,
+  "hasAiIntroduce": true,
+  "contentLang": "en",
+  "zhContentAvailable": true
+}
