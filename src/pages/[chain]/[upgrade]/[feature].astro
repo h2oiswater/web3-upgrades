@@ -53,8 +53,14 @@ for (const item of allItems) {
 const renderer = new marked.Renderer();
 
 // 表格包装器
-renderer.table = ({ header, body }) => {
-  return `<div class="table-wrapper"><table><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
+renderer.table = function({ header, rows }) {
+  const buildCell = (cell) => {
+    const inner = this.parser.parseInline(cell.tokens);
+    return cell.header ? `<th>${inner}</th>` : `<td>${inner}</td>`;
+  };
+  const headerRow = `<tr>${header.map(buildCell.bind(this)).join('')}</tr>`;
+  const bodyRows = rows.map(row => `<tr>${row.map(buildCell.bind(this)).join('')}</tr>`).join('');
+  return `<div class="table-wrapper"><table><thead>${headerRow}</thead><tbody>${bodyRows}</tbody></table></div>`;
 };
 
 // 代码块
