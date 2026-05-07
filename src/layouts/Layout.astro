@@ -38,8 +38,8 @@ const { title, description = 'Web3 Upgrades Knowledge Base' } = Astro.props;
   <!-- Use defer (not async) to ensure DOM is ready when MathJax runs -->
   <script id="MathJax-script" defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js"></script>
   
-  <style>
-    /* ZK Learning Table Styles */
+  <style is:global>
+    /* ZK Learning Table Styles — global because JS creates elements dynamically */
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1rem 0; border: 1px solid #2a2a3a; border-radius: 8px; }
     .table-scroll .zk-table { width: auto; min-width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 0; border: none; border-radius: 0; }
     .zk-table thead { background: rgba(0, 212, 170, 0.08); }
