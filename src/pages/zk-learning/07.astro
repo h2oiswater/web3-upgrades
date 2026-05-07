@@ -25,36 +25,6 @@ flowchart LR
     A["1. 可信设置\nTrusted Setup"] --> B["2. 证明生成\nProving"]
     B --> C["3. 验证证明\nVerification"]
 </pre>
-<p><strong>第一步：可信设置（Setup）</strong>。这是系统启动时的"铸币仪式"。给定一个描述计算的电路 \$C\$，Setup 算法生成两个密钥：证明密钥 \$pk\$（proving key，给证明者用）和验证密钥 \$vk\$（verification key，给验证者用）。这个过程会留下危险的"毒性废料"，稍后在 7.4 节详述。</p>
-<p><strong>第二步：证明生成（Prove）</strong>。证明者拥有公开输入 \$x\$（比如交易金额）和私密输入 \$w\$（witness，比如私钥），利用 \$pk\$ 构造一个短证明 \$\\pi\$。这个过程执行了完整的计算，但只输出一枚"防伪标签"。</p>
-<p><strong>第三步：验证（Verify）</strong>。验证者只拿到 \$vk\$、\$x\$ 和 \$\\pi\$，执行几次高效的数学运算（Groth16 仅需3次配对），输出接受或拒绝。验证者<strong>完全不需要</strong>知道 witness \$w\$[^69^]。</p>
-<h3>7.2.4 SNARK家族谱系：从Pinocchio到Groth16到PLONK</h3>
-<p>zk-SNARK 不是单一算法，而是一个算法家族，十几年来经历了多代演进。理解它们的谱系，能帮助你在实际工程中做出正确选型。</p>
-<pre class="code-block"><code>2012-2013: 第一代SNARKs
-├── GGPR (2012) ── 理论奠基：QAP + 线性PCP
-└── Pinocchio (2013) ── 第一个实用系统：QAP + 双线性配对
-    └── 证明大小 ~288字节，验证需要 3+ 次配对
-
-2016: 黄金标准诞生
-└── Groth16 ── 压缩到极致：3个椭圆曲线点，~192字节
-    └── 验证仅需3次配对，~230K gas
-    └── 生产部署：Zcash Sapling, Tornado Cash, Filecoin
-
-2017-2018: 透明证明探索（无需可信设置）
-├── Bulletproofs (2017) ── IPA，对数级证明，无设置
-└── zk-STARK (2018) ── FRI + Merkle，量子安全
-
-2019-2020: 第二代通用SNARKs
-├── PLONK (2019) ── 通用可信设置 + Plonkish算术化
-│   ├── TurboPLONK (+ Custom Gates)
-│   └── UltraPLONK (+ Lookup Tables)
-└── Marlin (2020) ── 通用设置 + R1CS兼容
-
-2019-2021: 递归与无需设置
-├── Halo (2019) ── IPA递归，无设置
-├── Halo2 (2020) ── PLONKish + IPA (Zcash Orchard)
-└── Nova (2021) ── 折叠方案
-</code></pre>
 <p>在这个谱系中，<strong>Groth16 是一个独特的里程碑</strong>：它把证明大小压缩到了理论极限附近（仅3个椭圆曲线点），验证速度做到了同类最快。代价是——每个电路需要独立的可信设置[^68^]。如果你需要一个"证明小、验证快、gas低"的系统，且电路不频繁变更，Groth16 至今仍是最佳选择。</p>
 <hr>
 <h2>7.3 Groth16算法详解</h2>
