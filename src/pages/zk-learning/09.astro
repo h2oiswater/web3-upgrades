@@ -196,30 +196,27 @@ const htmlContent = `<h1>9. 核心算法III：zk-STARK与透明证明——无�
 <p>更具体地，利用 \$f(x)\$ 和 \$f(-x)\$ 的值，折叠公式可以写成[^112^]：</p>
 <p>\$\$f'(x^2) = \\frac{f(x) + f(-x)}{2} + r \\cdot \\frac{f(x) - f(-x)}{2x}\$\$</p>
 <p>让我们用ASCII图展示这个折叠过程：</p>
-<pre class="code-block"><code>FRI折叠过程：从f(x)到f'(x²)
-
-原始多项式 f(x)，次数 ≤ 2d，定义域大小 = 2N
-
-      f(x) 在 2N 个点上的取值
-      ├─ x₁    x₂    x₃    ...    x_{2N}
-      └─ f(x₁) f(x₂) f(x₃) ...    f(x_{2N})
-                 ↓
-         Merkle树承诺（根哈希公开）
-                 ↓
-    验证者发送随机挑战 r
-                 ↓
-   将点配对：(x, -x) 成对处理
-   
-   偶部：f_even(x²) = (f(x) + f(-x))/2
-   奇部：f_odd(x²)  = (f(x) - f(-x))/(2x)
-                 ↓
-   折叠：f'(x²) = f_even(x²) + r·f_odd(x²)
-                 ↓
-   新多项式 f'(y)，次数 ≤ d，定义域大小 = N
-   
-   ←────────────────────────────→
-   重复 log₂(2N) 轮，直到次数降到常数
-</code></pre>
+<pre class="mermaid">
+flowchart TD
+    Start["原始多项式 f(x)<br/>次数 ≤ 2d，定义域大小 = 2N"]
+    Eval["f(x) 在 2N 个点上的取值<br/>x₁, x₂, ..., x_{2N}"]
+    Merkle["Merkle树承诺<br/>根哈希公开"]
+    Challenge["验证者发送随机挑战 r"]
+    Pair["将点配对: (x, -x) 成对处理"]
+    EvenOdd["偶部: f_even(x²) = (f(x) + f(-x))/2<br/>奇部: f_odd(x²) = (f(x) - f(-x))/(2x)"]
+    Fold["折叠: f'(x²) = f_even(x²) + r·f_odd(x²)"]
+    New["新多项式 f'(y)<br/>次数 ≤ d，定义域大小 = N"]
+    Repeat["重复 log₂(2N) 轮<br/>直到次数降到常数"]
+    Start --> Eval
+    Eval --> Merkle
+    Merkle --> Challenge
+    Challenge --> Pair
+    Pair --> EvenOdd
+    EvenOdd --> Fold
+    Fold --> New
+    New -->|"次数仍 > 常数"| Start
+    New -.->|"完成"| Repeat
+</pre>
 <p>每轮折叠后，定义域大小减半、多项式次数减半。经过 \$\\log_2 N\$ 轮后，多项式变成常数（0次），验证者直接检查即可。这个递归结构是FRI效率的来源。</p>
 <h3>9.4.4 查询与一致性：捕获作弊的概率</h3>
 <p>折叠本身并不能阻止作弊——一个恶意证明者完全可以伪造折叠后的多项式。FRI的安全机制来自<strong>查询（Query）阶段</strong>。</p>
@@ -324,39 +321,22 @@ mod tests {
 }
 </code></pre>
 <p>从这段Cairo代码到STARK证明的完整流程如下：</p>
-<pre class="code-block"><code>Cairo程序 → STARK证明的完整流水线
-
-┌─────────────────┐
-│  1. 编写Cairo代码  │  ← 开发者用Cairo写业务逻辑（如fib函数）
-│   (lib.cairo)   │
-└────────┬────────┘
-         ↓ 编译
-┌─────────────────┐
-│  2. Sierra IR   │  ← 中间表示，确保所有程序都可证明
-└────────┬────────┘
-         ↓ 编译
-┌─────────────────┐
-│  3. CASM代码    │  ← Cairo Assembly，类似低级虚拟机指令
-└────────┬────────┘
-         ↓ 执行
-┌─────────────────┐
-│  4. 生成执行轨迹   │  ← 每一步指令后的寄存器状态快照
-│    (Trace)      │     宽度=寄存器数，高度=指令步数
-└────────┬────────┘
-         ↓ 算术化
-┌─────────────────┐
-│  5. AIR约束系统   │  ← 将轨迹编码为多项式，建立约束方程
-│  (多项式恒等式)  │
-└────────┬────────┘
-         ↓ 低度扩展+Merkle承诺
-┌─────────────────┐
-│  6. FRI折叠证明   │  ← 递归折叠多项式，生成Merkle证明路径
-└────────┬────────┘
-         ↓ 序列化
-┌─────────────────┐
-│  7. STARK证明文件 │  ← 包含所有查询应答和Merkle路径（50-200KB）
-└─────────────────┘
-</code></pre>
+<pre class="mermaid">
+flowchart TD
+    S1["1. 编写Cairo代码 (lib.cairo)<br/>← 开发者用Cairo写业务逻辑"]
+    S2["2. Sierra IR<br/>← 中间表示，确保所有程序都可证明"]
+    S3["3. CASM代码<br/>← Cairo Assembly，类似低级虚拟机指令"]
+    S4["4. 生成执行轨迹 (Trace)<br/>← 每一步指令后的寄存器状态快照<br/>宽度=寄存器数，高度=指令步数"]
+    S5["5. AIR约束系统<br/>← 将轨迹编码为多项式，建立约束方程"]
+    S6["6. FRI折叠证明<br/>← 递归折叠多项式，生成Merkle证明路径"]
+    S7["7. STARK证明文件<br/>← 包含所有查询应答和Merkle路径（50-200KB）"]
+    S1 -->|"编译"| S2
+    S2 -->|"编译"| S3
+    S3 -->|"执行"| S4
+    S4 -->|"算术化"| S5
+    S5 -->|"低度扩展+Merkle承诺"| S6
+    S6 -->|"序列化"| S7
+</pre>
 <h3>9.6.3 使用Scarb和Stone/S-two生成证明</h3>
 <p>现代StarkWare工具链已经大幅简化了证明生成。使用Scarb（Cairo的构建工具）和S-two（下一代证明器），证明一个Cairo程序只需要一行命令[^317^]：</p>
 <pre class="code-block"><code># 安装 Scarb (Cairo 构建工具)

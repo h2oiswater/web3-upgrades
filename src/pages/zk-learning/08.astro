@@ -262,97 +262,20 @@ flowchart TD
 <p>Noir是Aztec团队开发的ZK语言，采用Rust风格语法。它的核心理念是：开发者用传统编程思维写验证逻辑，约束系统自动生成 [^194^]。Noir编译后的中间表示（ACIR）可以被多种后端执行，其中Barretenberg后端基于UltraPLONK/Honk架构 [^242^]。</p>
 <p>本节我们编写一个<strong>Merkle成员证明电路</strong>——这是Web3钱包隐私功能中最常见的ZK场景之一。该电路证明：prover知道一个叶子节点和一个Merkle路径，可以重建出等于公开声明的Merkle根的值，但不暴露叶子节点的具体内容。</p>
 <h3>8.6.1 Noir电路代码</h3>
-<pre class="code-block"><code>// 文件名: src/main.nr
-// 电路: MerklePathProof —— 证明知道某个叶子，且该叶子在公开的Merkle根中
-// 后端: Barretenberg (UltraPLONK/Honk)
-
-use dep::std::hash::poseidon2;  // 引入Poseidon2哈希，ZK友好的哈希函数
-
-// Merkle树深度常量 —— 树有 2^DEPTH 个叶子
-// 在编译时确定，影响约束数量和电路规模
-const DEPTH: u32 = 10;
-
-fn main(
-    // ========== 公开输入 (pub) ==========
-    // 这些值在验证时公开可见，可被链上合约读取
-    merkle_root: pub Field,        // 要验证的Merkle根哈希
-    nullifier_hash: pub Field,      // 空值哈希，用于防双花
-    recipient: pub Field,            // 资金接收地址
-    fee: pub Field,                 // 手续费金额
-
-    // ========== 私有输入 (private) ==========
-    // 这些值被隐藏，仅prover知道，通过ZK证明其存在性
-    secret: Field,                  // 叶子节点的秘密值（如隐私转账中的note密钥）
-    nullifier: Field,               // 空值（证明这个叶子尚未被花费）
-    path_elements: [Field; DEPTH], // Merkle路径上的兄弟节点哈希（从叶子到根）
-    path_indices: [Field; DEPTH],  // 路径方向：0=左，1=右（决定hash排序）
-) {
-    // ── 第一步：计算叶子节点的承诺值 ──
-    // 叶子 = Poseidon2(secret, nullifier)
-    // 这类似于Tornado Cash中的commitment生成
-    let leaf = poseidon2::hash([secret, nullifier]);
-
-    // ── 第二步：验证空值哈希 ──
-    // 确保prover提供的nullifier_hash确实由nullifier派生
-    // 这防止prover用同一个叶子多次花费
-    let computed_nullifier_hash = poseidon2::hash([nullifier]);
-    assert(computed_nullifier_hash == nullifier_hash);
-
-    // ── 第三步：沿Merkle路径逐层哈希，重建根 ──
-    // current = leaf，然后逐层向上计算
-    let mut current = leaf;
-
-    for i in 0..DEPTH {
-        // path_indices[i] 必须是 0 或 1（二进制）
-        // Noir会自动为Field类型的路径索引生成范围约束
-        // 注意：在纯PLONK中这需要额外的位分解约束，
-        // UltraPLONK的查找表可以更高效地处理
-
-        // 根据path_indices[i]选择左右排序
-        // 如果 index = 0: hash(current, path_elements[i]) —— current在左
-        // 如果 index = 1: hash(path_elements[i], current) —— current在右
-        let left = if path_indices[i] == 0 {
-            current
-        } else {
-            path_elements[i]
-        };
-
-        let right = if path_indices[i] == 0 {
-            path_elements[i]
-        } else {
-            current
-        };
-
-        // 计算父节点哈希，向上攀升一层
-        current = poseidon2::hash([left, right]);
-    }
-
-    // ── 第四步：验证重建的根等于声明的根 ──
-    // 这是电路的核心约束：如果路径正确，current应等于merkle_root
-    assert(current == merkle_root);
-
-    // ── 第五步：约束recipient和fee为非负（在Field语义下自动满足）──
-    // 在Noir/PLONK中，Field元素天然在有限域内，但如需范围约束
-    // （如fee < 2^64），需要使用UltraPLONK的查找表特性
-}
-
-// ── 测试模块 ──
-#[test]
-fn test_merkle_path() {
-    // 测试输入：构造一个简单的2层Merkle树做验证
-    let secret = 12345;
-    let nullifier = 67890;
-    let leaf = poseidon2::hash([secret, nullifier]);
-
-    // 构造一个简化的测试路径（实际测试中DEPTH应与常量一致）
-    // 这里仅展示测试结构，真实场景需要完整10层路径
-    let dummy_path: [Field; 10] = [0; 10];
-    let dummy_indices: [Field; 10] = [0; 10];
-
-    // 注意：完整测试需要预先计算有效的Merkle根
-    // 这里仅作编译检查
-}
-</code></pre>
+<pre class="mermaid">
+flowchart TD
+    Setup["可信设置阶段<br/>(一次性，多方计算仪式)<br/>τ = 随机秘密值 (必须销毁)<br/>SRS = {[1]₁, [τ]₁, [τ²]₁,...,[τᴰ]₁}<br/>{[1]₂, [τ]₂}"]
+    Commit["承诺阶段 (Prover)<br/>输入: f(X) = f₀ + f₁X + ... + f_d Xᵈ<br/>输出: C = [f(τ)]₁<br/>= f₀·[1]₁ + f₁·[τ]₁ + ..."]
+    Open["打开阶段<br/>(Prover 响应挑战点 z)<br/>y = f(z)<br/>q(X) = (f(X) - y) / (X - z)<br/>π = [q(τ)]₁ ← 打开证明"]
+    Verify["验证阶段 (Verifier)<br/>检查: e(C - [y]₁, [1]₂) = e(π, [τ-z]₂)<br/>仅 2 次配对运算 → O(1) 验证"]
+    Note1["安全假设: 强 Diffie-Hellman (d-SDH)"]
+    Note2["证明大小: O(1) ≈ 48 字节 (BLS12-381)<br/>验证成本: O(1) 2次配对"]
+    Setup --> Commit
+    Commit --> Open
+    Open --> Verify
+    Verify -.-> Note1
+    Note1 -.-> Note2
+</pre>
 <h3>8.6.2 Noir到PLONK约束的映射理解</h3>
 <p>当你用Noir编写上面的电路时，编译器在背后执行了一系列到我们学过的PLONK概念的映射：</p>
 <p>| Noir代码层面 | PLONK约束层面 | UltraPLONK优化 |<br>|:---|:---|:---|<br>| <code class="inline-code">assert(a == b)</code> | 等式门约束 \$w_L - w_R = 0\$ | 标准算术约束 |<br>| <code class="inline-code">poseidon2::hash(...)</code> | ~240个Plonk门（置换网络+S-Box） | 查找表加速S-Box |<br>| <code class="inline-code">if x == 0 { a } else { b }</code> | 选择器门 + 拷贝约束 | 自定义MUX门 |<br>| <code class="inline-code">for</code> 循环 | 展开为重复的门模式 | Region布局优化 |<br>| <code class="inline-code">let mut current</code> | witness多项式的逐行更新 | 置换论证保证跨行一致 |<br>| 数组索引访问 | 固定列（fixed column）中的预置值 | 查找表约束 |</p>

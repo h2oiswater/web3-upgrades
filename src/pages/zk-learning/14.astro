@@ -217,33 +217,22 @@ flowchart TD
 <li><strong>账户抽象+ZK</strong>：ERC-4337与ZK的融合开启社交恢复、隐私交易、zkLogin等功能，但ZK不能替代上层安全工程。</li>
 </ul><h3>14.7.2 全教材学习旅程回顾</h3>
 <p>让我们用最后一幅图景，回顾你从第1章走到第14章的完整旅程：</p>
-<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────────┐
-│                     ZK 系统学习旅程全景                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  第一层：数学根基                    第二层：电路表达              │
-│  ──────────────────────             ──────────────────────       │
-│  • 有限域 F_p 的加减乘除            • R1CS: (A·s)*(B·s)=(C·s)   │
-│  • 群、环、域的代数结构              • Plonkish: 表格化执行轨迹  │
-│  • 椭圆曲线与离散对数难题            • Circom / Noir 编码       │
-│  • 多项式插值与 FFT                  • 约束优化与Lookup Tables   │
-│                                                                 │
-│  第三层：证明算法                    第四层：工程应用              │
-│  ──────────────────────             ──────────────────────       │
-│  • Groth16: 最小证明 + 最快验证      • zkRollup 扩容逻辑          │
-│  • PLONK: 通用设置 + 灵活电路        • Tornado Cash 隐私转账    │
-│  • STARK: 无需设置 + 抗量子          • zkLogin / zkKYC 身份验证   │
-│  • PCS 选型: KZG / IPA / FRI        • Noir 隐私投票 + Solidity   │
-│                                                                 │
-│  第五层：前沿展望                    第六层：持续进化            │
-│  ──────────────────────             ──────────────────────       │
-│  • 递归证明: Halo2 / Nova            • 0xPARC / PSE 社区         │
-│  • 硬件加速: GPU → ASIC              • ZK Summit / 黑客松        │
-│  • ZKML: EZKL / Jolt / RISC Zero   • 论文阅读与动手实验         │
-│  • 账户抽象 + ZK 融合                • 从学习者到贡献者           │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-</code></pre>
+<pre class="mermaid">
+flowchart TD
+    subgraph ResourceMap["ZK 持续学习资源地图"]
+        Basic["基础巩固<br/>• rareskills 教程系列<br/>• Vitalik 博客系列<br/>• oboe.com ZKP指南"]
+        Advanced["进阶深入<br/>• 0xPARC Learning Group<br/>• zkSecurity 审计报告<br/>• LambdaClass FRI教程"]
+        Frontier["前沿探索<br/>• ZK Hack 黑客松<br/>• PSE 研究博客<br/>• a16z crypto研究"]
+        Events["关键会议与活动日历<br/>• ZK Summit（欧洲/亚洲巡回）<br/>• zkDay（ETHGlobal 系列）<br/>• ZK Hack（季度）<br/>• 0xPARC ZK Learning Group"]
+        Reading["推荐阅读路径<br/>入门: Vitalik How zk-SNARKs are Possible<br/>↓<br/>进阶: zkSecurity PLONK Hands-On Deep Dive<br/>↓<br/>深入: LambdaClass How to Code FRI from Scratch<br/>↓<br/>前沿: a16z Jolt 论文 / EZKL 文档"]
+    end
+    Basic --> Advanced
+    Advanced --> Frontier
+    Basic --> Events
+    Advanced --> Events
+    Frontier --> Events
+    Events -.-> Reading
+</pre>
 <h3>14.7.3 从学习者到建造者</h3>
 <p>这本教材的结束，恰恰是你ZK旅程的真正开始。前几章里那些精心设计的电路、那些反复调试的约束、那些让你头疼的多项式等式——它们正在从"学习内容"转变为"建造工具"。</p>
 <p>ZK技术的美妙之处在于，它不仅是密码学家的玩具，更是每一个关心隐私、可验证性和去信任的开发者手中的工具。无论你是想让钱包用户的交易更加隐私，还是想为DeFi协议添加可验证的链下计算，抑或是探索AI与区块链交叉的新可能——你现在已经拥有了理解这些系统所需的基础。</p>

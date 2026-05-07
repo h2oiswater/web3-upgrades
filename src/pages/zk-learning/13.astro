@@ -338,13 +338,18 @@ path_indices = ["0", "1", "0", "1", "0", "1", "0", "1", "0", "1"]
 <p>验证合约本身不处理业务逻辑，它只做一件事：给定一组公开输入和一个证明，返回"有效"或"无效"。业务合约（VotingContract）在接收到用户投票时，先将公开输入和证明传递给验证合约，只有当验证通过后，才执行计票逻辑。</p>
 <h3>13.4.2 UltraHonk验证器集成</h3>
 <p>Noir + Barretenberg的最新方案是<strong>UltraHonk</strong>，它基于PLONK协议，使用KZG多项式承诺，无需电路特定的trusted setup。导出Solidity验证器的命令如下[^301^]：</p>
-<pre class="code-block"><code># 从验证密钥和电路导出Solidity验证合约
-bb write_solidity_verifier \\\\
-    --scheme ultra_honk \\\\
-    -k ./target/vk \\\\
-    -b ./target/private_voting.json \\\\
-    -o ./target/UltraVerifier.sol
-</code></pre>
+<pre class="mermaid">
+flowchart TD
+    subgraph Sepolia["以太坊测试网 (Sepolia)"]
+        VC["VotingContract<br/>(业务逻辑合约)<br/>- 维护Merkle树<br/>- 记录nullifier<br/>- 调用verifier"]
+        UV["UltraVerifier (Solidity)<br/>(数学验证合约)<br/>- 接收公开输入 + 证明<br/>- 调用预编译合约<br/>- 返回 true/false"]
+        Precompile["bn128预编译合约<br/>(0x06, 0x07, 0x08)<br/>执行椭圆曲线配对"]
+        Spent["已投nullifier映射<br/>← 防止双投 (spentNullifiers)"]
+    end
+    VC -->|"calls"| UV
+    UV --> Precompile
+    VC --> Spent
+</pre>
 <p>导出的<code class="inline-code">UltraVerifier.sol</code>是一个完整的、可直接部署的Solidity合约。它的核心函数签名如下（简化版）：</p>
 <pre class="code-block"><code>// SPDX-License-Identifier: MIT
 // 由barretenberg自动生成的UltraHonk验证器

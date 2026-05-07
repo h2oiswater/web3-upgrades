@@ -81,29 +81,20 @@ flowchart LR
 <p><strong>Groth16 验证等式</strong>：</p>
 <p>\$\$e(A, B) = e(\\alpha, \\beta) \\cdot e(\\text{IC}, \\gamma) \\cdot e(C, \\delta)\$\$</p>
 <p>让我们用 ASCII 图示来可视化这个配对方程的结构[^61^][^199^]：</p>
-<pre class="code-block"><code>                    Groth16 验证配对方程图示
-                    ───────────────────────
-
-     左端（证明的承诺组合）                    右端（三个验证因子相乘）
-
-        e( A , B )           =        e(α, β)  ·  e(IC, γ)  ·  e(C, δ)
-           │   │                         │  │        │   │        │   │
-           │   │                         │  │        │   │        │   │
-           ▼   ▼                         ▼  ▼        ▼   ▼        ▼   ▼
-        ┌─────┐                        ┌──┐ ┌──┐   ┌────┐ ┌──┐   ┌──┐ ┌──┐
-        │ π_A │  ──证明者承诺的witness   │α│ │β│   │ IC │ │γ│   │C │ │δ│
-        └─────┘    （在第一群G₁上）     └──┘ └──┘   └────┘ └──┘   └──┘ └──┘
-        ┌─────┐                        系统常数    公开输入    私密部分
-        │ π_B │  ──证明者承诺的witness    （Setup时   （由x线性  （证明的
-        └─────┘    （在第二群G₂上）      固定）      组合得到）  "平衡块"）
-        ┌─────┐
-        │ π_C │  ──调整项保证等式成立
-        └─────┘
-
-     其中 e(·,·) 是双线性配对运算：e(aP, bQ) = e(P,Q)^(ab)
-     
-     验证者只需：1次 e(A,B)  +  3次右侧配对相乘  =  总共约3次配对运算
-</code></pre>
+<pre class="mermaid">
+flowchart TD
+    Input["输入: pk (proving key), x (公开输入), w (私密见证)"]
+    S1["Step 1: 构造完整见证向量 s<br/>s = (1, x₁, ..., xₙ, w₁, ..., wₘ)<br/>其中1是常量，x是公开输入，w是私密输入"]
+    S2["Step 2: 在群上计算线性组合<br/>A = α + Σ sᵢ·Aᵢ(τ) + r·δ<br/>B = β + Σ sᵢ·Bᵢ(τ) + s·δ<br/>← 第一/二个曲线点"]
+    S3["Step 3: 计算 C 使得配对等式成立<br/>C = (Σ wᵢ·(βAᵢ(τ)+αBᵢ(τ)+Cᵢ(τ)) + H(τ)·Z(τ)) / δ<br/>+ r·B + s·A - rs·δ"]
+    S4["Step 4: 输出证明 π = (A, B, C)"]
+    Core["内部核心:<br/>利用pk中预计算的 g^{τⁱ} 点<br/>通过多标量乘法(MSM)快速求值"]
+    Input --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+    S4 -.-> Core
+</pre>
 <p><strong>这个等式为什么能验证计算的正确性？</strong></p>
 <p>让我们从直觉上理解。等式左边 \$e(A, B)\$ 包含了证明者对 witness 的"双重承诺"——A 在群 G₁ 上，B 在群 G₂ 上。等式右边把验证拆解成三个部分：</p>
 <ul><li>\$e(\\alpha, \\beta)\$：系统常数项，在 Setup 时固定，验证等式的"基准零点"。</li>
@@ -126,14 +117,28 @@ flowchart LR
 <p>Groth16 的可信设置分为两个阶段，这一设计极大地提高了效率和可复用性[^73^][^78^]：</p>
 <p><strong>Phase 1：Powers of Tau（通用阶段）</strong></p>
 <p>Phase 1 是"电路无关"的。它只依赖于一个参数 \$\\tau\$ 和一个最大约束数限制 \$2^n\$。输出是一个 <code class="inline-code">.ptau</code> 文件，可以被<strong>任何不超过该约束数的电路复用</strong>。</p>
-<pre class="code-block"><code># Phase 1: 初始化 Powers of Tau（以 bn128 曲线，约束上限 2^12 = 4096 为例）
-snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
-# 多人依次贡献随机性
-snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="Alice" -v
-snarkjs powersoftau contribute pot12_0001.ptau pot12_0002.ptau --name="Bob" -v
-# 准备 Phase 2
-snarkjs powersoftau prepare phase2 pot12_0002.ptau pot12_final.ptau -v
-</code></pre>
+<pre class="mermaid">
+flowchart LR
+    Left["左端（证明的承诺组合）<br/>e(A, B)"]
+    PiA["π_A<br/>证明者承诺的witness<br/>（在第一群G₁上）"]
+    PiB["π_B<br/>证明者承诺的witness<br/>（在第二群G₂上）"]
+    PiC["π_C<br/>调整项保证等式成立"]
+    Right1["e(α, β)<br/>系统常数<br/>（Setup时固定）"]
+    Right2["e(IC, γ)<br/>公开输入<br/>（由x线性组合得到）"]
+    Right3["e(C, δ)<br/>私密部分<br/>（证明的平衡块）"]
+    Eq["="]
+    Note["其中 e(·,·) 是双线性配对运算<br/>e(aP, bQ) = e(P,Q)^(ab)"]
+    Cost["验证者只需:<br/>1次 e(A,B) + 3次右侧配对相乘<br/>= 总共约3次配对运算"]
+    Left --> PiA
+    Left --> PiB
+    PiA --> PiC
+    PiC --> Eq
+    Eq --> Right1
+    Eq --> Right2
+    Eq --> Right3
+    Eq -.-> Note
+    Note -.-> Cost
+</pre>
 <p><strong>Phase 2：电路特定阶段</strong></p>
 <p>Phase 2 把通用的 Powers of Tau 参数与<strong>特定电路的 R1CS</strong> 结合，生成该电路专用的 proving key 和 verification key。</p>
 <pre class="code-block"><code># Phase 2: 基于电路的特定设置

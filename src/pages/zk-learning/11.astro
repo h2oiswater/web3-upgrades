@@ -157,34 +157,20 @@ template Withdraw(levels) {
 <p>钱包开发者的噩梦之一是"助记词 onboarding"——用户打开App看到的第一个界面却是"请写下这12个单词"，转化率断崖式下跌。</p>
 <p>Sui生态的 <strong>zkLogin</strong> 方案提供了替代路径：用户用Google、Facebook、Twitter等OAuth账户直接登录Web3，无需管理助记词[^30^][^31^]。关键是：用户的OAuth凭证<strong>不会暴露给链上任何人</strong>。</p>
 <p><strong>类比理解</strong>：想象你要进入一家俱乐部，保安不认识你。你展示一张由银行（OAuth提供商）签名的数字证书，上面写着"此人信用良好"。但你不想暴露银行账户号码或余额。zkLogin中的"零知识翻译官"（zk-SNARK证明生成器）读完后对保安说："持有者确实通过了Google的身份验证，但我不会告诉你ta的Google邮箱是什么。"[^30^]</p>
-<pre class="code-block"><code>┌──────────────────────────────────────────────────────────────────┐
-│                    zkLogin 完整流程（Sui生态）                     │
-│                                                                   │
-│  ┌──────────┐     ┌──────────┐     ┌──────────────────────────┐ │
-│  │  用户    │     │  OAuth   │     │     ZK Prover服务        │ │
-│  │ (浏览器) │────▶│ 提供商   │────▶│  (生成zk-SNARK证明)       │ │
-│  │          │     │Google/   │     │                          │ │
-│  │ 1. 点击  │     │Twitter   │     │  输入：JWT token          │ │
-│  │ "用Google│     │          │     │  输出：π（ZK证明）         │ │
-│  │  登录"   │     │ 2. 签发  │     │                          │ │
-│  │          │     │   JWT    │     │  证明内容：               │ │
-│  │ 4. 获得  │◀────│          │◀────│  "JWT由合法发行者签发，  │ │
-│  │ Sui地址  │     │ 3. JWT  │     │   用户确实拥有该JWT"     │ │
-│  │ (派生自  │     │  返回   │     │                          │ │
-│  │ sub+salt)│     │          │     │  合约看不到JWT内容       │ │
-│  └──────────┘     └──────────┘     └──────────────────────────┘ │
-│       │                                            │              │
-│       │         5. ZK证明 + 公开输入               │              │
-│       └────────────────────────────────────────────┘              │
-│       ▼                                                           │
-│  ┌────────────────────────────────────────────┐                  │
-│  │              Sui链上（智能合约）              │                  │
-│  │  6. 验证ZK证明：证明有效 + issuer合法        │                  │
-│  │  7. 合约只知道"某个经Google认证的用户        │                  │
-│  │     拥有这个Sui地址"，不知道具体邮箱         │                  │
-│  └────────────────────────────────────────────┘                  │
-└──────────────────────────────────────────────────────────────────┘
-</code></pre>
+<pre class="mermaid">
+flowchart TD
+    subgraph Flow["zkLogin 完整流程（Sui生态）"]
+        User["用户 (浏览器)<br/>1. 点击 用Google登录"]
+        OAuth["OAuth 提供商<br/>2. 签发 JWT<br/>3. JWT 返回"]
+        Prover["ZK Prover服务<br/>(生成zk-SNARK证明)<br/>输入: JWT token<br/>输出: π（ZK证明）<br/>证明: JWT由合法发行者签发，<br/>用户确实拥有该JWT<br/>合约看不到JWT内容"]
+        Sui["Sui链上（智能合约）<br/>6. 验证ZK证明: 证明有效 + issuer合法<br/>7. 合约只知道<br/>某个经Google认证的用户拥有这个Sui地址<br/>不知道具体邮箱"]
+    end
+    User -->|""| OAuth
+    OAuth -->|""| Prover
+    Prover -->|"4. 获得 Sui地址<br/>(派生自sub+salt)"| User
+    User -->|"5. ZK证明 + 公开输入"| Sui
+    Prover -->|""| Sui
+</pre>
 <p><strong>关键机制</strong>[^30^][^31^]：<br><ul><li><strong>JWT</strong>：OAuth提供商签发的身份令牌，包含用户ID（<code class="inline-code">sub</code>）、发行者（<code class="inline-code">iss</code>）、过期时间（<code class="inline-code">exp</code>）。</li><br><li><strong>地址派生</strong>：Sui地址从JWT中的 <code class="inline-code">sub</code> 和 <code class="inline-code">salt</code> 哈希派生，同一Google账户总是对应同一地址。</li><br><li><strong>ZK证明</strong>：prover证明"存在一个由合法发行者签名的JWT，其中的<code class="inline-code">sub</code>和<code class="inline-code">salt</code>哈希等于声明的地址"。证明不泄露JWT内容。</li></ul></p>
 <p><strong>安全教训</strong>[^37^]：2026年Brave Software披露zkLogin的关键架构漏洞，影响超760万笔交易。核心洞见："零知识证明无法修复它们看不到的问题。"攻击者可通过构造畸形JWT、提取浏览器API密钥、注册恶意发行者，在<strong>不破坏任何密码学</strong>的前提下生成有效证明。这对钱包开发者的启示是：ZK层之上的应用层安全同样关键。</p>
 <h3>11.4.2 World ID / Worldcoin：用ZK证明"你是唯一的人类"</h3>

@@ -230,38 +230,24 @@ out   = sym_2 + 5      ← 加法门(线性组合),且 out = 35
 <p>还有一个重要区分:<strong>变量(<code class="inline-code">var</code>)</strong> 只在编译时计算,不进入R1CS约束系统。如果你误用 <code class="inline-code">var</code> 代替 <code class="inline-code">signal</code> 进行电路计算,生成的电路会缺少相应约束,导致严重的安全漏洞[^244^]。</p>
 <h3>6.6.2 编写电路:证明我知道 \$x\$ 使得 \$x^3 + x + 5 = 35\$</h3>
 <p>现在让我们用Circom实现本章反复使用的示例。电路的公开输入是 <code class="inline-code">out</code>(固定为35),私有输入是 <code class="inline-code">x</code>(证明者声称知道 \$x=3\$ 满足等式)。</p>
-<pre class="code-block"><code>pragma circom 2.0.0;
-
-// 模板:验证 x3 + x + 5 == out
-// 公开输入: out (期望值为35)
-// 私有输入: x (证明者知道其值)
-template CubicEquation() {
-    // 信号声明
-    signal input x;               // 私有输入:秘密值x
-    signal input out;             // 公开输入:期望输出
-    signal sym1;                  // 中间信号:x * x
-    signal y;                     // 中间信号:x3
-    signal sym2;                  // 中间信号:x3 + x
-
-    // 约束1: sym1 = x * x
-    sym1 <== x * x;
-
-    // 约束2: y = sym1 * x  (= x3)
-    y <== sym1 * x;
-
-    // 约束3: sym2 = y + x   (= x3 + x)
-    // 加法不创建R1CS乘法约束,但 <== 会赋值
-    sym2 <== y + x;
-
-    // 约束4: out = sym2 + 5 (= x3 + x + 5)
-    // 这里我们需要 out === sym2 + 5
-    // 由于 out 是输入信号,我们使用 === 创建等式约束
-    out === sym2 + 5;
-}
-
-// 主组件:实例化模板,声明公开输入
-component main {public [out]} = CubicEquation();
-</code></pre>
+<pre class="mermaid">
+flowchart TD
+    Phase1["阶段1: R1CS 离散约束<br/>(逐行验证)<br/>x=1..4: (Ai·s) × (Bi·s) = (Ci·s)<br/>← 约束点 r1..r4"]
+    Interp["↓ 拉格朗日插值<br/>(Lagrange Interpolation)"]
+    Phase2["阶段2: QAP 多项式表达<br/>(逐点→曲线)"]
+    ABC["A(x), B(x), C(x)"]
+    Product["A(x)·B(x) - C(x)<br/>在 r1,r2,r3,r4 处 = 0"]
+    Divisible["可被 t(x) 整除"]
+    Final["A(x)·B(x) - C(x) = H(x) · t(x)"]
+    Note["其中 t(x) = (x-r1)(x-r2)(x-r3)(x-r4)"]
+    Phase1 --> Interp
+    Interp --> Phase2
+    Phase2 --> ABC
+    ABC --> Product
+    Product --> Divisible
+    Divisible --> Final
+    Final -.-> Note
+</pre>
 <p>代码注释详解:</p>
 <ul><li><code class="inline-code">signal input x</code> 和 <code class="inline-code">signal input out</code> 声明输入信号。<code class="inline-code">out</code> 在 <code class="inline-code">main</code> 的实例化中被标记为 <code class="inline-code">public</code>,意味着验证者可以看到 <code class="inline-code">out</code> 的值。</li>
 <li><code class="inline-code">sym1 <== x * x</code> 同时完成两件事:将 \$x \\times x\$ 的值赋给 <code class="inline-code">sym1</code>,并在R1CS中创建一条乘法约束(对应R1CS的约束1)。</li>
