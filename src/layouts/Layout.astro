@@ -43,8 +43,8 @@ const { title, description = 'Web3 Upgrades Knowledge Base' } = Astro.props;
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1rem 0; border: 1px solid #2a2a3a; border-radius: 8px; }
     .table-scroll .zk-table { width: auto; border-collapse: collapse; font-size: 0.9rem; margin: 0; border: none; border-radius: 0; table-layout: auto; }
     .zk-table thead { background: rgba(0, 212, 170, 0.08); }
-    .zk-table th { padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #00d4aa; border-bottom: 1px solid #2a2a3a; font-size: 0.85rem; white-space: nowrap; }
-    .zk-table td { padding: 0.6rem 1rem; color: #9a9ab0; border-bottom: 1px solid #1a1a2a; }
+    .zk-table th { padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #00d4aa; border-bottom: 1px solid #2a2a3a; font-size: 0.85rem; white-space: nowrap; min-width: 200px; }
+    .zk-table td { padding: 0.6rem 1rem; color: #9a9ab0; border-bottom: 1px solid #1a1a2a; min-width: 200px; }
     .zk-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
     .zk-table tbody tr:last-child td { border-bottom: none; }
   </style>
