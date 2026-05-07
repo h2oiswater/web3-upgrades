@@ -277,21 +277,19 @@ component main {public [root]} = MerkleMembership(4);
 <li><code class="inline-code">pathIndices[i] * (pathIndices[i] - 1) === 0</code>这一行极其重要。如果没有这个约束，攻击者可以给<code class="inline-code">pathIndices[i]</code>传入field中的任意值（比如2），导致Mux1的行为不可预期，最终可能绕过根值校验。</li>
 </ul><h3>12.4.4 与链上Merkle根验证的结合思路</h3>
 <p>在真实的Web3钱包应用中，Merkle成员证明很少单独使用——它通常与智能合约配合，实现"隐私准入控制"。以下是典型的链上交互架构：</p>
-<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────┐
-│                        链下（用户端）                          │
-│  ┌─────────────┐    ┌──────────────────┐    ┌──────────────┐  │
-│  │ 用户持有    │───>│ 计算Merkle路径   │───>│ Circom电路   │  │
-│  │ nullifier   │    │ 和路径方向        │    │ 生成ZK证明   │  │
-│  │ + secret    │    │                  │    │              │  │
-│  └─────────────┘    └──────────────────┘    └──────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼ proof.json + public.json
-┌─────────────────────────────────────────────────────────────┐
-│                        链上（智能合约）                        │
-│  ┌──────────────────┐    ┌──────────────────────────────┐  │
-│  │ Verifier合约      │<───│ 业务合约（如PrivacyVault）   │  │
-│  │ 验证ZK证明有效性   │    │ 1. 验证proof                 │  │
+<pre class="mermaid">
+flowchart TD
+    subgraph 链下 [链下 用户端]
+        U["用户持有\nnullifier + secret"] --> P["计算Merkle路径\n和路径方向"]
+        P --> C["Circom电路\n生成ZK证明"]
+    end
+
+    C -->|"proof.json + public.json"| V
+
+    subgraph 链上 [链上 智能合约]
+        V["Verifier合约\n验证ZK证明有效性"] --> BC["业务合约\n如 PrivacyVault"]
+    end
+</pre>
 │  │                  │    │ 2. 检查nullifier未使用过       │  │
 │  └──────────────────┘    │ 3. 执行业务逻辑                │  │
 │                          └──────────────────────────────┘  │

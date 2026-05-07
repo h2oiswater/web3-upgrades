@@ -1,101 +1,80 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 const baseUrl = import.meta.env.BASE_URL;
-const htmlContent = `<h1>第6章 电路基础：从程序到约束系统</h1>
-<p>本章是ZK学习路径上的一个关键转折点。在前面的章节中，我们分别建立了有限域 \$\\mathbb{F}_p\$ 的运算直觉、群环域的抽象结构，以及多项式插值和FFT的数学工具。现在，我们要将这些碎片拼接成一幅完整的图景：<strong>如何把一段普通的程序计算，转化为一个可以被零知识证明系统验证的数学对象</strong>。这个过程的核心桥梁，就是<strong>算术电路（Arithmetic Circuit）</strong> 及其后续的约束系统表示。</p>
+const htmlContent = `<h1>第6章 电路基础:从程序到约束系统</h1>
+<p>本章是ZK学习路径上的一个关键转折点。在前面的章节中,我们分别建立了有限域 \$\\mathbb{F}_p\$ 的运算直觉、群环域的抽象结构,以及多项式插值和FFT的数学工具。现在,我们要将这些碎片拼接成一幅完整的图景:<strong>如何把一段普通的程序计算,转化为一个可以被零知识证明系统验证的数学对象</strong>。这个过程的核心桥梁,就是<strong>算术电路(Arithmetic Circuit)</strong> 及其后续的约束系统表示。</p>
 <hr>
 <h2>6.1 学习目标</h2>
-<p>完成本章学习后，你应该能够：</p>
-<ul><li><strong>解释算术电路的组成要素</strong>：能够用“门”和“线”的概念描述一段简单程序（如 \$x^3 + x + 5\$）对应的电路结构，并指出为何加法是“免费”的而乘法产生约束。</li>
-<li><strong>手动构造小型R1CS约束系统</strong>：给定一个算术电路，能写出对应的三个向量组 \$(A, B, C)\$ 和见证向量 \$s\$，并验证 \$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$ 成立。</li>
-<li><strong>说明R1CS到QAP的转化动机</strong>：能够用“把表格列变成曲线”的类比，解释为何需要将离散的向量约束转化为多项式恒等式 \$A(x) \\cdot B(x) - C(x) = H(x) \\cdot Z(x)\$。</li>
-<li><strong>编写并编译第一个Circom电路</strong>：能够独立编写一个求解 \$x^3 + x + 5 = 35\$ 的Circom电路，理解 <code class="inline-code"><==</code>、<code class="inline-code">===</code> 和 <code class="inline-code">signal</code> 的语义，并解释编译输出的 <code class="inline-code">.r1cs</code> 文件意义。</li>
+<p>完成本章学习后,你应该能够:</p>
+<ul><li><strong>解释算术电路的组成要素</strong>:能够用"门"和"线"的概念描述一段简单程序(如 \$x^3 + x + 5\$)对应的电路结构,并指出为何加法是"免费"的而乘法产生约束。</li>
+<li><strong>手动构造小型R1CS约束系统</strong>:给定一个算术电路,能写出对应的三个向量组 \$(A, B, C)\$ 和见证向量 \$s\$,并验证 \$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$ 成立。</li>
+<li><strong>说明R1CS到QAP的转化动机</strong>:能够用"把表格列变成曲线"的类比,解释为何需要将离散的向量约束转化为多项式恒等式 \$A(x) \\cdot B(x) - C(x) = H(x) \\cdot Z(x)\$。</li>
+<li><strong>编写并编译第一个Circom电路</strong>:能够独立编写一个求解 \$x^3 + x + 5 = 35\$ 的Circom电路,理解 <code class="inline-code"><==</code>、<code class="inline-code">===</code> 和 <code class="inline-code">signal</code> 的语义,并解释编译输出的 <code class="inline-code">.r1cs</code> 文件意义。</li>
 </ul><hr>
 <h2>6.2 什么是算术电路</h2>
-<h3>6.2.1 类比：一种"只允许乘法和加法的特殊编程语言"</h3>
-<p>想象你走进一家极为特殊的工厂，这家工厂有一条严格的规定：<strong>所有的产品只能由两种基本机器加工出来——加法机和乘法机</strong>。你不能使用除法，不能写 <code class="inline-code">if</code> 分支，不能跑 <code class="inline-code">for</code> 循环。你的原材料（输入）经过这些机器的串联和并联，最终变成成品（输出）。</p>
-<p>算术电路（Arithmetic Circuit）就是这样一座工厂。它是一个<strong>有向无环图（Directed Acyclic Graph, DAG）</strong>，图中的每个节点要么是加法操作，要么是乘法操作，所有数值的运算都在有限域 \$\\mathbb{F}_p\$ 上进行[^101^]。任何你想证明的计算——无论是“我知道一个哈希的原像”还是“这笔隐私转账的余额非负”——都必须先被翻译成这种只含加法和乘法的表达形式。</p>
-<p>这种限制并非刁难。ZK证明系统的核心密码学原语（如双线性配对、多项式承诺）天然只能“理解”加法和乘法。条件判断、循环、除法等高级语言特性，都需要在编译阶段被<strong>展开</strong>或<strong>模拟</strong>成算术运算的组合。</p>
-<h3>6.2.2 电路的组成：门、线与输入/输出</h3>
-<p>让我们用标准术语来描述这座工厂的零件：</p>
-<ul><li><strong>线（Wire）</strong>：携带域元素的变量，相当于工厂中运输物料的管道。线有输入线、输出线和内部中间线。</li>
-<li><strong>门（Gate）</strong>：执行运算的节点。分为两种：</li>
-</ul>  - <strong>加法门（Addition Gate）</strong>：输出 = 输入1 + 输入2。在大多数约束系统中，加法是“免费的”——它不产生独立的约束，而是通过向量的线性组合直接表达[^123^]。
-  - <strong>乘法门（Multiplication Gate）</strong>：输出 = 输入1 × 输入2。乘法是电路的“计量单位”，每一个乘法门通常对应约束系统中的一条约束。
-<ul><li><strong>输入/输出</strong>：电路对外暴露的接口。输入可以细分为公开输入（Public Input，所有人可见）和私有输入（Private Input / Witness，只有证明者知道）。</li>
-</ul><p>下图展示了计算 \$y = x^3 + x + 5\$ 的算术电路结构。为了遵守“只有加法和乘法”的规则，我们把 \$x^3\$ 拆成两次乘法：</p>
-<pre class="code-block"><code>                    算术电路：计算 x³ + x + 5
-    ═══════════════════════════════════════════════════════
-    
-    输入 x ───┬────────────────────────────────────────┐
-              │                                        │
-              ↓                                        │
-         ┌─────────┐                                   │
-         │    ×    │  ← 乘法门1:  sym_1 = x * x        │
-         └────┬────┘                                   │
-              │ sym_1                                   │
-              ↓                                         │
-         ┌─────────┐                                   │
-         │    ×    │  ← 乘法门2:  y = sym_1 * x        │
-         └────┬────┘                                   │
-              │ y                                      │
-              │                                        │
-              ├──→ ┌─────────┐ ←──┐                    │
-              │    │    +    │  x │  ← 加法门1:        │
-              └──→ └────┬────┘    │    sym_2 = y + x   │
-                        │ sym_2   │                    │
-                        ↓         │                    │
-                   ┌─────────┐ ←─┘                    │
-                   │    +    │  ← 加法门2:            │
-                   └────┬────┘    out = sym_2 + 5     │
-                        │                             │
-              ┌─────────┘                             │
-              ↓                                        ↓
-    常量 5 ──→                                    输出 out
-    
-    ═══════════════════════════════════════════════════════
-</code></pre>
-<p>从图中可以清晰看出：这条电路包含 <strong>2个乘法门</strong> 和 <strong>2个加法门</strong>。在R1CS约束系统中，乘法门数量直接决定了约束的数量，而加法门因为是线性操作，通常不增加额外约束[^123^]。这意味着电路优化的首要目标，就是减少乘法运算的次数。</p>
-<h3>6.2.3 从普通程序到电路：循环展开与条件判断</h3>
-<p>将高级程序转化为算术电路的过程称为 <strong>flattening（展平）</strong>[^101^]。对于ZK开发者来说，理解这个展平过程至关重要——它直接决定了电路的复杂度和证明成本。</p>
-<p><strong>循环展开</strong>：假设程序中有 <code class="inline-code">for (i = 0; i < N; i++) { ... }</code>，在电路中没有动态循环的概念。编译器必须将循环体复制 \$N\$ 次，展开为 \$N\$ 个并行的门序列。如果 \$N\$ 是编译时已知的常数（如 Merkle 树深度固定为20），这没有问题；如果 \$N\$ 是运行时才确定的变量，就无法直接表达。</p>
-<p><strong>条件判断</strong>：<code class="inline-code">if (a > b)</code> 这样的分支在电路中无法直接执行。常见的替代方案有两种：一是同时计算两个分支的结果，然后用一个选择器（selector）变量来“开关”输出；二是将条件转化为约束，例如证明 <code class="inline-code">(a - b)</code> 的某一位是1。这些转换都会增加额外的门和约束。</p>
-<h3>6.2.4 为什么ZK需要电路：见证计算过程的可验证性</h3>
-<p>在ZK证明中，证明者声称“我知道一个秘密输入 \$x\$，使得程序 \$P\$ 在输入 \$x\$ 和公开输入 \$pub\$ 后输出正确结果”。为了让验证者相信这一点，我们需要一个数学结构来<strong>精确地、无歧义地</strong>编码程序 \$P\$ 的每一步计算。</p>
-<p>算术电路就是这样的结构。它把程序 \$P\$ 固定成一个公共的“蓝图”，而证明者需要提供<strong>见证（Witness）</strong>——即电路中所有中间线（包括私有输入和内部信号）的具体数值。验证者并不直接看到见证，但可以通过密码学工具检查：这个见证是否确实让电路中的所有门都正确执行了。</p>
-<p>你可以把见证想象成一份“工作记录”：工厂里的每个机器（门）的输入输出都被记录在案。ZK证明的任务就是向外界证明“这份记录真实存在，且符合工厂蓝图”，但又不需要交出原始记录本身。</p>
+<h3>6.2.1 类比:一种"只允许乘法和加法的特殊编程语言"</h3>
+<p>想象你走进一家极为特殊的工厂,这家工厂有一条严格的规定:<strong>所有的产品只能由两种基本机器加工出来--加法机和乘法机</strong>。你不能使用除法,不能写 <code class="inline-code">if</code> 分支,不能跑 <code class="inline-code">for</code> 循环。你的原材料(输入)经过这些机器的串联和并联,最终变成成品(输出)。</p>
+<p>算术电路(Arithmetic Circuit)就是这样一座工厂。它是一个<strong>有向无环图(Directed Acyclic Graph, DAG)</strong>,图中的每个节点要么是加法操作,要么是乘法操作,所有数值的运算都在有限域 \$\\mathbb{F}_p\$ 上进行[^101^]。任何你想证明的计算--无论是"我知道一个哈希的原像"还是"这笔隐私转账的余额非负"--都必须先被翻译成这种只含加法和乘法的表达形式。</p>
+<p>这种限制并非刁难。ZK证明系统的核心密码学原语(如双线性配对、多项式承诺)天然只能"理解"加法和乘法。条件判断、循环、除法等高级语言特性,都需要在编译阶段被<strong>展开</strong>或<strong>模拟</strong>成算术运算的组合。</p>
+<h3>6.2.2 电路的组成:门、线与输入/输出</h3>
+<p>让我们用标准术语来描述这座工厂的零件:</p>
+<ul><li><strong>线(Wire)</strong>:携带域元素的变量,相当于工厂中运输物料的管道。线有输入线、输出线和内部中间线。</li>
+<li><strong>门(Gate)</strong>:执行运算的节点。分为两种:</li>
+</ul>  - <strong>加法门(Addition Gate)</strong>:输出 = 输入1 + 输入2。在大多数约束系统中,加法是"免费的"--它不产生独立的约束,而是通过向量的线性组合直接表达[^123^]。
+  - <strong>乘法门(Multiplication Gate)</strong>:输出 = 输入1 × 输入2。乘法是电路的"计量单位",每一个乘法门通常对应约束系统中的一条约束。
+<ul><li><strong>输入/输出</strong>:电路对外暴露的接口。输入可以细分为公开输入(Public Input,所有人可见)和私有输入(Private Input / Witness,只有证明者知道)。</li>
+</ul><p>下图展示了计算 \$y = x^3 + x + 5\$ 的算术电路结构。为了遵守"只有加法和乘法"的规则，我们把 \$x^3\$ 拆成两次乘法：</p>
+<pre class="mermaid">
+flowchart TD
+    X["输入 x"] --> M1["× 乘法门1\u003cbr/\u003esym₁ = x · x"]
+    M1 --> M2["× 乘法门2\u003cbr/\u003ey = sym₁ · x"]
+    M2 --> A1["+ 加法门1\u003cbr/\u003esym₂ = y + x"]
+    X --> A1
+    C5["常量 5"] --> A2["+ 加法门2\u003cbr/\u003eout = sym₂ + 5"]
+    A1 --> A2
+    A2 --> OUT["输出 out"]
+</pre>
+<p>从图中可以清晰看出:这条电路包含 <strong>2个乘法门</strong> 和 <strong>2个加法门</strong>。在R1CS约束系统中,乘法门数量直接决定了约束的数量,而加法门因为是线性操作,通常不增加额外约束[^123^]。这意味着电路优化的首要目标,就是减少乘法运算的次数。</p>
+<h3>6.2.3 从普通程序到电路:循环展开与条件判断</h3>
+<p>将高级程序转化为算术电路的过程称为 <strong>flattening(展平)</strong>[^101^]。对于ZK开发者来说,理解这个展平过程至关重要--它直接决定了电路的复杂度和证明成本。</p>
+<p><strong>循环展开</strong>:假设程序中有 <code class="inline-code">for (i = 0; i < N; i++) { ... }</code>,在电路中没有动态循环的概念。编译器必须将循环体复制 \$N\$ 次,展开为 \$N\$ 个并行的门序列。如果 \$N\$ 是编译时已知的常数(如 Merkle 树深度固定为20),这没有问题;如果 \$N\$ 是运行时才确定的变量,就无法直接表达。</p>
+<p><strong>条件判断</strong>:<code class="inline-code">if (a > b)</code> 这样的分支在电路中无法直接执行。常见的替代方案有两种:一是同时计算两个分支的结果,然后用一个选择器(selector)变量来"开关"输出;二是将条件转化为约束,例如证明 <code class="inline-code">(a - b)</code> 的某一位是1。这些转换都会增加额外的门和约束。</p>
+<h3>6.2.4 为什么ZK需要电路:见证计算过程的可验证性</h3>
+<p>在ZK证明中,证明者声称"我知道一个秘密输入 \$x\$,使得程序 \$P\$ 在输入 \$x\$ 和公开输入 \$pub\$ 后输出正确结果"。为了让验证者相信这一点,我们需要一个数学结构来<strong>精确地、无歧义地</strong>编码程序 \$P\$ 的每一步计算。</p>
+<p>算术电路就是这样的结构。它把程序 \$P\$ 固定成一个公共的"蓝图",而证明者需要提供<strong>见证(Witness)</strong>--即电路中所有中间线(包括私有输入和内部信号)的具体数值。验证者并不直接看到见证,但可以通过密码学工具检查:这个见证是否确实让电路中的所有门都正确执行了。</p>
+<p>你可以把见证想象成一份"工作记录":工厂里的每个机器(门)的输入输出都被记录在案。ZK证明的任务就是向外界证明"这份记录真实存在,且符合工厂蓝图",但又不需要交出原始记录本身。</p>
 <hr>
-<h2>6.3 R1CS：一阶约束系统</h2>
-<h3>6.3.1 类比：每行一个方程的表格</h3>
-<p>R1CS（Rank-1 Constraint System，一阶约束系统）是算术电路的“表格化”表达。让我们延续工厂类比：如果算术电路是工厂的车间布局图，R1CS就是一份<strong>生产记录表</strong>，每一行记录一个乘法机的运转情况，形式固定为：</p>
-<blockquote><strong>（机器A的输入组合）×（机器B的输入组合）=（机器C的输出组合）</strong></blockquote>
-<p>也就是说，R1CS的每一行约束都恰好包含<strong>一个乘法</strong>。加法不单独占行，它被吸收到乘法两侧的线性组合中[^101^]。</p>
-<h3>6.3.2 形式化定义：三个向量与一个见证</h3>
-<p>现在让我们从类比走向形式化。设电路有 \$n\$ 个变量（包括1个常量 <code class="inline-code">1</code>、公开输入、私有输入和内部中间信号），我们将这些变量排列成一个<strong>见证向量（Witness Vector）</strong>：</p>
+<h2>6.3 R1CS:一阶约束系统</h2>
+<h3>6.3.1 类比:每行一个方程的表格</h3>
+<p>R1CS(Rank-1 Constraint System,一阶约束系统)是算术电路的"表格化"表达。让我们延续工厂类比:如果算术电路是工厂的车间布局图,R1CS就是一份<strong>生产记录表</strong>,每一行记录一个乘法机的运转情况,形式固定为:</p>
+<blockquote><strong>(机器A的输入组合)×(机器B的输入组合)=(机器C的输出组合)</strong></blockquote>
+<p>也就是说,R1CS的每一行约束都恰好包含<strong>一个乘法</strong>。加法不单独占行,它被吸收到乘法两侧的线性组合中[^101^]。</p>
+<h3>6.3.2 形式化定义:三个向量与一个见证</h3>
+<p>现在让我们从类比走向形式化。设电路有 \$n\$ 个变量(包括1个常量 <code class="inline-code">1</code>、公开输入、私有输入和内部中间信号),我们将这些变量排列成一个<strong>见证向量(Witness Vector)</strong>:</p>
 <p>\$\$<br>s = [1, \\text{out}, x, \\text{sym}_1, \\text{sym}_2, \\dots]^T<br>\$\$</p>
-<p>其中第一个元素固定为 \$1\$，这是为了允许常数项出现在线性组合中。向量 \$s\$ 的长度为 \$n\$。</p>
-<p>对于电路中的每一个乘法门，R1CS定义三个长度均为 \$n\$ 的向量 \$A_i\$、\$B_i\$、\$C_i\$（下标 \$i\$ 表示第 \$i\$ 个约束）。这三个向量的作用是“从 \$s\$ 中挑选并加权所需的变量”。具体而言，第 \$i\$ 条约束要求：</p>
+<p>其中第一个元素固定为 \$1\$,这是为了允许常数项出现在线性组合中。向量 \$s\$ 的长度为 \$n\$。</p>
+<p>对于电路中的每一个乘法门,R1CS定义三个长度均为 \$n\$ 的向量 \$A_i\$、\$B_i\$、\$C_i\$(下标 \$i\$ 表示第 \$i\$ 个约束)。这三个向量的作用是"从 \$s\$ 中挑选并加权所需的变量"。具体而言,第 \$i\$ 条约束要求:</p>
 <p>\$\$<br>(A_i \\cdot s) \\times (B_i \\cdot s) = (C_i \\cdot s)<br>\$\$</p>
-<p>这里 \$\\cdot\$ 表示向量点积，\$\\times\$ 表示有限域上的乘法。如果电路有 \$m\$ 个乘法门，我们就得到 \$m\$ 组这样的 \$(A_i, B_i, C_i)\$ 向量[^101^]。</p>
-<p>R1CS的“可满足性”问题是：给定公开的 \$A\$、\$B\$、\$C\$ 矩阵（每组 \$m\$ 个向量按行堆叠），是否存在一个向量 \$s\$（其公开部分已固定），使得对所有 \$i \\in [1, m]\$ 都有上述等式成立？</p>
-<h3>6.3.3 从程序到R1CS：\$x^3 + x + 5 = 35\$ 的完整示例</h3>
-<p>让我们把上一节的电路实例 \$x^3 + x + 5 = 35\$ 转化为具体的R1CS。首先，回忆展平后的中间步骤[^101^]：</p>
+<p>这里 \$\\cdot\$ 表示向量点积,\$\\times\$ 表示有限域上的乘法。如果电路有 \$m\$ 个乘法门,我们就得到 \$m\$ 组这样的 \$(A_i, B_i, C_i)\$ 向量[^101^]。</p>
+<p>R1CS的"可满足性"问题是:给定公开的 \$A\$、\$B\$、\$C\$ 矩阵(每组 \$m\$ 个向量按行堆叠),是否存在一个向量 \$s\$(其公开部分已固定),使得对所有 \$i \\in [1, m]\$ 都有上述等式成立?</p>
+<h3>6.3.3 从程序到R1CS:\$x^3 + x + 5 = 35\$ 的完整示例</h3>
+<p>让我们把上一节的电路实例 \$x^3 + x + 5 = 35\$ 转化为具体的R1CS。首先,回忆展平后的中间步骤[^101^]:</p>
 <pre class="code-block"><code>sym_1 = x * x          ← 乘法门1
 y     = sym_1 * x      ← 乘法门2
-sym_2 = y + x          ← 加法门（线性组合）
-out   = sym_2 + 5      ← 加法门（线性组合），且 out = 35
+sym_2 = y + x          ← 加法门(线性组合)
+out   = sym_2 + 5      ← 加法门(线性组合),且 out = 35
 </code></pre>
-<p>设见证向量 \$s = [1, \\text{out}, x, \\text{sym}_1, y, \\text{sym}_2]^T\$（6个元素）。我们有2个乘法门，因此需要2组 \$(A, B, C)\$ 向量。</p>
-<p><strong>约束1（sym_1 = x * x）</strong>：<br><ul><li>左侧第一个因子 \$A_1 \\cdot s\$ 应等于 \$x\$，所以 \$A_1 = [0, 0, 1, 0, 0, 0]\$（只取 \$s\$ 的第3个元素 \$x\$）。</li><br><li>左侧第二个因子 \$B_1 \\cdot s\$ 也应等于 \$x\$，所以 \$B_1 = [0, 0, 1, 0, 0, 0]\$。</li><br><li>右侧 \$C_1 \\cdot s\$ 应等于 \$\\text{sym}_1\$，所以 \$C_1 = [0, 0, 0, 1, 0, 0]\$。</li></ul></p>
-<p>验证：\$(x) \\times (x) = \\text{sym}_1\$ ✓</p>
-<p><strong>约束2（y = sym_1 * x）</strong>：<br><ul><li>\$A_2 \\cdot s = \\text{sym}_1\$，故 \$A_2 = [0, 0, 0, 1, 0, 0]\$。</li><br><li>\$B_2 \\cdot s = x\$，故 \$B_2 = [0, 0, 1, 0, 0, 0]\$。</li><br><li>\$C_2 \\cdot s = y\$，故 \$C_2 = [0, 0, 0, 0, 1, 0]\$。</li></ul></p>
-<p>验证：\$(\\text{sym}_1) \\times (x) = y\$ ✓</p>
-<p><strong>那么加法去哪里了？</strong> 加法门 \$sym_2 = y + x\$ 和 \$out = sym_2 + 5\$ 并没有独立的约束行。它们的信息被“编码”在见证向量 \$s\$ 的线性关系中——当验证者检查约束时，公开输入 \$out = 35\$ 已经被固定，证明者必须提供一个自洽的 \$s\$ 使得所有约束同时满足。加法关系本身不需要单独约束，因为ZK证明系统的验证流程会确保整个 \$s\$ 向量的一致性。</p>
-<p>下图以矩阵形式直观展示R1CS的向量结构（仅展示2个约束、6个变量的子集）：</p>
+<p>设见证向量 \$s = [1, \\text{out}, x, \\text{sym}_1, y, \\text{sym}_2]^T\$(6个元素)。我们有2个乘法门,因此需要2组 \$(A, B, C)\$ 向量。</p>
+<p><strong>约束1(sym_1 = x * x)</strong>:<br><ul><li>左侧第一个因子 \$A_1 \\cdot s\$ 应等于 \$x\$,所以 \$A_1 = [0, 0, 1, 0, 0, 0]\$(只取 \$s\$ 的第3个元素 \$x\$)。</li><br><li>左侧第二个因子 \$B_1 \\cdot s\$ 也应等于 \$x\$,所以 \$B_1 = [0, 0, 1, 0, 0, 0]\$。</li><br><li>右侧 \$C_1 \\cdot s\$ 应等于 \$\\text{sym}_1\$,所以 \$C_1 = [0, 0, 0, 1, 0, 0]\$。</li></ul></p>
+<p>验证:\$(x) \\times (x) = \\text{sym}_1\$ ✓</p>
+<p><strong>约束2(y = sym_1 * x)</strong>:<br><ul><li>\$A_2 \\cdot s = \\text{sym}_1\$,故 \$A_2 = [0, 0, 0, 1, 0, 0]\$。</li><br><li>\$B_2 \\cdot s = x\$,故 \$B_2 = [0, 0, 1, 0, 0, 0]\$。</li><br><li>\$C_2 \\cdot s = y\$,故 \$C_2 = [0, 0, 0, 0, 1, 0]\$。</li></ul></p>
+<p>验证:\$(\\text{sym}_1) \\times (x) = y\$ ✓</p>
+<p><strong>那么加法去哪里了?</strong> 加法门 \$sym_2 = y + x\$ 和 \$out = sym_2 + 5\$ 并没有独立的约束行。它们的信息被"编码"在见证向量 \$s\$ 的线性关系中--当验证者检查约束时,公开输入 \$out = 35\$ 已经被固定,证明者必须提供一个自洽的 \$s\$ 使得所有约束同时满足。加法关系本身不需要单独约束,因为ZK证明系统的验证流程会确保整个 \$s\$ 向量的一致性。</p>
+<p>下图以矩阵形式直观展示R1CS的向量结构(仅展示2个约束、6个变量的子集):</p>
 <pre class="code-block"><code>    ═══════════════════════════════════════════════════════════════════
                     R1CS 向量表示示意
-    
-    见证向量 s = [ 1,  out,   x,  sym_1,    y,  sym_2 ]ᵀ
+
+    见证向量 s = [ 1,  out,   x,  sym_1,    y,  sym_2 ]T
                    │    │     │     │      │     │
                    │    │     │     │      │     └─ 中间信号
                    │    │     │     │      └─ 中间信号
@@ -103,100 +82,100 @@ out   = sym_2 + 5      ← 加法门（线性组合），且 out = 35
                    │    │     └─ 私有输入(witness)
                    │    └─ 公开输出
                    └─ 常量1
-    
-    约束矩阵（行=约束，列=s的元素）：
-    
+
+    约束矩阵(行=约束,列=s的元素):
+
          │  1   out   x  sym_1   y  sym_2
     ─────┼────────────────────────────────
-    A₁   │  0    0    1     0    0     0     ← 约束1的左因子A
-    A₂   │  0    0    0     1    0     0     ← 约束2的左因子A
-    
-    B₁   │  0    0    1     0    0     0     ← 约束1的左因子B
-    B₂   │  0    0    1     0    0     0     ← 约束2的左因子B
-    
-    C₁   │  0    0    0     1    0     0     ← 约束1的右侧C
-    C₂   │  0    0    0     0    1     0     ← 约束2的右侧C
-    
-    约束验证：(Aᵢ · s) × (Bᵢ · s) = (Cᵢ · s)
+    A1   │  0    0    1     0    0     0     ← 约束1的左因子A
+    A2   │  0    0    0     1    0     0     ← 约束2的左因子A
+
+    B1   │  0    0    1     0    0     0     ← 约束1的左因子B
+    B2   │  0    0    1     0    0     0     ← 约束2的左因子B
+
+    C1   │  0    0    0     1    0     0     ← 约束1的右侧C
+    C2   │  0    0    0     0    1     0     ← 约束2的右侧C
+
+    约束验证:(Ai · s) × (Bi · s) = (Ci · s)
     ─────────────────────────────────────────────────────────────────
 </code></pre>
-<p>当 \$x = 3\$ 时，见证为 \$s = [1, 35, 3, 9, 27, 30]^T\$。代入约束1：\$(3) \\times (3) = 9 = \\text{sym}_1\$；约束2：\$(9) \\times (3) = 27 = y\$。所有约束均满足。</p>
-<h3>6.3.4 约束数量：ZK证明复杂度的关键指标</h3>
-<p>在ZK工程实践中，电路的<strong>约束数量（constraint count）</strong> 是最重要的性能指标之一。它直接决定了：</p>
-<ul><li><strong>证明生成时间</strong>：Groth16的证明时间与约束数成 \$O(n \\log n)\$ 关系[^70^]。</li>
-<li><strong>可信设置规模</strong>：可信设置仪式的Phase 2需要为每个约束生成参数[^78^]。</li>
-<li><strong>内存占用</strong>：证明过程中需要对大小与约束数相关的多项式执行FFT。</li>
-</ul><p>因此，ZK电路优化的核心就是<strong>减少乘法门数量</strong>。一个常见的优化案例是 SHA-256：朴素的位运算实现会产生数万个R1CS约束，而使用 PLONKish 的查找表（Lookup Tables）可以将相同逻辑压缩到几千个门[^70^]。在开发ZK钱包功能（如隐私转账、范围证明）时，约束数量直接决定了用户体验——约束越少，证明生成越快，移动端钱包的响应就越流畅。</p>
+<p>当 \$x = 3\$ 时,见证为 \$s = [1, 35, 3, 9, 27, 30]^T\$。代入约束1:\$(3) \\times (3) = 9 = \\text{sym}_1\$;约束2:\$(9) \\times (3) = 27 = y\$。所有约束均满足。</p>
+<h3>6.3.4 约束数量:ZK证明复杂度的关键指标</h3>
+<p>在ZK工程实践中,电路的<strong>约束数量(constraint count)</strong> 是最重要的性能指标之一。它直接决定了:</p>
+<ul><li><strong>证明生成时间</strong>:Groth16的证明时间与约束数成 \$O(n \\log n)\$ 关系[^70^]。</li>
+<li><strong>可信设置规模</strong>:可信设置仪式的Phase 2需要为每个约束生成参数[^78^]。</li>
+<li><strong>内存占用</strong>:证明过程中需要对大小与约束数相关的多项式执行FFT。</li>
+</ul><p>因此,ZK电路优化的核心就是<strong>减少乘法门数量</strong>。一个常见的优化案例是 SHA-256:朴素的位运算实现会产生数万个R1CS约束,而使用 PLONKish 的查找表(Lookup Tables)可以将相同逻辑压缩到几千个门[^70^]。在开发ZK钱包功能(如隐私转账、范围证明)时,约束数量直接决定了用户体验--约束越少,证明生成越快,移动端钱包的响应就越流畅。</p>
 <hr>
-<h2>6.4 QAP：从向量到多项式</h2>
-<h3>6.4.1 类比：把表格的每一列变成一条曲线</h3>
-<p>R1CS虽然清晰，但它本质上是一个<strong>离散的验证问题</strong>：验证者需要逐行检查 \$m\$ 个等式是否都成立。在密码学中，逐点验证是低效的——我们更希望把“多个点上都成立”转化为“一个多项式恒等式成立”。</p>
-<p>这里有一个精妙的类比。想象你有一份R1CS表格，有 \$m\$ 行约束、\$n\$ 列变量。QAP（Quadratic Arithmetic Program，二次算术程序）的做法是：<strong>把表格的每一列抽出来，通过插值变成一条平滑的曲线（多项式）</strong>。原先在 \$x=1\$ 处检查第1个约束，\$x=2\$ 处检查第2个约束……现在变成检查两条曲线在某个特殊点的关系[^64^]。</p>
-<p>这正是我们在第5章学到的<strong>拉格朗日插值</strong>（Lagrange Interpolation）大展身手的地方。</p>
-<h3>6.4.2 核心转化：R1CS的 \$m\$ 个约束变成 \$m\$ 个多项式根</h3>
-<p>具体转化过程如下[^64^][^108^]：</p>
-<p>设R1CS有 \$m\$ 个约束。我们选择 \$m\$ 个互不相同的域元素作为“约束点”，通常取 \$r_1 = 1, r_2 = 2, \\dots, r_m = m\$（在有限域 \$\\mathbb{F}_p\$ 上）。</p>
-<p>对于向量组 \$A\$ 的 \$n\$ 个列（对应见证向量 \$s\$ 的 \$n\$ 个位置），我们进行如下操作：</p>
-<ul><li>取第 \$j\$ 列（\$j = 1, \\dots, n\$），它在 \$m\$ 个约束上有 \$m\$ 个值：\$A_{1,j}, A_{2,j}, \\dots, A_{m,j}\$。</li>
-<li>以 \$(r_i, A_{i,j})\$ 为点进行拉格朗日插值，得到多项式 \$A_j(x)\$，满足 \$A_j(r_i) = A_{i,j}\$。</li>
-<li>将所有列的多项式按见证向量 \$s\$ 的对应分量加权求和，得到最终的多项式：</li>
+<h2>6.4 QAP:从向量到多项式</h2>
+<h3>6.4.1 类比:把表格的每一列变成一条曲线</h3>
+<p>R1CS虽然清晰,但它本质上是一个<strong>离散的验证问题</strong>:验证者需要逐行检查 \$m\$ 个等式是否都成立。在密码学中,逐点验证是低效的--我们更希望把"多个点上都成立"转化为"一个多项式恒等式成立"。</p>
+<p>这里有一个精妙的类比。想象你有一份R1CS表格,有 \$m\$ 行约束、\$n\$ 列变量。QAP(Quadratic Arithmetic Program,二次算术程序)的做法是:<strong>把表格的每一列抽出来,通过插值变成一条平滑的曲线(多项式)</strong>。原先在 \$x=1\$ 处检查第1个约束,\$x=2\$ 处检查第2个约束......现在变成检查两条曲线在某个特殊点的关系[^64^]。</p>
+<p>这正是我们在第5章学到的<strong>拉格朗日插值</strong>(Lagrange Interpolation)大展身手的地方。</p>
+<h3>6.4.2 核心转化:R1CS的 \$m\$ 个约束变成 \$m\$ 个多项式根</h3>
+<p>具体转化过程如下[^64^][^108^]:</p>
+<p>设R1CS有 \$m\$ 个约束。我们选择 \$m\$ 个互不相同的域元素作为"约束点",通常取 \$r_1 = 1, r_2 = 2, \\dots, r_m = m\$(在有限域 \$\\mathbb{F}_p\$ 上)。</p>
+<p>对于向量组 \$A\$ 的 \$n\$ 个列(对应见证向量 \$s\$ 的 \$n\$ 个位置),我们进行如下操作:</p>
+<ul><li>取第 \$j\$ 列(\$j = 1, \\dots, n\$),它在 \$m\$ 个约束上有 \$m\$ 个值:\$A_{1,j}, A_{2,j}, \\dots, A_{m,j}\$。</li>
+<li>以 \$(r_i, A_{i,j})\$ 为点进行拉格朗日插值,得到多项式 \$A_j(x)\$,满足 \$A_j(r_i) = A_{i,j}\$。</li>
+<li>将所有列的多项式按见证向量 \$s\$ 的对应分量加权求和,得到最终的多项式:</li>
 </ul><p>\$\$<br>A(x) = \\sum_{j=1}^{n} s_j \\cdot A_j(x)<br>\$\$</p>
 <p>同理构造 \$B(x)\$ 和 \$C(x)\$。</p>
-<p>关键洞察来了：R1CS的原始约束 \$(A_i \\cdot s) \\times (B_i \\cdot s) = (C_i \\cdot s)\$ 现在等价于说——在 \$x = r_i\$ 这个点上：</p>
+<p>关键洞察来了:R1CS的原始约束 \$(A_i \\cdot s) \\times (B_i \\cdot s) = (C_i \\cdot s)\$ 现在等价于说--在 \$x = r_i\$ 这个点上:</p>
 <p>\$\$<br>A(r_i) \\cdot B(r_i) = C(r_i)<br>\$\$</p>
-<p>也就是说，多项式 \$A(x) \\cdot B(x) - C(x)\$ 在所有 \$m\$ 个约束点 \$r_1, r_2, \\dots, r_m\$ 处都等于 \$0\$。</p>
-<h3>6.4.3 目标多项式 \$t(x)\$：编码所有约束点的“公共分母”</h3>
-<p>如果一个多项式在 \$r_1, r_2, \\dots, r_m\$ 处都为零，那么它必然可以被下面的多项式整除：</p>
+<p>也就是说,多项式 \$A(x) \\cdot B(x) - C(x)\$ 在所有 \$m\$ 个约束点 \$r_1, r_2, \\dots, r_m\$ 处都等于 \$0\$。</p>
+<h3>6.4.3 目标多项式 \$t(x)\$:编码所有约束点的"公共分母"</h3>
+<p>如果一个多项式在 \$r_1, r_2, \\dots, r_m\$ 处都为零,那么它必然可以被下面的多项式整除:</p>
 <p>\$\$<br>t(x) = (x - r_1)(x - r_2)\\cdots(x - r_m)<br>\$\$</p>
-<p>这个 \$t(x)\$ 被称为<strong>目标多项式（Target Polynomial）</strong> 或 <strong>消失多项式（Vanishing Polynomial）</strong>[^108^]。它像是一个“公共分母”，把所有约束点统一编码在一个紧凑的多项式中。</p>
-<p>于是，R1CS的可满足性条件转化为一个<strong>多项式恒等式</strong>：</p>
+<p>这个 \$t(x)\$ 被称为<strong>目标多项式(Target Polynomial)</strong> 或 <strong>消失多项式(Vanishing Polynomial)</strong>[^108^]。它像是一个"公共分母",把所有约束点统一编码在一个紧凑的多项式中。</p>
+<p>于是,R1CS的可满足性条件转化为一个<strong>多项式恒等式</strong>:</p>
 <p>\$\$<br>A(x) \\cdot B(x) - C(x) = H(x) \\cdot t(x)<br>\$\$</p>
-<p>其中 \$H(x)\$ 是某个商多项式（Quotient Polynomial），由多项式除法自然得到。这个等式是QAP的核心，也是后续Groth16证明系统的数学基础[^121^]。</p>
-<p>下图展示了从R1CS的离散约束到QAP的多项式转化的直观过程：</p>
+<p>其中 \$H(x)\$ 是某个商多项式(Quotient Polynomial),由多项式除法自然得到。这个等式是QAP的核心,也是后续Groth16证明系统的数学基础[^121^]。</p>
+<p>下图展示了从R1CS的离散约束到QAP的多项式转化的直观过程:</p>
 <pre class="code-block"><code>    ═══════════════════════════════════════════════════════════════════
-              QAP 多项式转化示意（m = 4 个约束为例）
-    
-    阶段1：R1CS 离散约束（逐行验证）
+              QAP 多项式转化示意(m = 4 个约束为例)
+
+    阶段1:R1CS 离散约束(逐行验证)
     ───────────────────────────────────────────────────────────────
-    x=1:  (A₁·s) × (B₁·s) = (C₁·s)   ← 约束点 r₁
-    x=2:  (A₂·s) × (B₂·s) = (C₂·s)   ← 约束点 r₂
-    x=3:  (A₃·s) × (B₃·s) = (C₃·s)   ← 约束点 r₃
-    x=4:  (A₄·s) × (B₄·s) = (C₄·s)   ← 约束点 r₄
-    
-              ↓  拉格朗日插值（Lagrange Interpolation）
-    
-    阶段2：QAP 多项式表达（逐点→曲线）
+    x=1:  (A1·s) × (B1·s) = (C1·s)   ← 约束点 r1
+    x=2:  (A2·s) × (B2·s) = (C2·s)   ← 约束点 r2
+    x=3:  (A3·s) × (B3·s) = (C3·s)   ← 约束点 r3
+    x=4:  (A4·s) × (B4·s) = (C4·s)   ← 约束点 r4
+
+              ↓  拉格朗日插值(Lagrange Interpolation)
+
+    阶段2:QAP 多项式表达(逐点→曲线)
     ───────────────────────────────────────────────────────────────
-    
+
          A(x)  ──┐
-                  ├──→  A(x)·B(x) - C(x)  在 r₁,r₂,r₃,r₄ 处 = 0
+                  ├──→  A(x)·B(x) - C(x)  在 r1,r2,r3,r4 处 = 0
          B(x)  ──┘          │
          C(x)  ────────────┘
                             ↓
                    可被 t(x) 整除
                             ↓
          A(x)·B(x) - C(x) = H(x) · t(x)
-         
-         其中 t(x) = (x-r₁)(x-r₂)(x-r₃)(x-r₄)
-    
+
+         其中 t(x) = (x-r1)(x-r2)(x-r3)(x-r4)
+
     ═══════════════════════════════════════════════════════════════════
 </code></pre>
 <h3>6.4.4 QAP可满足性的等价性</h3>
-<p>让我们明确这个转化的正确性：</p>
-<blockquote><strong>R1CS可满足</strong> ⇔ <strong>存在见证 \$s\$ 使得对所有 \$i\$，\$(A_i \\cdot s)(B_i \\cdot s) = C_i \\cdot s\$</strong></blockquote>
+<p>让我们明确这个转化的正确性:</p>
+<blockquote><strong>R1CS可满足</strong> ⇔ <strong>存在见证 \$s\$ 使得对所有 \$i\$,\$(A_i \\cdot s)(B_i \\cdot s) = C_i \\cdot s\$</strong></blockquote>
 <blockquote><strong>QAP可满足</strong> ⇔ <strong>存在多项式 \$H(x)\$ 使得 \$A(x) \\cdot B(x) - C(x) = H(x) \\cdot t(x)\$</strong></blockquote>
-<p>这两个命题是等价的。因为如果R1CS的 \$m\$ 个约束都成立，那么 \$A(x) \\cdot B(x) - C(x)\$ 在 \$m\$ 个点处为零，根据多项式因式分解定理，它必能被 \$t(x)\$ 整除，商即为 \$H(x)\$。反之，如果多项式恒等式成立，那么在每个 \$r_i\$ 处代入即可恢复R1CS的原始约束[^149^]。</p>
-<p>这个转化的威力在于：验证者不再需要逐行检查 \$m\$ 个约束。通过 Schwartz-Zippel 引理，验证者只需在一个<strong>随机点</strong>上检查多项式等式是否成立，就能以极高概率确认整个电路的正确性。这正是zk-SNARKs“ succinct（简洁）”特性的数学根源。</p>
+<p>这两个命题是等价的。因为如果R1CS的 \$m\$ 个约束都成立,那么 \$A(x) \\cdot B(x) - C(x)\$ 在 \$m\$ 个点处为零,根据多项式因式分解定理,它必能被 \$t(x)\$ 整除,商即为 \$H(x)\$。反之,如果多项式恒等式成立,那么在每个 \$r_i\$ 处代入即可恢复R1CS的原始约束[^149^]。</p>
+<p>这个转化的威力在于:验证者不再需要逐行检查 \$m\$ 个约束。通过 Schwartz-Zippel 引理,验证者只需在一个<strong>随机点</strong>上检查多项式等式是否成立,就能以极高概率确认整个电路的正确性。这正是zk-SNARKs" succinct(简洁)"特性的数学根源。</p>
 <hr>
 <h2>6.5 Plonkish约束系统</h2>
-<h3>6.5.1 类比：Plonkish像“电子表格”</h3>
-<p>如果说R1CS是一份“每行一个乘法方程”的清单，那么PLONK（以及其泛化形式 Plonkish Arithmetization）则更像一张<strong>电子表格（Spreadsheet）</strong>[^146^]。</p>
-<p>想象一个Excel表格，每一行代表计算的一个步骤（时钟周期），每一列代表一个寄存器或变量。约束不再是孤立的行方程，而是跨越整个表格的<strong>门约束（Gate Constraints）</strong>和<strong>线相等约束（Copy Constraints / Wire Constraints）</strong>。Plonkish 的灵活性在于：你可以自定义每一行的“公式”，不再局限于 \$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$ 这种单一形式。</p>
-<h3>6.5.2 自定义门：从R1CS到Plonkish的灵活性跃迁</h3>
-<p>PLONK 的门约束采用一个统一的通用公式[^155^]：</p>
+<h3>6.5.1 类比:Plonkish像"电子表格"</h3>
+<p>如果说R1CS是一份"每行一个乘法方程"的清单,那么PLONK(以及其泛化形式 Plonkish Arithmetization)则更像一张<strong>电子表格(Spreadsheet)</strong>[^146^]。</p>
+<p>想象一个Excel表格,每一行代表计算的一个步骤(时钟周期),每一列代表一个寄存器或变量。约束不再是孤立的行方程,而是跨越整个表格的<strong>门约束(Gate Constraints)</strong>和<strong>线相等约束(Copy Constraints / Wire Constraints)</strong>。Plonkish 的灵活性在于:你可以自定义每一行的"公式",不再局限于 \$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$ 这种单一形式。</p>
+<h3>6.5.2 自定义门:从R1CS到Plonkish的灵活性跃迁</h3>
+<p>PLONK 的门约束采用一个统一的通用公式[^155^]:</p>
 <p>\$\$<br>q_M \\cdot w_L \\cdot w_R + q_L \\cdot w_L + q_R \\cdot w_R + q_O \\cdot w_O + q_C = 0<br>\$\$</p>
-<p>其中：<br><ul><li>\$w_L, w_R, w_O\$ 是某一行（某个计算步骤）的左输入、右输入和输出（相当于Excel中三个单元格的值）。</li><br><li>\$q_M, q_L, q_R, q_O, q_C\$ 是<strong>选择子（Selector）</strong>，由电路设计者预设，决定这一行执行什么类型的运算。</li></ul></p>
-<p>通过设置不同的选择子，这一行可以变成：</p>
+<p>其中:<br><ul><li>\$w_L, w_R, w_O\$ 是某一行(某个计算步骤)的左输入、右输入和输出(相当于Excel中三个单元格的值)。</li><br><li>\$q_M, q_L, q_R, q_O, q_C\$ 是<strong>选择子(Selector)</strong>,由电路设计者预设,决定这一行执行什么类型的运算。</li></ul></p>
+<p>通过设置不同的选择子,这一行可以变成:</p>
 <table class="zk-table">
   <thead>
     <tr>
@@ -228,103 +207,103 @@ out   = sym_2 + 5      ← 加法门（线性组合），且 out = 35
     </tr>
   </tbody>
 </table>
-<p>这仅仅是开始。<strong>自定义门（Custom Gates）</strong> 允许定义更复杂的行内运算，例如 \$w_O = w_L^5\$（用于高效实现Poseidon哈希）或 \$w_O = w_L \\cdot w_R + w_L\$（用于椭圆曲线点加法的特定步骤）[^70^]。这些自定义门通过引入额外的选择子多项式来激活，使得Plonkish的表达能力远超R1CS的固定乘法-加法模式。</p>
-<h3>6.5.3 置换论证：确保“线的一致性”</h3>
-<p>在电子表格中，同一个变量可能出现在多个不同的行和列中。例如，第1行的输出 \$w_O\$ 可能等于第3行的左输入 \$w_L\$。在R1CS中，这种“线相等”关系通过 witness 向量的共享位置隐式保证。但在Plonkish的表格结构中，同一个变量可能分散在不同的单元格中，需要显式约束它们取值相同。</p>
-<p><strong>置换论证（Permutation Argument）</strong>，也称为 <strong>Grand Product Argument</strong> 或 <strong>Copy Constraints</strong>，正是解决这个问题的工具[^144^]。它通过构造一个特殊的多项式恒等式，证明表格中的某些指定位置（例如单元格A3、B7、C2）的值全部相等，而无需暴露这些值是什么。</p>
-<p>直观地说，置换论证像是在说：“这些单元格里的内容经过了同一批数的某种置换排序后完全匹配。”验证者可以通过检查一个多项式在随机点的取值，以极高概率确认这一断言。</p>
+<p>这仅仅是开始。<strong>自定义门(Custom Gates)</strong> 允许定义更复杂的行内运算,例如 \$w_O = w_L^5\$(用于高效实现Poseidon哈希)或 \$w_O = w_L \\cdot w_R + w_L\$(用于椭圆曲线点加法的特定步骤)[^70^]。这些自定义门通过引入额外的选择子多项式来激活,使得Plonkish的表达能力远超R1CS的固定乘法-加法模式。</p>
+<h3>6.5.3 置换论证:确保"线的一致性"</h3>
+<p>在电子表格中,同一个变量可能出现在多个不同的行和列中。例如,第1行的输出 \$w_O\$ 可能等于第3行的左输入 \$w_L\$。在R1CS中,这种"线相等"关系通过 witness 向量的共享位置隐式保证。但在Plonkish的表格结构中,同一个变量可能分散在不同的单元格中,需要显式约束它们取值相同。</p>
+<p><strong>置换论证(Permutation Argument)</strong>,也称为 <strong>Grand Product Argument</strong> 或 <strong>Copy Constraints</strong>,正是解决这个问题的工具[^144^]。它通过构造一个特殊的多项式恒等式,证明表格中的某些指定位置(例如单元格A3、B7、C2)的值全部相等,而无需暴露这些值是什么。</p>
+<p>直观地说,置换论证像是在说:"这些单元格里的内容经过了同一批数的某种置换排序后完全匹配。"验证者可以通过检查一个多项式在随机点的取值,以极高概率确认这一断言。</p>
 <h3>6.5.4 Plonkish在Halo2和Plonky2中的实际应用</h3>
-<p>Plonkish 架构已经被多个主流ZK系统采用：</p>
-<ul><li><strong>Halo2（Zcash Orchard）</strong>：使用 IPA（内积论证）作为多项式承诺方案，无需可信设置，支持递归证明组合[^117^]。其电路布局采用 Plonkish 表格结构，开发者用 Rust 直接配置选择子、自定义门和查找表。</li>
-<li><strong>Plonky2（Polygon）</strong>：将 Plonkish 与 FRI（而非KZG）结合，利用哈希函数的承诺方案实现透明设置，同时保留自定义门的灵活性。</li>
-<li><strong>zkSync Era / Scroll</strong>：采用 KZG 版本的 PLONK 变体，通过 UltraPLONK 的查找表将常见运算（如位分解、范围检查）的约束数降低一个数量级[^70^]。</li>
-</ul><p>对于Web3钱包开发者而言，了解Plonkish的趋势很重要：如果你的钱包未来需要集成隐私功能（如隐藏交易金额的转账），基于Plonkish的系统（如Noir + Barretenberg）通常比纯R1CS系统更高效，因为查找表能大幅减少范围证明的约束数量。</p>
+<p>Plonkish 架构已经被多个主流ZK系统采用:</p>
+<ul><li><strong>Halo2(Zcash Orchard)</strong>:使用 IPA(内积论证)作为多项式承诺方案,无需可信设置,支持递归证明组合[^117^]。其电路布局采用 Plonkish 表格结构,开发者用 Rust 直接配置选择子、自定义门和查找表。</li>
+<li><strong>Plonky2(Polygon)</strong>:将 Plonkish 与 FRI(而非KZG)结合,利用哈希函数的承诺方案实现透明设置,同时保留自定义门的灵活性。</li>
+<li><strong>zkSync Era / Scroll</strong>:采用 KZG 版本的 PLONK 变体,通过 UltraPLONK 的查找表将常见运算(如位分解、范围检查)的约束数降低一个数量级[^70^]。</li>
+</ul><p>对于Web3钱包开发者而言,了解Plonkish的趋势很重要:如果你的钱包未来需要集成隐私功能(如隐藏交易金额的转账),基于Plonkish的系统(如Noir + Barretenberg)通常比纯R1CS系统更高效,因为查找表能大幅减少范围证明的约束数量。</p>
 <hr>
-<h2>6.6 实战：第一个Circom电路</h2>
+<h2>6.6 实战:第一个Circom电路</h2>
 <h3>6.6.1 Circom语法速览</h3>
-<p>Circom 是一种专门为 zk-SNARK 设计的领域特定语言（DSL），可视为“R1CS的人体工学包装器”[^106^][^278^]。它将电路描述编译为底层的R1CS约束系统。理解以下三个核心概念是编写Circom电路的基础：</p>
-<ul><li><strong>Signal（信号）</strong>：电路中的导线，分为 <code class="inline-code">input</code>、<code class="inline-code">output</code> 和中间信号。信号是不可变的，一旦赋值不可更改。信号才是R1CS约束系统中的实际变量。</li>
-<li><strong>Template（模板）</strong>：子电路的定义，类似函数但生成的是电路结构而非运行时值。模板支持参数（编译时确定）。</li>
-<li><strong>Component（组件）</strong>：模板的实例化单元，用点符号访问其输入/输出信号。</li>
-</ul><p>Circom 提供三种关键的约束运算符：</p>
-<p>| 运算符 | 作用 | 是否赋值 | 是否创建约束 | 安全性 |<br>|-------|------|---------|------------|--------|<br>| <code class="inline-code"><==</code> | 赋值+约束 | 是 | 是 | ✅ 安全，最常用 |<br>| <code class="inline-code">===</code> | 仅约束 | 否 | 是 | ✅ 安全，用于验证 |<br>| <code class="inline-code"><--</code> | 仅赋值 | 是 | 否 | ⚠️ 危险，需手动补约束 |</p>
-<p>还有一个重要区分：<strong>变量（<code class="inline-code">var</code>）</strong> 只在编译时计算，不进入R1CS约束系统。如果你误用 <code class="inline-code">var</code> 代替 <code class="inline-code">signal</code> 进行电路计算，生成的电路会缺少相应约束，导致严重的安全漏洞[^244^]。</p>
-<h3>6.6.2 编写电路：证明我知道 \$x\$ 使得 \$x^3 + x + 5 = 35\$</h3>
-<p>现在让我们用Circom实现本章反复使用的示例。电路的公开输入是 <code class="inline-code">out</code>（固定为35），私有输入是 <code class="inline-code">x</code>（证明者声称知道 \$x=3\$ 满足等式）。</p>
+<p>Circom 是一种专门为 zk-SNARK 设计的领域特定语言(DSL),可视为"R1CS的人体工学包装器"[^106^][^278^]。它将电路描述编译为底层的R1CS约束系统。理解以下三个核心概念是编写Circom电路的基础:</p>
+<ul><li><strong>Signal(信号)</strong>:电路中的导线,分为 <code class="inline-code">input</code>、<code class="inline-code">output</code> 和中间信号。信号是不可变的,一旦赋值不可更改。信号才是R1CS约束系统中的实际变量。</li>
+<li><strong>Template(模板)</strong>:子电路的定义,类似函数但生成的是电路结构而非运行时值。模板支持参数(编译时确定)。</li>
+<li><strong>Component(组件)</strong>:模板的实例化单元,用点符号访问其输入/输出信号。</li>
+</ul><p>Circom 提供三种关键的约束运算符:</p>
+<p>| 运算符 | 作用 | 是否赋值 | 是否创建约束 | 安全性 |<br>|-------|------|---------|------------|--------|<br>| <code class="inline-code"><==</code> | 赋值+约束 | 是 | 是 | ✅ 安全,最常用 |<br>| <code class="inline-code">===</code> | 仅约束 | 否 | 是 | ✅ 安全,用于验证 |<br>| <code class="inline-code"><--</code> | 仅赋值 | 是 | 否 | ⚠️ 危险,需手动补约束 |</p>
+<p>还有一个重要区分:<strong>变量(<code class="inline-code">var</code>)</strong> 只在编译时计算,不进入R1CS约束系统。如果你误用 <code class="inline-code">var</code> 代替 <code class="inline-code">signal</code> 进行电路计算,生成的电路会缺少相应约束,导致严重的安全漏洞[^244^]。</p>
+<h3>6.6.2 编写电路:证明我知道 \$x\$ 使得 \$x^3 + x + 5 = 35\$</h3>
+<p>现在让我们用Circom实现本章反复使用的示例。电路的公开输入是 <code class="inline-code">out</code>(固定为35),私有输入是 <code class="inline-code">x</code>(证明者声称知道 \$x=3\$ 满足等式)。</p>
 <pre class="code-block"><code>pragma circom 2.0.0;
 
-// 模板：验证 x³ + x + 5 == out
+// 模板:验证 x3 + x + 5 == out
 // 公开输入: out (期望值为35)
 // 私有输入: x (证明者知道其值)
 template CubicEquation() {
     // 信号声明
-    signal input x;               // 私有输入：秘密值x
-    signal input out;             // 公开输入：期望输出
-    signal sym1;                  // 中间信号：x * x
-    signal y;                     // 中间信号：x³
-    signal sym2;                  // 中间信号：x³ + x
+    signal input x;               // 私有输入:秘密值x
+    signal input out;             // 公开输入:期望输出
+    signal sym1;                  // 中间信号:x * x
+    signal y;                     // 中间信号:x3
+    signal sym2;                  // 中间信号:x3 + x
 
     // 约束1: sym1 = x * x
     sym1 <== x * x;
 
-    // 约束2: y = sym1 * x  (= x³)
+    // 约束2: y = sym1 * x  (= x3)
     y <== sym1 * x;
 
-    // 约束3: sym2 = y + x   (= x³ + x)
-    // 加法不创建R1CS乘法约束，但 <== 会赋值
+    // 约束3: sym2 = y + x   (= x3 + x)
+    // 加法不创建R1CS乘法约束,但 <== 会赋值
     sym2 <== y + x;
 
-    // 约束4: out = sym2 + 5 (= x³ + x + 5)
+    // 约束4: out = sym2 + 5 (= x3 + x + 5)
     // 这里我们需要 out === sym2 + 5
-    // 由于 out 是输入信号，我们使用 === 创建等式约束
+    // 由于 out 是输入信号,我们使用 === 创建等式约束
     out === sym2 + 5;
 }
 
-// 主组件：实例化模板，声明公开输入
+// 主组件:实例化模板,声明公开输入
 component main {public [out]} = CubicEquation();
 </code></pre>
-<p>代码注释详解：</p>
-<ul><li><code class="inline-code">signal input x</code> 和 <code class="inline-code">signal input out</code> 声明输入信号。<code class="inline-code">out</code> 在 <code class="inline-code">main</code> 的实例化中被标记为 <code class="inline-code">public</code>，意味着验证者可以看到 <code class="inline-code">out</code> 的值。</li>
-<li><code class="inline-code">sym1 <== x * x</code> 同时完成两件事：将 \$x \\times x\$ 的值赋给 <code class="inline-code">sym1</code>，并在R1CS中创建一条乘法约束（对应R1CS的约束1）。</li>
-<li><code class="inline-code">y <== sym1 * x</code> 创建第二条乘法约束（对应R1CS的约束2）。</li>
-<li><code class="inline-code">sym2 <== y + x</code> 是加法操作。Circom编译器不会为加法创建独立的R1CS乘法约束，加法是“免费”的[^123^]。</li>
-<li><code class="inline-code">out === sym2 + 5</code> 创建等式约束，强制 <code class="inline-code">out</code> 必须等于 \$sym2 + 5\$。注意这里用 <code class="inline-code">===</code> 而不是 <code class="inline-code"><==</code>，因为 <code class="inline-code">out</code> 是输入信号，已由外部赋值。</li>
-</ul><p>编译这条电路后，Circom 会生成恰好 <strong>2条R1CS乘法约束</strong>，与我们手动推导的结果一致。</p>
+<p>代码注释详解:</p>
+<ul><li><code class="inline-code">signal input x</code> 和 <code class="inline-code">signal input out</code> 声明输入信号。<code class="inline-code">out</code> 在 <code class="inline-code">main</code> 的实例化中被标记为 <code class="inline-code">public</code>,意味着验证者可以看到 <code class="inline-code">out</code> 的值。</li>
+<li><code class="inline-code">sym1 <== x * x</code> 同时完成两件事:将 \$x \\times x\$ 的值赋给 <code class="inline-code">sym1</code>,并在R1CS中创建一条乘法约束(对应R1CS的约束1)。</li>
+<li><code class="inline-code">y <== sym1 * x</code> 创建第二条乘法约束(对应R1CS的约束2)。</li>
+<li><code class="inline-code">sym2 <== y + x</code> 是加法操作。Circom编译器不会为加法创建独立的R1CS乘法约束,加法是"免费"的[^123^]。</li>
+<li><code class="inline-code">out === sym2 + 5</code> 创建等式约束,强制 <code class="inline-code">out</code> 必须等于 \$sym2 + 5\$。注意这里用 <code class="inline-code">===</code> 而不是 <code class="inline-code"><==</code>,因为 <code class="inline-code">out</code> 是输入信号,已由外部赋值。</li>
+</ul><p>编译这条电路后,Circom 会生成恰好 <strong>2条R1CS乘法约束</strong>,与我们手动推导的结果一致。</p>
 <h3>6.6.3 编译电路、生成Witness、理解约束输出</h3>
-<p>以下是完整的编译和验证流程[^214^]：</p>
-<pre class="code-block"><code># 1. 编译电路，生成R1CS、WASM和符号文件
+<p>以下是完整的编译和验证流程[^214^]:</p>
+<pre class="code-block"><code># 1. 编译电路,生成R1CS、WASM和符号文件
 circom cubic.circom --r1cs --wasm --sym
 
-# 2. 准备输入文件 input.json（证明者知道 x = 3，公开 out = 35）
+# 2. 准备输入文件 input.json(证明者知道 x = 3,公开 out = 35)
 # echo '{"x": "3", "out": "35"}' > input.json
 
-# 3. 生成 witness（见证向量 s 的所有元素值）
+# 3. 生成 witness(见证向量 s 的所有元素值)
 node cubic_js/generate_witness.js cubic.wasm input.json witness.wtns
 
 # 4. 查看R1CS约束数量
 snarkjs r1cs info cubic.r1cs
-# 预期输出：# of constraints: 2
+# 预期输出:# of constraints: 2
 </code></pre>
-<p>编译输出的 <code class="inline-code">.r1cs</code> 文件包含了本电路的完整约束系统：两个向量组 \$(A, B, C)\$，每个向量长度为 \$n\$（变量数）。你可以用 <code class="inline-code">snarkjs r1cs print cubic.r1cs cubic.sym</code> 查看人类可读的约束矩阵，与你手动推导的 \$A_1, B_1, C_1\$ 和 \$A_2, B_2, C_2\$ 一一对应[^208^]。</p>
+<p>编译输出的 <code class="inline-code">.r1cs</code> 文件包含了本电路的完整约束系统:两个向量组 \$(A, B, C)\$,每个向量长度为 \$n\$(变量数)。你可以用 <code class="inline-code">snarkjs r1cs print cubic.r1cs cubic.sym</code> 查看人类可读的约束矩阵,与你手动推导的 \$A_1, B_1, C_1\$ 和 \$A_2, B_2, C_2\$ 一一对应[^208^]。</p>
 <hr>
 <h2>6.7 本章小结与思考题</h2>
 <h3>核心概念回顾</h3>
-<p>本章我们从“程序”走到了“可证明的数学对象”，经历了三个关键的表示层：</p>
-<ul><li><strong>算术电路</strong>是最高层的表达，把程序转化为有限域上的加/乘门图。乘法门数量直接决定了证明成本。</li>
-<li><strong>R1CS</strong> 将电路表格化，每个乘法门变成一组 \$(A_i, B_i, C_i)\$ 向量约束，形式为 \$(A_i \\cdot s) \\times (B_i \\cdot s) = C_i \\cdot s\$。</li>
-<li><strong>QAP</strong> 通过拉格朗日插值将离散的R1CS向量转化为多项式 \$A(x), B(x), C(x)\$，把逐点验证转化为多项式恒等式 \$A(x) \\cdot B(x) - C(x) = H(x) \\cdot t(x)\$，为后续的 succinct 验证奠定基础。</li>
-<li><strong>Plonkish</strong> 是一种更现代的约束表达，用电子表格式的门约束和置换论证取代固定格式的R1CS，支持自定义门和查找表，被Halo2、Plonky2等系统广泛采用。</li>
-<li><strong>Circom</strong> 是R1CS的实用DSL，通过 <code class="inline-code">signal</code>、<code class="inline-code">template</code>、<code class="inline-code">component</code> 以及 <code class="inline-code"><==</code>、<code class="inline-code">===</code> 运算符，让开发者以接近编程的方式编写底层约束系统。</li>
+<p>本章我们从"程序"走到了"可证明的数学对象",经历了三个关键的表示层:</p>
+<ul><li><strong>算术电路</strong>是最高层的表达,把程序转化为有限域上的加/乘门图。乘法门数量直接决定了证明成本。</li>
+<li><strong>R1CS</strong> 将电路表格化,每个乘法门变成一组 \$(A_i, B_i, C_i)\$ 向量约束,形式为 \$(A_i \\cdot s) \\times (B_i \\cdot s) = C_i \\cdot s\$。</li>
+<li><strong>QAP</strong> 通过拉格朗日插值将离散的R1CS向量转化为多项式 \$A(x), B(x), C(x)\$,把逐点验证转化为多项式恒等式 \$A(x) \\cdot B(x) - C(x) = H(x) \\cdot t(x)\$,为后续的 succinct 验证奠定基础。</li>
+<li><strong>Plonkish</strong> 是一种更现代的约束表达,用电子表格式的门约束和置换论证取代固定格式的R1CS,支持自定义门和查找表,被Halo2、Plonky2等系统广泛采用。</li>
+<li><strong>Circom</strong> 是R1CS的实用DSL,通过 <code class="inline-code">signal</code>、<code class="inline-code">template</code>、<code class="inline-code">component</code> 以及 <code class="inline-code"><==</code>、<code class="inline-code">===</code> 运算符,让开发者以接近编程的方式编写底层约束系统。</li>
 </ul><h3>思考题</h3>
-<p><strong>概念理解题：</strong></p>
-<ul><li><strong>加法为何“免费”？</strong> 在R1CS中，加法门不增加约束数量。请结合R1CS的定义 \$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$，解释为什么加法可以被“吸收”到向量的线性组合中，而乘法必须单独占用一条约束。如果电路中大量使用加法会怎样？大量使用乘法又会怎样？</li>
-<li><strong>QAP的插值直觉</strong>：假设某个R1CS有3个约束，对应的 \$A\$ 向量在三个约束点上取值分别为 \$(2, 0, 1)\$。请描述如何通过拉格朗日插值构造 \$A_j(x)\$，使得 \$A_j(1)=2\$、\$A_j(2)=0\$、\$A_j(3)=1\$。为什么这个多项式能保证“在约束点处恢复原始值”？</li>
-</ul><p><strong>动手实践题：</strong></p>
-<ul><li><strong>扩展Circom电路</strong>：将本章的 <code class="inline-code">CubicEquation</code> 电路扩展为验证 \$x^4 + 2x^2 + 7 = 42\$（提示：\$x=2\$ 是一个解）。你需要增加几个乘法门？编译后用 <code class="inline-code">snarkjs r1cs info</code> 验证约束数量是否与你的预期一致。</li>
-<li><strong>R1CS手动构造</strong>：写出验证 \$a \\times b = c\$ 且 \$c + d = e\$ 的R1CS。设见证向量 \$s = [1, e, a, b, c, d]^T\$，写出约束对应的 \$A_i, B_i, C_i\$ 向量。当 \$a=7, b=8, d=5\$ 时，验证约束是否满足。</li></ul>`;
+<p><strong>概念理解题:</strong></p>
+<ul><li><strong>加法为何"免费"?</strong> 在R1CS中,加法门不增加约束数量。请结合R1CS的定义 \$(A \\cdot s) \\times (B \\cdot s) = (C \\cdot s)\$,解释为什么加法可以被"吸收"到向量的线性组合中,而乘法必须单独占用一条约束。如果电路中大量使用加法会怎样?大量使用乘法又会怎样?</li>
+<li><strong>QAP的插值直觉</strong>:假设某个R1CS有3个约束,对应的 \$A\$ 向量在三个约束点上取值分别为 \$(2, 0, 1)\$。请描述如何通过拉格朗日插值构造 \$A_j(x)\$,使得 \$A_j(1)=2\$、\$A_j(2)=0\$、\$A_j(3)=1\$。为什么这个多项式能保证"在约束点处恢复原始值"?</li>
+</ul><p><strong>动手实践题:</strong></p>
+<ul><li><strong>扩展Circom电路</strong>:将本章的 <code class="inline-code">CubicEquation</code> 电路扩展为验证 \$x^4 + 2x^2 + 7 = 42\$(提示:\$x=2\$ 是一个解)。你需要增加几个乘法门?编译后用 <code class="inline-code">snarkjs r1cs info</code> 验证约束数量是否与你的预期一致。</li>
+<li><strong>R1CS手动构造</strong>:写出验证 \$a \\times b = c\$ 且 \$c + d = e\$ 的R1CS。设见证向量 \$s = [1, e, a, b, c, d]^T\$,写出约束对应的 \$A_i, B_i, C_i\$ 向量。当 \$a=7, b=8, d=5\$ 时,验证约束是否满足。</li></ul>`;
 ---
 
-<Layout title="第06章 - 电路基础：从程序到约束系统" description="ZK学习第06章：电路基础：从程序到约束系统">
+<Layout title="第06章 - 电路基础:从程序到约束系统" description="ZK学习第06章:电路基础:从程序到约束系统">
   <main class="min-h-screen bg-[#0A0A0F]">
     <section class="py-12 px-4 border-b border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto">
@@ -339,7 +318,7 @@ snarkjs r1cs info cubic.r1cs
             电路基础
           </span>
         </div>
-        <h1 class="text-3xl md:text-4xl font-bold text-white">电路基础：从程序到约束系统</h1>
+        <h1 class="text-3xl md:text-4xl font-bold text-white">电路基础:从程序到约束系统</h1>
       </div>
     </section>
 
@@ -351,19 +330,19 @@ snarkjs r1cs info cubic.r1cs
 
     <section class="py-8 px-4 border-t border-[#2a2a3a]">
       <div class="max-w-4xl mx-auto flex justify-between items-center">
-        
+
           <a href={`${baseUrl}zk-learning/05/`} class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <span>←</span>
             <div class="text-left">
               <div class="text-xs text-[#6a6a80]">上一章</div>
-              <div class="text-sm font-medium">数学基础IV：多项式、插值与FFT</div>
+              <div class="text-sm font-medium">数学基础IV:多项式、插值与FFT</div>
             </div>
           </a>
-        
+
           <a href={`${baseUrl}zk-learning/07/`} class="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2a3a] bg-[#16161e] text-[#9a9ab0] hover:text-white hover:border-[#3a3a4a] transition-all">
             <div class="text-right">
               <div class="text-xs text-[#6a6a80]">下一章</div>
-              <div class="text-sm font-medium">核心算法I：zk-SNARK与Groth16</div>
+              <div class="text-sm font-medium">核心算法I:zk-SNARK与Groth16</div>
             </div>
             <span>→</span>
           </a>

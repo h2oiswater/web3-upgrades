@@ -108,43 +108,14 @@ const htmlContent = `<h1>第8章 核心算法II：PLONK与通用可信设置—�
 <h2>8.3 PLONK证明流程：五轮构建</h2>
 <p>PLONK的证明协议是一个<strong>多项式交互式预言证明（PIOP, Polynomial Interactive Oracle Proof）</strong>系统 [^63^]。prover和verifier通过多轮交互，逐步构建和验证多项式承诺。最终通过Fiat-Shamir启发式将其转化为非交互式协议。</p>
 <p>下面是PLONK（KZG版本）核心证明流程的五轮架构：</p>
-<pre class="code-block"><code>┌─────────────────────────────────────────────────────────────────────────────┐
-│                     PLONK 证明流程：Round 1 ~ Round 5                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  Round 1: 提交 Witness 多项式                                               │
-│  ├─ Prover 计算 witness 值 a[i], b[i], c[i]（i = 0..n-1）                   │
-│  ├─ 插值得到多项式 a(X), b(X), c(X)                                         │
-│  └─ 使用 KZG 承诺并发送给 Verifier: [a]₁, [b]₁, [c]₁                      │
-│                              ↓                                              │
-│  Round 2: 提交置换累积器多项式 (Grand Product)                                │
-│  ├─ Prover 计算拷贝约束对应的置换累积器 Z(X)                                 │
-│  ├─ Z(X) 编码了所有需要相等的 witness 位置的等价关系                           │
-│  └─ KZG 承诺并发送: [Z]₁                                                   │
-│                              ↓                                              │
-│  Round 3: 构造并提交商多项式                                                 │
-│  ├─ Verifier 发送随机挑战 β, γ（Fiat-Shamir: 从前面承诺哈希生成）            │
-│  ├─ Prover 构造合并约束多项式:                                              │
-│  │   num(X) = 门约束多项式 + β·拷贝约束多项式 + γ·公开输入多项式             │
-│  ├─ 计算商多项式: t(X) = num(X) / Z_H(X)                                   │
-│  └─ 拆分 t(X) 为低次部分 t_lo, t_mid, t_hi，分别承诺发送                      │
-│                              ↓                                              │
-│  Round 4: 在挑战点处评估                                                     │
-│  ├─ Verifier 发送评估挑战 z（随机点）                                        │
-│  ├─ Prover 计算所有相关多项式在 z 处的取值:                                   │
-│  │   ā = a(z), b̄ = b(z), c̄ = c(z), z̄ = Z(z), t̄ = t(z), ...                 │
-│  └─ 将这些评估值发送给 Verifier                                              │
-│                              ↓                                              │
-│  Round 5: 构造并提交打开证明 (Opening Proofs)                                 │
-│  ├─ Prover 为每个多项式构造 KZG 打开证明:                                    │
-│  │   "f(z) = y" 的简洁证明，不暴露 f 的其他系数                              │
-│  ├─ 将多个打开证明聚合成一个批次证明                                         │
-│  └─ Verifier 用一次配对运算验证所有打开证明的一致性                            │
-│                                                                             │
-│  ═══════════════════════════════════════════════════════════════════════     │
-│  最终验证: Verifier 检查                                                     │
-│  1) 所有多项式在挑战点 z 处的评估值与 Round 4 报告的一致（通过 KZG 打开证明） │
-│  2) 这些评估值满足合并后的约束方程（在 z 点处的代数关系）                       │
+<pre class="mermaid">
+flowchart TD
+    R1["Round 1: 提交 Witness 多项式\n• Prover 计算 a[i], b[i], c[i]\n• 插值得 a(X), b(X), c(X)\n• KZG 承诺: [a]₁, [b]₁, [c]₁"] --> R2["Round 2: 提交置换累积器\n• 计算置换累积器 Z(X)\n• KZG 承诺: [Z]₁"]
+    R2 --> R3["Round 3: 构造并提交商多项式\n• Verifier 挑战 β, γ\n• 合并约束多项式 num(X)\n• 商多项式 t(X) = num(X) / Z_H(X)\n• 拆分 t_lo, t_mid, t_hi"]
+    R3 --> R4["Round 4: 在挑战点处评估\n• Verifier 挑战 z\n• Prover 计算 ā, b̄, c̄, z̄, t̄\n• 发送评估值"]
+    R4 --> R5["Round 5: 构造打开证明\n• KZG 打开证明: f(z) = y\n• 聚合成批次证明\n• Verifier 一次配对验证"]
+    R5 --> V["最终验证: Verifier 检查\n1) 评估值与打开证明一致\n2) 满足合并约束方程"]
+</pre>
 │  3) 所有随机挑战均由 Fiat-Shamir 从公开数据和前面轮次的承诺推导而来            │
 └─────────────────────────────────────────────────────────────────────────────┘
 </code></pre>

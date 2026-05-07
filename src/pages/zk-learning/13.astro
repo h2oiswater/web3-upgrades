@@ -56,16 +56,14 @@ bb --version
 </code></pre>
 <blockquote><strong>版本兼容性警告</strong>：Noir与Barretenberg的版本必须严格匹配，否则会出现不可预期的错误。例如Noir v0.38.0需要搭配BB v0.61.0使用[^300^]。如果后续命令报错，首先检查版本匹配。</blockquote>
 <p>安装完成后，你的工作流将是这样的：</p>
-<pre class="code-block"><code>┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐
-│  src/main.nr │ → │ nargo compile│ → │ target/*.json (ACIR)│
-│  (Noir源码)  │    │   (编译电路)  │    │   (电路中间表示)     │
-└─────────────┘    └─────────────┘    └─────────────────────┘
-                                              ↓
-┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐
-│  proof.bin  │ ← │  bb prove    │ ← │ witness.gz ( witness)│
-│  (证明输出)  │    │  (生成证明)  │    │   (见证数据)        │
-└─────────────┘    └─────────────┘    └─────────────────────┘
-</code></pre>
+<pre class="mermaid">
+flowchart LR
+    A["src/main.nr\nNoir源码"] --> B["nargo compile\n编译电路"]
+    B --> C["target/*.json\nACIR 中间表示"]
+    C --> D["bb prove\n生成证明"]
+    D --> E["proof.bin\n证明输出"]
+    W["witness.gz\n见证数据"] --> D
+</pre>
 <p>Noir的完整工作流命令如下[^231^][^242^]：</p>
 <pre class="code-block"><code>nargo new my_project        # 创建新项目
 cd my_project
