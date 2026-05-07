@@ -227,11 +227,13 @@ print(clock_add(10, 5))  # 输出: 3
 <li><strong>类比迁移</strong>：将"密封试卷"类比进一步延伸：如果你需要在钱包中实现"证明用户已满18岁但不暴露出生日期"的功能，"密封袋"对应ZK中的什么密码学原语？"随机抽题"对应什么验证机制？（提示：可参考zk-KYC和选择性披露的概念[^52^]。）</li>
 </ul><h3>动手实践题</h3>
 <ul><li><strong>体验第一个ZK证明</strong>：按照以下步骤，在你的计算机上运行一个最简化的ZK证明流程（无需理解内部数学，先建立"它确实能工作"的信心）：</li>
-</ul>   - 安装 <code class="inline-code">snarkjs</code>：<code class="inline-code">npm install -g snarkjs</code>
-   - 创建并保存以下两个文件：
-
-<strong>multiplier.circom</strong>（最简乘法电路）：
-<pre class="code-block"><code>pragma circom 2.0.0;
+</ul>
+<ul>
+  <li>安装 <code class="inline-code">snarkjs</code>：<code class="inline-code">npm install -g snarkjs</code></li>
+  <li>
+    <p>创建并保存以下两个文件：</p>
+    <p><strong>multiplier.circom</strong>（最简乘法电路）：</p>
+    <pre class="code-block"><code>pragma circom 2.0.0;
 
 template Multiplier() {
     signal input a;
@@ -242,13 +244,13 @@ template Multiplier() {
 
 component main = Multiplier();
 </code></pre>
-
-<strong>input.json</strong>（证明输入）：
-<pre class="code-block"><code>{"a": 3, "b": 11}
+    <p><strong>input.json</strong>（证明输入）：</p>
+    <pre class="code-block"><code>{"a": 3, "b": 11}
 </code></pre>
-
-   - 运行完整的 <code class="inline-code">setup → prove → verify</code> 流程（以下命令可直接复制执行）：
-<pre class="code-block"><code># === 第1步：可信设置（Powers of Tau）===
+  </li>
+  <li>
+    <p>运行完整的 <code class="inline-code">setup → prove → verify</code> 流程（以下命令可直接复制执行）：</p>
+    <pre class="code-block"><code># === 第1步：可信设置（Powers of Tau）===
 # 创建新的 powers of tau 文件（bn128曲线，约束上限2^12=4096）
 snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
 
@@ -276,10 +278,15 @@ snarkjs groth16 prove multiplier_final.zkey witness.wtns proof.json public.json
 snarkjs groth16 verify verification_key.json public.json proof.json
 # 预期输出：[INFO]  snarkJS: OK!
 </code></pre>
-   - <strong>验证结果</strong>：你应该看到 <code class="inline-code">[INFO] snarkJS: OK!</code>。生成的 <code class="inline-code">proof.json</code> 大小约 <strong>800字节</strong>，<code class="inline-code">public.json</code> 包含公开输出值 <code class="inline-code">[33]</code>（即 3 × 11 = 33）。整个验证过程在普通笔记本上仅需<strong>几毫秒</strong>。
-   - <strong>思考题</strong>：如果你将输入从 <code class="inline-code">a=3, b=11</code> 改为 <code class="inline-code">a=3, b=12</code>，验证会失败吗？为什么？
-<p><strong>答案提示</strong>：验证<strong>不会失败</strong>！乘法电路只约束 <code class="inline-code">c = a × b</code>，并未限定具体输入值。3 × 12 = 36 同样是一个合法的乘积，证明系统会生成新的有效证明，公开输出变为 <code class="inline-code">[36]</code>。只有当你声称 <code class="inline-code">3 × 11 = 100</code> 这种错误等式时，验证才会失败。</p>
-<ul><li><strong>调研与对比</strong>：选择两个当前活跃的ZK Rollup项目（如Scroll和StarkNet），查阅它们的官方文档，完成以下对比表：</li>
+  </li>
+  <li>
+    <p><strong>验证结果</strong>：你应该看到 <code class="inline-code">[INFO] snarkJS: OK!</code>。生成的 <code class="inline-code">proof.json</code> 大小约 <strong>800字节</strong>，<code class="inline-code">public.json</code> 包含公开输出值 <code class="inline-code">[33]</code>（即 3 × 11 = 33）。整个验证过程在普通笔记本上仅需<strong>几毫秒</strong>。</p>
+  </li>
+  <li>
+    <p><strong>思考题</strong>：如果你将输入从 <code class="inline-code">a=3, b=11</code> 改为 <code class="inline-code">a=3, b=12</code>，验证会失败吗？为什么？</p>
+    <p><strong>答案提示</strong>：验证<strong>不会失败</strong>！乘法电路只约束 <code class="inline-code">c = a × b</code>，并未限定具体输入值。3 × 12 = 36 同样是一个合法的乘积，证明系统会生成新的有效证明，公开输出变为 <code class="inline-code">[36]</code>。只有当你声称 <code class="inline-code">3 × 11 = 100</code> 这种错误等式时，验证才会失败。</p>
+  </li>
+</ul><ul><li><strong>调研与对比</strong>：选择两个当前活跃的ZK Rollup项目（如Scroll和StarkNet），查阅它们的官方文档，完成以下对比表：</li>
 </ul><table class="zk-table">
   <thead>
     <tr>
