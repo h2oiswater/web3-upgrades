@@ -38,6 +38,12 @@ const { title, description = 'Web3 Upgrades Knowledge Base' } = Astro.props;
   <!-- Use defer (not async) to ensure DOM is ready when MathJax runs -->
   <script id="MathJax-script" defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js"></script>
   
+  <!-- Mermaid for diagram rendering -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+  
   <style is:global>
     /* ZK Learning Table Styles — global because JS creates elements dynamically */
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1rem 0; border: 1px solid #2a2a3a; border-radius: 8px; }
